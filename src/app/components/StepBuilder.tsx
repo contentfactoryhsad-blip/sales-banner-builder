@@ -402,11 +402,25 @@ export function MainPreview({ state, displayWidth }: { state: BannerState; displ
     : <PreviewPanel state={state} displayWidth={displayWidth} />;
 }
 
-function EditSection({ label, children }: { label: string; children: React.ReactNode }) {
+function EditSection({ label, checked, onToggle, children }: {
+  label: string;
+  /** 주면 제목 옆에 체크박스가 붙고, 끄면 내용이 비활성화된다 (Copy 와 같은 방식) */
+  checked?: boolean;
+  onToggle?: (v: boolean) => void;
+  children: React.ReactNode;
+}) {
+  const on = checked !== false;
   return (
     <div>
-      <p className="font-lgei font-bold text-[14px] text-gray-900 mb-2">{label}</p>
-      {children}
+      {onToggle ? (
+        <label className="flex items-center gap-2 mb-2 cursor-pointer select-none w-fit">
+          <input type="checkbox" checked={on} onChange={(e) => onToggle(e.target.checked)} className="accent-[#FD312E]" />
+          <span className="font-lgei font-bold text-[14px] text-gray-900">{label}</span>
+        </label>
+      ) : (
+        <p className="font-lgei font-bold text-[14px] text-gray-900 mb-2">{label}</p>
+      )}
+      <div className={on ? undefined : 'opacity-40 pointer-events-none'}>{children}</div>
     </div>
   );
 }
@@ -581,7 +595,7 @@ function EditSticker({ state, update }: StepProps) {
   };
 
   return (
-    <EditSection label="Sticker">
+    <EditSection label="Sticker" checked={state.showSticker} onToggle={(v) => update({ showSticker: v })}>
       <div className="flex items-center gap-2 mb-2.5">
         <span className="text-[11px] text-gray-500 shrink-0">UP TO</span>
         <input

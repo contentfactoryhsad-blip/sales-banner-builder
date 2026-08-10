@@ -300,7 +300,7 @@ export function SpecBannerPreview({
         )}
 
         {/* ── 할인율 스티커 ── */}
-        {spec.st && (() => {
+        {spec.st && state.showSticker && (() => {
           const [sx, sy, size] = spec.st;
           const L = STICKER_LAYOUT;
           // 디자인별 추가 축소 — Figma 와 같은 중심 기준으로 좌표까지 함께 줄인다
