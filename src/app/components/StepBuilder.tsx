@@ -6,7 +6,7 @@ import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
 import { createInitialState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion } from '../../data/promotions';
-import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN } from '../../data/builderOptions';
+import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
@@ -673,8 +673,12 @@ function EditSticker({ state, update }: StepProps) {
         ))}
       </div>
 
-      {/* 레드를 고른 경우에만 색상 조절 — 글래스는 배경을 그대로 비추므로 해당 없음 */}
-      {(state.stickerStyle ?? DEFAULT_STICKER_STYLE[state.designType]) === 'red' && (
+      {/*
+        색이 칠해지는 스티커에만 색상 조절을 붙인다 — A 의 레드 원, B 의 별.
+        둘 다 렌더에서 같은 기준색(STICKER_RED)을 Hue 로 돌려 쓴다.
+        글래스는 배경을 그대로 비추는 재질이라 돌릴 색 자체가 없다.
+      */}
+      {resolveStickerStyle(state.designType, state.stickerStyle) !== 'glass' && (
         <div className="mt-2.5">
           <HueRow
             swatch={state.stickerHue === null ? STICKER_RED : hslToHex(state.stickerHue, hexToHsl(STICKER_RED).s, hexToHsl(STICKER_RED).l)}
