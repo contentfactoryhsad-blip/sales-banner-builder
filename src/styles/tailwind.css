@@ -1,0 +1,28 @@
+@import 'tailwindcss' source(none);
+@source '../**/*.{js,ts,jsx,tsx}';
+
+@import 'tw-animate-css';
+
+@theme {
+  --font-lgei: "LGEI Headline", "Microsoft JhengHei UI", "Microsoft JhengHei", "PingFang TC", "PingFang SC", "Hiragino Sans", "Apple SD Gothic Neo", "Noto Sans CJK KR", sans-serif;
+
+  /* LG Design System v3 — warm gray neutrals (never cool grays).
+     Remaps Tailwind's default gray-* scale so the whole UI chrome warms up.
+     Output templates use their own inline hex values and are unaffected. */
+  --color-gray-50: #FAF9F5;
+  --color-gray-100: #F6F3EB;
+  --color-gray-200: #E6E1D6;
+  --color-gray-300: #CBC8C2;
+  --color-gray-400: #A19E99;
+  --color-gray-500: #716F6A;
+  --color-gray-600: #5C5B5A;
+  --color-gray-700: #4A4946;
+  --color-gray-800: #333333;
+  --color-gray-900: #262626;
+  --color-gray-950: #1A1A1A;
+
+  /* v3 brand tokens */
+  --color-brand: #FD312E;        /* Active Red — UI accent (CTA, focus, active) */
+  --color-brand-hover: #E22825;  /* hover darken */
+  --color-heritage: #A50034;     /* LG logo mark only */
+}

@@ -1,0 +1,135 @@
+/*
+ * unicode-range restricts LGEI Headline to Latin + ASCII/Latin punctuation +
+ * general/currency/superscript ranges. Browsers will prefer LGEI for these
+ * glyphs (including symbols like $, %, &, !, ", -) and fall through to the
+ * CJK/Thai fallback fonts in the stack ONLY for chars outside this range.
+ * Without this, browsers may "stick" with a CJK fallback font for ASCII
+ * punctuation when surrounded by Chinese text, causing inconsistent metrics.
+ */
+
+@font-face {
+  font-family: "LGEI Headline";
+  src: url("/fonts/LGEIHeadlineTTF-Thin.ttf") format("truetype");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-024F, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: "LGEI Headline";
+  src: url("/fonts/LGEIHeadlineTTF-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-024F, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: "LGEI Headline";
+  src: url("/fonts/LGEIHeadlineTTF-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-024F, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: "LGEI Headline";
+  src: url("/fonts/LGEIHeadlineTTF-Semibold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-024F, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: "LGEI Headline";
+  src: url("/fonts/LGEIHeadlineTTF-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-024F, U+1E00-1EFF, U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: "LGEI Text";
+  src: url("/fonts/LGEIText-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LGEI Text";
+  src: url("/fonts/LGEIText-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LGEI Text";
+  src: url("/fonts/LGEIText-SemiBold.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "LGEI Text";
+  src: url("/fonts/LGEIText-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Cal Sans — reference/font/Cal Sans. 배너 할인율 스티커("20 % off") 전용. */
+@font-face {
+  font-family: "Cal Sans";
+  src: url("/fonts/CalSans-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Pretendard — reference/font/Pretendard. 배너 프로모션 명칭 폰트 선택지. */
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/Pretendard-ExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}

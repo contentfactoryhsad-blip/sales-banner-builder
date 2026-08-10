@@ -1,0 +1,184 @@
+/**
+ * Sales Banner 위저드에서 고르는 선택지 정의.
+ * 실제 디자인/에셋은 Figma 정리 후 채워넣을 예정 — 지금은 탭(선택지)만 세운다.
+ */
+
+import type { StickerStyle } from './sizeLayouts';
+
+/** Ad Channel Select — 광고 매체 (Figma Banner Template 섹션) */
+export interface AdChannel {
+  id: string;
+  label: string;
+}
+
+export const AD_CHANNELS: AdChannel[] = [
+  { id: 'criteo', label: 'Criteo' },
+  { id: 'dv360', label: 'DV360' },
+  { id: 'pmax', label: 'Pmax' },
+  { id: 'meta', label: 'META' },
+];
+
+/** Background Type — 배경 그래픽 5종. A/B 디자인별로 다른 이미지 세트.
+ *  이미지: public/bg/{a|b}/{id}-color.png (썸네일), -bw.png (tint용 텍스처) */
+export interface BackgroundType {
+  id: string;
+  label: string;
+  /** 선택 UI 썸네일 (컬러 샘플) */
+  thumb: string;
+  /** 미리보기용 그레이 텍스처 (프로모션 색으로 tint) */
+  texture: string;
+}
+
+function bgSet(design: 'a' | 'b'): BackgroundType[] {
+  return [1, 2, 3, 4, 5].map((n) => {
+    const id = `${design}-bg-0${n}`;
+    return {
+      id,
+      label: `BG ${n}`,
+      thumb: `/bg/${design}/${id}-color.png`,
+      texture: `/bg/${design}/${id}-bw.png`,
+    };
+  });
+}
+
+/** 디자인 방식(A/B)별 배경 타입 5종 */
+export const BACKGROUND_TYPES: Record<'A' | 'B', BackgroundType[]> = {
+  A: bgSet('a'),
+  B: bgSet('b'),
+};
+
+/** 기본으로 선택되는 배경. B 는 요청대로 b-bg-03. */
+export const DEFAULT_BACKGROUND_ID: Record<'A' | 'B', string> = {
+  A: 'a-bg-01',
+  B: 'b-bg-03',
+};
+
+/** 선택값 → 배경. 미선택(null)이면 그 디자인의 기본 배경. */
+export function resolveBackground(design: 'A' | 'B', id: string | null): BackgroundType {
+  const set = BACKGROUND_TYPES[design];
+  return set.find((b) => b.id === id)
+    ?? set.find((b) => b.id === DEFAULT_BACKGROUND_ID[design])
+    ?? set[0];
+}
+
+/** Asset Select — 배경 위 도형 어셋 6종 (structure.pdf p.6) */
+export interface ShapeAsset {
+  id: string;
+  label: string;
+}
+
+export const SHAPE_ASSETS: ShapeAsset[] = [
+  { id: 'shape-01', label: 'Shape-01' },
+  { id: 'shape-02', label: 'Shape-02' },
+  { id: 'shape-03', label: 'Shape-03' },
+  { id: 'shape-04', label: 'Shape-04' },
+  { id: 'shape-05', label: 'Shape-05' },
+  { id: 'shape-06', label: 'Shape-06' },
+];
+
+/** Box Type — 제품 박스 스타일. Gradient는 제외(Figma 확정 디자인에 없음). */
+export interface BoxStyle {
+  id: string;
+  label: string;
+}
+
+export const BOX_STYLES: BoxStyle[] = [
+  { id: 'glass',    label: 'Glass' },
+  { id: 'white',    label: 'White' },
+];
+
+/** 박스 재질 선택지 — 시안별로 **기본값을 먼저** 보여준다 */
+export const BOX_STYLES_BY_DESIGN: Record<'A' | 'B', BoxStyle[]> = {
+  A: [{ id: 'glass', label: 'Glass' }, { id: 'white', label: 'White' }],
+  B: [{ id: 'white', label: 'White' }, { id: 'glass', label: 'Glass' }],
+};
+
+/**
+ * 스티커 선택지 — A 는 원, B 는 별이 기본이라 목록도 다르다.
+ * B 의 글래스는 별 모양과 안 어울려서 뺐다(요청). B 는 Star 하나뿐이다.
+ */
+export const STICKER_STYLES_BY_DESIGN: Record<'A' | 'B', { id: StickerStyle; label: string }[]> = {
+  A: [{ id: 'red', label: 'Red circle' }, { id: 'glass', label: 'Glass' }],
+  B: [{ id: 'star', label: 'Star' }],
+};
+
+export const DEFAULT_BOX_STYLE: Record<'A' | 'B', string> = { A: 'glass', B: 'white' };
+export const DEFAULT_STICKER_STYLE: Record<'A' | 'B', StickerStyle> = { A: 'red', B: 'star' };
+
+/**
+ * 저장된 선택값이 그 시안의 목록에 없으면 기본값으로 되돌린다.
+ * (B 에서 글래스를 뺐으므로, 예전에 글래스를 골라둔 상태가 남아 있어도 별로 나온다)
+ */
+export function resolveStickerStyle(design: 'A' | 'B', id: StickerStyle | null): StickerStyle {
+  return STICKER_STYLES_BY_DESIGN[design].some((o) => o.id === id)
+    ? (id as StickerStyle)
+    : DEFAULT_STICKER_STYLE[design];
+}
+
+/**
+ * 카피 최대 글자수 — 현재 기본 문구 길이를 그대로 상한으로 쓴다.
+ * 이보다 길어지면 Figma 에서 잰 상자를 넘어 레이아웃이 깨진다.
+ */
+export const MAX_HEADLINE = 'Save on LG favorites'.length;          // 20
+export const MAX_SUBCOPY = 'Limited-time offers, only on LG.com'.length; // 35
+
+/**
+ * Graphic Type — 배경 위 장식 도형 6종 (reference/graphic → public/graphics).
+ *
+ * 전부 흰색 + 알파 이미지라 배너에서는 mix-blend-overlay로 얹힌다.
+ * 배치(위치·크기·개수)는 사이즈별 스펙(sizeLayouts.SizeLayout.graphics)이 정하고,
+ * 여기서는 **어떤 도형을 쓸지**만 고른다.
+ */
+export interface GraphicType {
+  id: string;
+  label: string;
+  src: string;
+}
+
+export const GRAPHIC_TYPES: GraphicType[] = ['01', '02', '03', '04', '05', '06'].map((n) => ({
+  id: `graphic-${n}`,
+  label: `Graphic ${Number(n)}`,
+  src: `/graphics/graphic-${n}.png`,
+}));
+
+export const DEFAULT_GRAPHIC_ID = 'graphic-01';
+
+/**
+ * 도형 없음. B 는 도형을 아예 안 쓰는 경우가 있어야 해서 별도 값으로 둔다.
+ * (Edit 창에서는 원에 사선 하나 그은 아이콘으로 보여준다)
+ */
+export const NO_GRAPHIC_ID = 'none';
+
+/** 이 선택값이 실제로 도형을 그리는가 */
+export function hasGraphic(id: string) {
+  return id !== NO_GRAPHIC_ID;
+}
+
+export function getGraphic(id: string): GraphicType {
+  return GRAPHIC_TYPES.find((g) => g.id === id) ?? GRAPHIC_TYPES[0];
+}
+
+/** 박스 개수: 3~6개 (최소 3개부터 — 그 미만은 레이아웃이 성립하지 않음) */
+export const BOX_COUNTS = [3, 4, 5, 6] as const;
+export const MIN_BOX_COUNT = 3;
+
+/** 할인율 스티커 입력 범위 */
+export const MIN_DISCOUNT = 10;
+export const MAX_DISCOUNT = 90;
+
+/** 사이즈 베리에이션 (structure.pdf p.9) — 대표 사이즈. 전체 41종은 Figma 확정 후 확장. */
+export interface BannerSize {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+}
+
+export const BANNER_SIZES: BannerSize[] = [
+  { id: '1200x628',  label: '1200×628',  width: 1200, height: 628 },
+  { id: '1200x1200', label: '1200×1200', width: 1200, height: 1200 },
+  { id: '300x600',   label: '300×600',   width: 300,  height: 600 },
+  { id: '120x600',   label: '120×600',   width: 120,  height: 600 },
+  { id: '728x90-l',  label: '728×90 · L', width: 728, height: 90 },
+  { id: '728x90-r',  label: '728×90 · R', width: 728, height: 90 },
+];
