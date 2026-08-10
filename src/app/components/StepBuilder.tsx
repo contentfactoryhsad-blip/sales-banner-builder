@@ -359,9 +359,11 @@ const BASE_SCALE = 0.32; // 실제 px → 기본 표시 배율 (AD Media 확인�
  * AD Media 확인창 안쪽 콘텐츠의 가로 상한 (프레임 네이티브 px).
  *
  * 확인창은 통째로 줌 배율만큼 축소되므로 안쪽 좌표는 전부 네이티브 px 이다.
- * 화면 기준 1600px 에 맞추려면 시작 줌으로 나눠 둔다.
+ * 확인창 자체 폭(max-w-5xl = 1024px)에서 시작 여백을 뺀 만큼만 쓰도록 환산한다.
+ * 이보다 넓게 잡으면 한 줄이 화면 오른쪽 밖으로 흘러 나가 팬을 해야 다 보인다.
+ * 줌을 따라 바뀌면 확대할 때마다 줄바꿈이 달라지므로 시작 줌 기준으로 고정한다.
  */
-const CANVAS_MAX_W = Math.round(1600 / BASE_SCALE);
+const CANVAS_MAX_W = Math.round((1024 - 48) / BASE_SCALE);
 
 /** 확인창 안쪽 여백·글자를 "화면에서 보이길 원하는 px" 로 적기 위한 환산 */
 const NS = (screenPx: number) => Math.round(screenPx / BASE_SCALE);
