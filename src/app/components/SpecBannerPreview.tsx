@@ -3,11 +3,11 @@ import type { BannerState } from '../types';
 import { getPromotion } from '../../data/promotions';
 import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
 import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
-import { deriveBannerColors, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { deriveBannerColors, hexToHsl, hexToRgb, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
-import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind } from '../../data/figmaStyle';
+import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
 import {
   BODY_FONT, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
   GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
@@ -132,6 +132,15 @@ export function SpecBannerPreview({
     ? deriveBannerColors(promo.main.hex, promo.secondary.hex, state.mainHue, state.secondaryHue)
     : NEUTRAL_BANNER_COLORS;
 
+  /*
+    셰이드에 입힐 프로모션 색. 프로모션을 안 골랐으면 입힐 색이 없으니 null →
+    shadeCss 가 Figma 실측 램프(A=검정 / B=흰색)로 돌아간다.
+    main/secondary 는 deriveBannerColors 를 거친 값이라 Edit 의 Hue 가 이미 반영돼 있다.
+  */
+  const shadeTint: ShadeTint | null = style.shadeTint && promo
+    ? { from: hexToRgb(main), to: hexToRgb(secondary) }
+    : null;
+
   const texture = resolveBackground(state.designType, state.backgroundTypeId).texture;
   const showGraphics = hasGraphic(state.graphicId);
   const graphicSrc = graphicSrcOf(state.graphicId, state.graphicKind);
@@ -234,8 +243,18 @@ export function SpecBannerPreview({
           );
         })()}
 
-        {/* 셰이드 (A=검정 / B=흰색, 스톱은 사이즈별 실측) */}
-        {spec.gr && <div style={{ position: 'absolute', inset: 0, mixBlendMode: style.shadeBlend, background: shadeCss(spec.gr, design, key, style.shadeOpacity) }} />}
+        {/*
+          셰이드 — 각도·알파·이징은 사이즈별 Figma 실측 그대로.
+          A 는 프로모션을 고르면 색을 그 프로모션 것으로 갈아탄다(shadeTint).
+          Edit 의 Hue 는 main/secondary 에 이미 반영돼 있어 같이 따라 돈다.
+        */}
+        {spec.gr && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            mixBlendMode: shadeTint ? (style.shadeTintBlend ?? 'normal') : style.shadeBlend,
+            background: shadeCss(spec.gr, design, key, style.shadeOpacity, shadeTint),
+          }} />
+        )}
 
         {/* 장식 도형 */}
         {showGraphics && graphicRects(key).map(([x, y, w, h], i) => (

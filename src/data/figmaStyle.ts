@@ -77,6 +77,22 @@ export interface DesignStyle {
    */
   shadeBlend: 'normal' | 'overlay';
   /**
+   * 셰이드를 **프로모션 컬러로** 만들지 여부.
+   *
+   * 켜면 Figma 실측 램프(각도·알파·이징)는 그대로 두고 색만 바꾼다 —
+   * 짙은 쪽이 메인, 옅어지는 쪽이 조합색이다. 프로모션을 고르면 셰이드가
+   * 그 색으로 바뀌고, Edit 의 Hue 를 돌리면 같이 돌아간다.
+   * 프로모션 미선택이면 입힐 색이 없으므로 종전 램프(검정/흰색)로 돌아간다.
+   */
+  shadeTint?: boolean;
+  /**
+   * shadeTint 가 실제로 적용될 때 쓰는 블렌드 모드.
+   *
+   * 검정 셰이드는 바탕을 남기려고 overlay 로 얹었지만, 색이 있는 셰이드는
+   * 그 색 자체를 보여주는 게 목적이라 normal 로 그대로 올린다.
+   */
+  shadeTintBlend?: 'normal' | 'overlay';
+  /**
    * 배경 텍스처를 프로모션 컬러 위에 얹는 불투명도 (overlay 블렌드).
    *
    * 텍스처가 대체로 밝아서 overlay 로 얹으면 아래 컬러를 밝은 쪽으로 밀어
@@ -133,6 +149,8 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
     shadeOpacity: 1,
     shadeRgb: '0,0,0',
     shadeBlend: 'overlay',
+    shadeTint: true,
+    shadeTintBlend: 'normal',
     textureOpacity: 0.9,
     textureBlend: 'overlay',
   },
@@ -264,7 +282,12 @@ const SHADE_START_PULL = 0.35;
  */
 const SHADE_FALLOFF_A = 1;
 
-export function shadeCss(gr: FigmaFrameSpec['gr'], design: DesignKind, key: string, boost = 1) {
+/** 셰이드를 프로모션 컬러로 만들 때 쓰는 두 색 (rgb 0~255). 짙은 쪽 → 옅어지는 쪽 */
+export type ShadeTint = { from: [number, number, number]; to: [number, number, number] };
+
+export function shadeCss(
+  gr: FigmaFrameSpec['gr'], design: DesignKind, key: string, boost = 1, tint?: ShadeTint | null,
+) {
   if (design === 'B') {
     const s = SHADE.B[key];
     if (!s) return 'none';
@@ -298,23 +321,31 @@ export function shadeCss(gr: FigmaFrameSpec['gr'], design: DesignKind, key: stri
   if (!gr) return 'none';
   const [, stops] = gr;
   const angle = ANGLES_A[key] ?? 0;
+  const last = stops.length - 1;
+  /*
+    램프 위 위치 u(0~1) 에서의 색.
+    tint 가 없으면 Figma 실측 luma 를 그대로 쓴다(= 검정).
+    있으면 각도·알파·이징은 그대로 두고 색만 메인 → 조합색으로 갈아탄다.
+  */
+  const colorAt = (u: number, luma: number) => {
+    if (!tint) { const v = Math.round(luma * 255); return `${v},${v},${v}`; }
+    return tint.from.map((c, i) => Math.round(c + (tint.to[i] - c) * u)).join(',');
+  };
   // B 와 같은 방식으로 사이를 채운다 — 직선 램프는 앞쪽이 오래 짙게 남는다.
   const parts: string[] = [];
-  for (let i = 0; i < stops.length - 1; i++) {
+  for (let i = 0; i < last; i++) {
     const [p0, a0, l0] = stops[i];
     const [p1, a1] = stops[i + 1];
-    const v = Math.round(l0 * 255);
     for (let k = 0; k < SHADE_EASE_STEPS; k++) {
       const t = k / SHADE_EASE_STEPS;
       const e = t * t * (3 - 2 * t);                       // smoothstep
       const pos = (p0 + (p1 - p0) * t) * 100;
       const a = a1 + (a0 - a1) * Math.pow(1 - e, SHADE_FALLOFF_A);
-      parts.push(`rgba(${v},${v},${v},${Math.min(1, a * boost).toFixed(3)}) ${pos.toFixed(2)}%`);
+      parts.push(`rgba(${colorAt((i + t) / last, l0)},${Math.min(1, a * boost).toFixed(3)}) ${pos.toFixed(2)}%`);
     }
   }
-  const [lp, la, ll] = stops[stops.length - 1];
-  const lv = Math.round(ll * 255);
-  parts.push(`rgba(${lv},${lv},${lv},${Math.min(1, la * boost).toFixed(3)}) ${(lp * 100).toFixed(2)}%`);
+  const [lp, la, ll] = stops[last];
+  parts.push(`rgba(${colorAt(1, ll)},${Math.min(1, la * boost).toFixed(3)}) ${(lp * 100).toFixed(2)}%`);
   return `linear-gradient(${angle}deg, ${parts.join(', ')})`;
 }
 
