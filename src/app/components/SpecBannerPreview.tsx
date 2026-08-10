@@ -5,7 +5,7 @@ import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyl
 import { deriveBannerColors, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
-import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, resolveBoxCount, shadeCss, specKey, type DesignKind } from '../../data/figmaStyle';
+import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind } from '../../data/figmaStyle';
 import {
   BODY_FONT, GRAPHIC_OPACITY, HEADLINE_FONT, HEADLINE_WEIGHT,
   GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
@@ -56,6 +56,7 @@ const HEAD_WRAP_TOLERANCE = 1.03;
  * 1200x628 · 1200x1200 · 300x600 · 320x100 · 120x240 등 7개가 한 줄로 들어온다.
  * 나머지 6개(160x600 · 120x600 · 120x60 · 300x1050 등)는 "Back To School" 만으로도
  * 상자를 넘어서 어떤 배율로도 불가능하다 — 거긴 그대로 접힌다.
+ * 그중 300x1050 은 접히는 위치를 브라우저에 맡기지 않고 명시적으로 끊는다(promoBreak).
  */
 const PROMO_TAIL_SCALE = 0.6;
 
@@ -71,14 +72,18 @@ const STAR_ROT = (15 * Math.PI) / 180;
  */
 const STICKER_GLASS_DARKEN = 0.9;
 
-/** 프로모션 명칭을 그린다. " – " 는 원래 크기 마침표로, 뒤쪽 단어만 작게. */
-function promoNameNodes(name: string) {
+/**
+ * 프로모션 명칭을 그린다. " – " 는 원래 크기 마침표로, 뒤쪽 단어만 작게.
+ * `br` 이면 뒷단어를 다음 줄로 내린다 (promoBreak 사이즈).
+ */
+function promoNameNodes(name: string, br: boolean) {
   const i = name.indexOf(' – ');
   if (i < 0) return name;
   return (
     <>
       {name.slice(0, i)}
-      {'. '}
+      {br ? '.' : '. '}
+      {br && <br />}
       <span style={{ fontSize: `${PROMO_TAIL_SCALE}em` }}>{name.slice(i + 3)}</span>
     </>
   );
@@ -121,6 +126,7 @@ export function SpecBannerPreview({
   const inn = spec.in;
   const hAlign = headAlign(key);
   const noWrap = headNoWrap(design, key);
+  const promoBrk = promoBreak(key);
   // Figma letterSpacing 은 PERCENT 단위다. 숫자를 그대로 넘기면 CSS 가 px 로 읽어 크게 벌어진다.
   const headLs = inn.head && inn.head[5] ? (inn.head[4] * inn.head[5]) / 100 : undefined;
   const dpad = discPad(key);
@@ -261,7 +267,7 @@ export function SpecBannerPreview({
                 lineHeight: 1.06, textAlign: hAlign,
                 whiteSpace: noWrap ? 'nowrap' : undefined,
               }}>
-                {state.promoName && <p style={{ margin: 0 }}>{promoNameNodes(state.promoName)}</p>}
+                {state.promoName && <p style={{ margin: 0 }}>{promoNameNodes(state.promoName, promoBrk)}</p>}
                 {state.showHeadline && state.headline && headLines(design, key, state.headline).map((ln, i) => (
                   <p key={i} style={{ margin: 0 }}>{ln}</p>
                 ))}

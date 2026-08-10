@@ -180,6 +180,16 @@ const NOWRAP: Record<DesignKind, string[]> = {
 };
 const CENTERED = [...HEAD_CENTER, ...DV360_HEAD_CENTER, ...PMAXMETA_HEAD_CENTER];
 
+/**
+ * 프로모션 명칭의 뒷단어를 **무조건 다음 줄**로 내리는 사이즈.
+ *
+ * "Back To School – Spring" 처럼 뒤에 계절이 붙는 명칭이 있는데,
+ * 세로로 긴 이 사이즈는 카피 폭이 좁아(174·198px @36px) 앞부분부터 이미 접힌다.
+ * 그냥 두면 "…School. Spring" 이 한 줄에 끼어 붙어 읽히므로 여기서만 끊는다.
+ * Figma 에서 이 사이즈의 카피 폭을 좁혀둔 것과 같은 의도다.
+ */
+const PROMO_BREAK = ['dv360-300x1050'];
+
 /** 앱의 mediaSizes 이름("1200x628") → Figma 프레임 키("criteo-1200x628") */
 export function specKey(channel: string, size: string) {
   return `${channel}-${size}`;
@@ -316,6 +326,10 @@ export function productRects(key: string, boxKey: string): ProdRect[] {
 /** 이 사이즈의 헤드라인이 줄바꿈하지 않는가 (Figma WIDTH_AND_HEIGHT) */
 export function headNoWrap(design: DesignKind, key: string) {
   return NOWRAP[design].includes(key);
+}
+/** 이 사이즈는 프로모션 명칭의 뒷단어를 다음 줄로 내리는가 */
+export function promoBreak(key: string) {
+  return PROMO_BREAK.includes(key);
 }
 /** 헤드라인 자체의 정렬 (블록 정렬과 다를 수 있다) */
 export function headAlign(key: string): 'left' | 'center' {
