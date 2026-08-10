@@ -199,23 +199,40 @@ export function SpecBannerPreview({
             ? `linear-gradient(160deg, ${main} 0%, ${secondary} 100%)` : '#000',
         }}
       >
-        {/* 배경 — Figma 배치 그대로, 프로모션 색으로 tint. B 는 레이어 블러. */}
-        {spec.bg && (
-          <div style={{
-            position: 'absolute', left: spec.bg[0], top: spec.bg[1], width: spec.bg[2], height: spec.bg[3],
-            filter: spec.bg[4] && BG_BLUR_PX ? `blur(${BG_BLUR_PX}px)` : undefined,
-          }}>
-            {/* 프로모션 미선택 = 입힐 색이 없다. Figma 처럼 흑백 텍스처를 그대로 두고
-                그 위에 셰이드 그라데이션만 얹는다. 무채색을 합성하면 오히려 달라진다. */}
-            {!promo ? (
-              <img src={texture} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable={false} />
-            ) : state.colorMode === 'gradient' ? (
-              <GradientMapBackground texture={texture} main={main} secondary={secondary} />
-            ) : (
-              <img src={texture} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', mixBlendMode: style.textureBlend, opacity: style.textureOpacity, filter: style.textureFilter }} draggable={false} />
-            )}
-          </div>
-        )}
+        {/*
+          배경 — Figma 배치 그대로, 프로모션 색으로 tint. B 는 레이어 블러.
+
+          블러는 **감싼 div 가 아니라 텍스처 자신에게** 건다.
+          filter 가 걸린 요소는 격리된 그룹(isolated group)이 되어, 그 안의
+          mix-blend-mode 는 바깥 배경과 합성되지 않는다. B 는 blur 가 있어서
+          래퍼에 filter 를 주면 luminosity 블렌드가 섞일 배경을 잃고, 결국
+          프로모션 색이 하나도 안 입혀진 흑백으로 남는다.
+          (A 는 blur 가 0 이라 filter 가 안 붙어 이 문제가 안 보였다)
+        */}
+        {spec.bg && (() => {
+          const blur = spec.bg[4] && BG_BLUR_PX ? `blur(${BG_BLUR_PX}px)` : '';
+          const fill = { width: '100%', height: '100%', objectFit: 'cover' } as const;
+          return (
+            <div style={{ position: 'absolute', left: spec.bg[0], top: spec.bg[1], width: spec.bg[2], height: spec.bg[3] }}>
+              {/* 프로모션 미선택 = 입힐 색이 없다. Figma 처럼 흑백 텍스처를 그대로 두고
+                  그 위에 셰이드 그라데이션만 얹는다. 무채색을 합성하면 오히려 달라진다. */}
+              {!promo ? (
+                <img src={texture} alt="" style={{ ...fill, filter: blur || undefined }} draggable={false} />
+              ) : state.colorMode === 'gradient' ? (
+                // 색을 캔버스에 직접 구워 넣는 방식이라 블렌드가 없다 — 래퍼에 걸어도 안전하다
+                <div style={{ ...fill, filter: blur || undefined }}>
+                  <GradientMapBackground texture={texture} main={main} secondary={secondary} />
+                </div>
+              ) : (
+                <img src={texture} alt="" draggable={false}
+                  style={{
+                    ...fill, mixBlendMode: style.textureBlend, opacity: style.textureOpacity,
+                    filter: [blur, style.textureFilter].filter(Boolean).join(' ') || undefined,
+                  }} />
+              )}
+            </div>
+          );
+        })()}
 
         {/* 셰이드 (A=검정 / B=흰색, 스톱은 사이즈별 실측) */}
         {spec.gr && <div style={{ position: 'absolute', inset: 0, mixBlendMode: style.shadeBlend, background: shadeCss(spec.gr, design, key, style.shadeOpacity) }} />}
