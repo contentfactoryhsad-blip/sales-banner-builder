@@ -64,7 +64,7 @@ export interface DesignStyle {
    *
    * 램프 모양(각도·위치·이징)은 그대로 두고 알파 전체에 곱해진다.
    * A 의 셰이드는 프로모션 컬러라(shadeTint) 짙은 쪽이 100% 면 바탕이 완전히 덮여
-   * 0.85 로 눌러 둔다. B 는 Figma 실측 흰 램프 그대로라 1 이다.
+   * 0.85 로 눌러 둔다. B 도 흰 램프가 짙은 쪽을 다 덮지 않도록 0.95 로 살짝 눌렀다.
    * ※ B 의 색 농도는 여기가 아니라 textureOpacity 로 조절할 것.
    */
   shadeOpacity: number;
@@ -170,7 +170,7 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
     logo: '/lg-logo.svg',
     stickerTextScale: 0.95,
     stickerShapeScale: 1.05,
-    shadeOpacity: 1,
+    shadeOpacity: 0.95,
     shadeRgb: '255,255,255',
     shadeBlend: 'normal',
     textureOpacity: 1,
