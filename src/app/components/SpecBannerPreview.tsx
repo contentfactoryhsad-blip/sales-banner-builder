@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import type { BannerState } from '../types';
 import { getPromotion } from '../../data/promotions';
 import { getGraphic, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
 import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
 import { deriveBannerColors, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { fitScale, useFontsReady } from '../utils/textFit';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind } from '../../data/figmaStyle';
@@ -56,7 +58,8 @@ const HEAD_WRAP_TOLERANCE = 1.03;
  * 1200x628 · 1200x1200 · 300x600 · 320x100 · 120x240 등 7개가 한 줄로 들어온다.
  * 나머지 6개(160x600 · 120x600 · 120x60 · 300x1050 등)는 "Back To School" 만으로도
  * 상자를 넘어서 어떤 배율로도 불가능하다 — 거긴 그대로 접힌다.
- * 그중 300x1050 은 접히는 위치를 브라우저에 맡기지 않고 명시적으로 끊는다(promoBreak).
+ * 그중 300x1050 만은 접지 않는다: 끊는 위치를 명시하고(promoBreak) 앞말은
+ * 폭에 맞춰 줄인다(fitScale). 이 배율은 뒷말에만 쓴다.
  */
 const PROMO_TAIL_SCALE = 0.6;
 
@@ -72,19 +75,39 @@ const STAR_ROT = (15 * Math.PI) / 180;
  */
 const STICKER_GLASS_DARKEN = 0.9;
 
+/** 프로모션 명칭에서 앞말(마침표 포함)만 뽑는다 — 폭을 잴 때 쓴다. */
+function promoHead(name: string) {
+  const i = name.indexOf(' – ');
+  return i < 0 ? name : `${name.slice(0, i)}.`;
+}
+
 /**
  * 프로모션 명칭을 그린다. " – " 는 원래 크기 마침표로, 뒤쪽 단어만 작게.
- * `br` 이면 뒷단어를 다음 줄로 내린다 (promoBreak 사이즈).
+ * `br` 이면 뒷단어를 **자기 줄**로 내린다 (promoBreak 사이즈).
+ * `k` 는 앞말을 한 줄에 넣기 위한 축소 배율 — 1 이면 손대지 않는다.
  */
-function promoNameNodes(name: string, br: boolean) {
+function promoNameNodes(name: string, br: boolean, k: number) {
   const i = name.indexOf(' – ');
-  if (i < 0) return name;
+  const lead = i < 0 ? name : name.slice(0, i) + (br ? '.' : '. ');
+  // 재서 맞춘 폭이므로 여기서 접히면 안 된다 — 접는 대신 줄이는 게 이 배율의 목적이다.
+  const head = k < 1
+    ? <span style={{ fontSize: `${k}em`, whiteSpace: 'nowrap' }}>{lead}</span>
+    : lead;
+  if (i < 0) return <p style={{ margin: 0 }}>{head}</p>;
+  const tail = name.slice(i + 3);
+  if (!br) {
+    return <p style={{ margin: 0 }}>{head}<span style={{ fontSize: `${PROMO_TAIL_SCALE}em` }}>{tail}</span></p>;
+  }
+  /*
+    뒷말을 <br> 이 아니라 **별도 문단**으로 내린다.
+    같은 줄에 두면 줄 높이가 본문(36px)의 것을 그대로 써서 한 줄이 38px 늘어나고,
+    Figma 가 3줄(114px)로 잡아둔 카피가 CTA(138px) 를 밀고 들어간다.
+    제 문단이면 22.9px 만 차지해 4줄이어도 CTA 위에서 끝난다.
+  */
   return (
     <>
-      {name.slice(0, i)}
-      {br ? '.' : '. '}
-      {br && <br />}
-      <span style={{ fontSize: `${PROMO_TAIL_SCALE}em` }}>{name.slice(i + 3)}</span>
+      <p style={{ margin: 0 }}>{head}</p>
+      <p style={{ margin: 0, fontSize: `${PROMO_TAIL_SCALE}em` }}>{tail}</p>
     </>
   );
 }
@@ -126,7 +149,20 @@ export function SpecBannerPreview({
   const inn = spec.in;
   const hAlign = headAlign(key);
   const noWrap = headNoWrap(design, key);
+  /*
+    끊기로 한 사이즈는 프로모션 앞말이 반드시 한 줄이어야 한다.
+    지금 카피 폭 288px 이면 가장 긴 "Back To School."(245px @36px)도 들어가 배율은 1 이지만,
+    더 긴 명칭이 생기면 접는 대신 넘친 만큼만 줄이도록 재둔다.
+  */
   const promoBrk = promoBreak(key);
+  const fontsReady = useFontsReady();
+  const promoK = useMemo(
+    () => (promoBrk && inn.head && state.promoName
+      ? fitScale(promoHead(state.promoName), inn.head[4], HEADLINE_WEIGHT, HEADLINE_FONT, inn.head[2])
+      : 1),
+    // fontsReady 는 웹폰트가 붙은 뒤 다시 재게 하는 신호다
+    [promoBrk, inn.head, state.promoName, fontsReady],
+  );
   // Figma letterSpacing 은 PERCENT 단위다. 숫자를 그대로 넘기면 CSS 가 px 로 읽어 크게 벌어진다.
   const headLs = inn.head && inn.head[5] ? (inn.head[4] * inn.head[5]) / 100 : undefined;
   const dpad = discPad(key);
@@ -267,7 +303,7 @@ export function SpecBannerPreview({
                 lineHeight: 1.06, textAlign: hAlign,
                 whiteSpace: noWrap ? 'nowrap' : undefined,
               }}>
-                {state.promoName && <p style={{ margin: 0 }}>{promoNameNodes(state.promoName, promoBrk)}</p>}
+                {state.promoName && promoNameNodes(state.promoName, promoBrk, promoK)}
                 {state.showHeadline && state.headline && headLines(design, key, state.headline).map((ln, i) => (
                   <p key={i} style={{ margin: 0 }}>{ln}</p>
                 ))}

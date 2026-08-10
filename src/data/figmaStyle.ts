@@ -184,9 +184,9 @@ const CENTERED = [...HEAD_CENTER, ...DV360_HEAD_CENTER, ...PMAXMETA_HEAD_CENTER]
  * 프로모션 명칭의 뒷단어를 **무조건 다음 줄**로 내리는 사이즈.
  *
  * "Back To School – Spring" 처럼 뒤에 계절이 붙는 명칭이 있는데,
- * 세로로 긴 이 사이즈는 카피 폭이 좁아(174·198px @36px) 앞부분부터 이미 접힌다.
- * 그냥 두면 "…School. Spring" 이 한 줄에 끼어 붙어 읽히므로 여기서만 끊는다.
- * Figma 에서 이 사이즈의 카피 폭을 좁혀둔 것과 같은 의도다.
+ * 세로로 긴 이 사이즈는 앞말과 계절이 한 줄에 붙어 읽혀서 여기서만 끊는다.
+ * 카피 폭 288px 이면 가장 긴 앞말("Back To School." 245px @36px)도 한 줄에 들어간다 —
+ * Figma 에서 이 사이즈 카피를 넓혀둔 것이 그 조건을 만든다.
  */
 const PROMO_BREAK = ['dv360-300x1050'];
 
