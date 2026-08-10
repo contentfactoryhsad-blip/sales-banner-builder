@@ -124,13 +124,13 @@ export const GRAPHIC_OPACITY = 0.56;
  *
  * 0.56 은 **line 기준**으로 잰 값이다. line 은 화면의 1~2%만 칠해져 있어서 그 밝기가
  * 가는 광선 몇 줄로만 보이지만, full 은 11~26% 라 같은 값이면 배경 전체가 뜬다.
- * full 은 0.35 로 낮춘다 — 밝아지는 정도가 1.56배에서 1.35배가 된다.
+ * full 은 0.2 로 낮춘다 — 밝아지는 정도가 1.56배에서 1.2배가 된다.
  *
  * 조절은 이 표만 고치면 된다. (line 값은 Figma 실측이므로 건드리지 말 것)
  */
 export const GRAPHIC_OPACITY_BY_KIND: Record<'line' | 'full', number> = {
   line: GRAPHIC_OPACITY,
-  full: 0.35,
+  full: 0.2,
 };
 
 /** 스티커 원형 색 (Figma Ellipse 4 — #EF6464 50%) */
