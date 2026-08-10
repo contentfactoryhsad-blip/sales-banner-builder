@@ -216,7 +216,14 @@ function AdMediaStep({ state, update }: StepProps) {
       >
         {channels.length ? (
           <>
-            <div ref={contentRef} style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', willChange: 'transform' }}>
+            {/*
+              폭을 명시해야 안쪽 줄바꿈이 CANVAS_MAX_W 를 따른다.
+              절대배치 + 폭 미지정이면 shrink-to-fit 이라 폭이
+                min(max(가장 넓은 배너, 확인창 폭), maxWidth)
+              로 정해진다 — 배너를 네이티브로 그린 뒤로는 가장 넓은 배너(1200)가 그대로
+              줄 폭이 되어 큰 배너가 한 줄에 하나씩만 놓였다. maxWidth 는 걸리지도 않았다.
+            */}
+            <div ref={contentRef} style={{ position: 'absolute', top: 0, left: 0, width: CANVAS_MAX_W, transformOrigin: 'top left', willChange: 'transform' }}>
               <div className="flex flex-col" style={{ gap: NS(32) }}>
                 {channels.map((c) => (
                   <div key={c.id}>
