@@ -5,7 +5,7 @@ import { deriveBannerColors , NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { GradientMapBackground } from './GradientMapBackground';
 import {
   BODY_FONT, GLASS_FILL, GLASS_STROKE, HEADLINE_FONT, HEADLINE_WEIGHT,
-  GRAPHIC_OPACITY, STICKER_FILL, STICKER_FONT, STICKER_LAYOUT, ctaRadius, getGlass, glassToCss, shadeGradient, type SizeLayout,
+  GRAPHIC_OPACITY_BY_KIND, STICKER_FILL, STICKER_FONT, STICKER_LAYOUT, ctaRadius, getGlass, glassToCss, shadeGradient, type SizeLayout,
 } from '../../data/sizeLayouts';
 import { MAX_DISCOUNT, MIN_BOX_COUNT, MIN_DISCOUNT, graphicSrc as graphicSrcOf, hasGraphic } from '../../data/builderOptions';
 
@@ -62,7 +62,7 @@ export function SizedBannerPreview({
           draggable={false}
           style={{
             position: 'absolute', left: g.x, top: g.y, width: g.w, height: g.h,
-            objectFit: 'cover', mixBlendMode: 'overlay', opacity: GRAPHIC_OPACITY, pointerEvents: 'none',
+            objectFit: 'cover', mixBlendMode: 'overlay', opacity: GRAPHIC_OPACITY_BY_KIND[state.graphicKind], pointerEvents: 'none',
           }}
         />
       ))}

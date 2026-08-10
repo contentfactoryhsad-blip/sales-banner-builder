@@ -9,7 +9,7 @@ import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind } from '../../data/figmaStyle';
 import {
-  BODY_FONT, GRAPHIC_OPACITY, HEADLINE_FONT, HEADLINE_WEIGHT,
+  BODY_FONT, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
   GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
 } from '../../data/sizeLayouts';
 
@@ -224,7 +224,7 @@ export function SpecBannerPreview({
         {showGraphics && graphicRects(key).map(([x, y, w, h], i) => (
           <img key={i} src={graphicSrc} alt="" draggable={false}
             style={{ position: 'absolute', left: x, top: y, width: w, height: h, objectFit: 'cover',
-                     mixBlendMode: 'overlay', opacity: GRAPHIC_OPACITY, pointerEvents: 'none' }} />
+                     mixBlendMode: 'overlay', opacity: GRAPHIC_OPACITY_BY_KIND[state.graphicKind], pointerEvents: 'none' }} />
         ))}
 
         {/* LG 로고 */}
