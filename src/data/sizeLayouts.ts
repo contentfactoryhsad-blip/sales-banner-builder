@@ -122,6 +122,12 @@ export const GRAPHIC_OPACITY = 0.56;
 /** 스티커 원형 색 (Figma Ellipse 4 — #EF6464 50%) */
 export const STICKER_FILL = 'rgba(239,100,100,0.5)';
 
+/**
+ * 레드 스티커의 기준 색. Edit 의 Hue 슬라이더가 이 색을 회전시킨다.
+ * (원형 스티커는 반투명 STICKER_FILL, 별은 불투명 — 둘 다 이 Hue 를 따른다)
+ */
+export const STICKER_RED = '#FF0500';
+
 /** 스티커 배경 스타일 — 레드 원 / 별 / 글래스(제품 박스와 같은 재질) */
 export type StickerStyle = 'red' | 'star' | 'glass';
 export const STICKER_STYLES: { id: StickerStyle; label: string }[] = [

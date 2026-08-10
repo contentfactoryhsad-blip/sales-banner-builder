@@ -2,13 +2,13 @@ import type { BannerState } from '../types';
 import { getPromotion } from '../../data/promotions';
 import { getGraphic, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
 import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
-import { deriveBannerColors , NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { deriveBannerColors, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, resolveBoxCount, shadeCss, specKey, type DesignKind } from '../../data/figmaStyle';
 import {
   BODY_FONT, GRAPHIC_OPACITY, HEADLINE_FONT, HEADLINE_WEIGHT,
-  GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
+  GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
 } from '../../data/sizeLayouts';
 
 /**
@@ -127,6 +127,25 @@ export function SpecBannerPreview({
   // Edit 에서 고른 값이 우선. 미선택이면 시안 기본값.
   const boxMat = BOX_MATERIALS[state.boxStyleId ?? DEFAULT_BOX_STYLE[design]] ?? BOX_MATERIALS.glass;
   const stickerKind = resolveStickerStyle(design, state.stickerStyle);
+  /*
+    레드 스티커 색. Edit 의 Hue 슬라이더가 기준 빨강을 회전시킨다.
+    채도·명도는 그대로 두고 색상만 돌려, 어떤 각도에서도 원래 톤을 유지한다.
+    (원형은 반투명 STICKER_FILL 이라 알파를 살려 다시 조립한다)
+  */
+  const redHex = (() => {
+    if (state.stickerHue === null) return STICKER_RED;
+    const { s: sat, l } = hexToHsl(STICKER_RED);
+    return hslToHex(state.stickerHue, sat, l);
+  })();
+  const circleFill = (() => {
+    if (state.stickerHue === null) return STICKER_FILL;
+    const m = STICKER_FILL.match(/rgba?\(([^)]+)\)/);
+    const alpha = m ? Number(m[1].split(',')[3] ?? 1) : 1;
+    const base = hexToHsl(STICKER_FILL.startsWith('rgba') ? '#ef6464' : STICKER_FILL);
+    const hex = hslToHex(state.stickerHue, base.s, base.l);
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  })();
 
   return (
     <div style={{ width: displayWidth, height: FH * scale }} className="relative overflow-hidden shrink-0">
@@ -157,7 +176,7 @@ export function SpecBannerPreview({
         )}
 
         {/* 셰이드 (A=검정 / B=흰색, 스톱은 사이즈별 실측) */}
-        {spec.gr && <div style={{ position: 'absolute', inset: 0, background: shadeCss(spec.gr, design, key, style.shadeOpacity) }} />}
+        {spec.gr && <div style={{ position: 'absolute', inset: 0, mixBlendMode: style.shadeBlend, background: shadeCss(spec.gr, design, key, style.shadeOpacity) }} />}
 
         {/* 장식 도형 */}
         {showGraphics && graphicRects(key).map(([x, y, w, h], i) => (
@@ -343,12 +362,12 @@ export function SpecBannerPreview({
                 return isStar ? (
                   <svg viewBox="0 0 100 100" width={ss} height={ss}
                     style={{ position: 'absolute', left: off, top: off }}>
-                    <path d={starPath(12, 50, 50, 50, 50 * 0.782, 50 * 0.545, STAR_ROT)} fill="#FF0500" />
+                    <path d={starPath(12, 50, 50, 50, 50 * 0.782, 50 * 0.545, STAR_ROT)} fill={redHex} />
                   </svg>
                 ) : (
                   <div style={{
                     position: 'absolute', left: off, top: off, width: ss, height: ss, borderRadius: '50%',
-                    background: isGlass ? BOX_MATERIALS.glass.fill : STICKER_FILL,
+                    background: isGlass ? BOX_MATERIALS.glass.fill : circleFill,
                     border: isGlass ? `${ss * BOX_MATERIALS.glass.strokeRatio}px solid ${BOX_MATERIALS.glass.stroke}` : undefined,
                     backdropFilter: isGlass ? gBackdrop : undefined,
                     WebkitBackdropFilter: isGlass ? gBackdrop : undefined,

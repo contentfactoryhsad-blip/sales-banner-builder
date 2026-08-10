@@ -9,10 +9,10 @@ import { PROMOTIONS, getPromotion } from '../../data/promotions';
 import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, GRAPHIC_TYPES, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
-import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES } from '../../data/sizeLayouts';
+import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
 import { SpecBannerPreview } from './SpecBannerPreview';
 import { getSpec } from '../../data/figmaStyle';
-import { deriveBannerColors, hexToHsl , NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { deriveBannerColors, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 
 const STEPS = ['1. Design Template', '2. Promotion & Product', '3. Edit', '4. AD Media', '5. Review & Download'];
 
@@ -614,6 +614,26 @@ function EditSticker({ state, update }: StepProps) {
           </button>
         ))}
       </div>
+
+      {/* 레드를 고른 경우에만 색상 조절 — 글래스는 배경을 그대로 비추므로 해당 없음 */}
+      {(state.stickerStyle ?? DEFAULT_STICKER_STYLE[state.designType]) === 'red' && (
+        <div className="mt-2.5">
+          <HueRow
+            swatch={state.stickerHue === null ? STICKER_RED : hslToHex(state.stickerHue, hexToHsl(STICKER_RED).s, hexToHsl(STICKER_RED).l)}
+            hue={state.stickerHue ?? Math.round(hexToHsl(STICKER_RED).h)}
+            onChange={(h) => update({ stickerHue: h })}
+          />
+          {state.stickerHue !== null && (
+            <button
+              type="button"
+              onClick={() => update({ stickerHue: null })}
+              className="mt-1.5 text-[11px] text-gray-400 hover:text-[#FD312E] transition-colors"
+            >
+              Reset to original
+            </button>
+          )}
+        </div>
+      )}
     </EditSection>
   );
 }

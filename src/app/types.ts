@@ -40,6 +40,8 @@ export interface BannerState {
   discount: number;
   /** 스티커 배경 스타일 */
   stickerStyle: StickerStyle;
+  /** 레드 스티커 Hue 회전. null = 기본 빨강 그대로 */
+  stickerHue: number | null;
 
   /** 카피 텍스트 — 실시간 편집, auto-layout(flex)으로 reflow.
    *  (Eyebrow는 전 사이즈에서 제외하기로 확정되어 제거됨) */
@@ -70,6 +72,7 @@ export function createInitialState(designType: DesignType): BannerState {
     promoName: '[Promotion Name]',
     discount: 20,
     stickerStyle: DEFAULT_STICKER_STYLE[designType],
+    stickerHue: null,
     headline: 'Save on LG favorites',
     subcopy: 'Limited-time offers, only on LG.com',
     showHeadline: true,

@@ -68,6 +68,15 @@ export interface DesignStyle {
   /** 셰이드 색 (rgb). Figma 기준 A=검정 / B=흰색. */
   shadeRgb: string;
   /**
+   * 셰이드를 배경에 얹는 블렌드 모드.
+   *
+   * normal 은 검정을 평평하게 덮어 "검정이 눈에 띈다". multiply 는 답이 아니다 —
+   * 검정은 곱해도 0 이라 normal 과 결과가 픽셀 단위로 같다.
+   * overlay 는 어두운 곳은 더 어둡게, 밝은 곳은 2·Cb−1 로 눌러 **바탕의 색과 구조를
+   * 남긴 채** 어둡게 만든다. 그래서 프로모션 컬러에 묻어든다.
+   */
+  shadeBlend: 'normal' | 'overlay';
+  /**
    * 배경 텍스처를 프로모션 컬러 위에 얹는 불투명도 (overlay 블렌드).
    *
    * 텍스처가 대체로 밝아서 overlay 로 얹으면 아래 컬러를 밝은 쪽으로 밀어
@@ -123,6 +132,7 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
     stickerShapeScale: 1,
     shadeOpacity: 1,
     shadeRgb: '0,0,0',
+    shadeBlend: 'overlay',
     textureOpacity: 0.9,
     textureBlend: 'overlay',
   },
@@ -141,6 +151,7 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
     stickerShapeScale: 1.05,
     shadeOpacity: 1,
     shadeRgb: '255,255,255',
+    shadeBlend: 'normal',
     textureOpacity: 1,
     textureBlend: 'luminosity',
     textureFilter: 'brightness(0.75) contrast(1.15)',
@@ -231,6 +242,18 @@ const SHADE_FALLOFF = 1.6;
  */
 const SHADE_START_PULL = 0.35;
 
+/**
+ * A 셰이드(검정)를 얼마나 빨리 빼는지.
+ *
+ * A 는 스톱 2개를 0%→100% 로 그대로 펴서 알파가 직선으로 떨어진다. 그래서
+ * 앞쪽 절반이 오래 검게 남아 "검정이 눈에 띈다"는 인상을 준다.
+ * (multiply 블렌드는 답이 아니다 — 검정은 곱해도 0 이라 normal 과 결과가 같다.)
+ *
+ * 1 이면 종전 그대로. 키울수록 앞쪽이 먼저 옅어지고 꼬리만 길게 남는다.
+ *   1.0 → 중앙 0.50   1.5 → 중앙 0.35   2.0 → 중앙 0.25
+ */
+const SHADE_FALLOFF_A = 1;
+
 export function shadeCss(gr: FigmaFrameSpec['gr'], design: DesignKind, key: string, boost = 1) {
   if (design === 'B') {
     const s = SHADE.B[key];
@@ -265,10 +288,23 @@ export function shadeCss(gr: FigmaFrameSpec['gr'], design: DesignKind, key: stri
   if (!gr) return 'none';
   const [, stops] = gr;
   const angle = ANGLES_A[key] ?? 0;
-  const parts = stops.map(([p, a, l]) => {
-    const v = Math.round(l * 255);
-    return `rgba(${v},${v},${v},${Math.min(1, a * boost).toFixed(3)}) ${(p * 100).toFixed(2)}%`;
-  });
+  // B 와 같은 방식으로 사이를 채운다 — 직선 램프는 앞쪽이 오래 짙게 남는다.
+  const parts: string[] = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [p0, a0, l0] = stops[i];
+    const [p1, a1] = stops[i + 1];
+    const v = Math.round(l0 * 255);
+    for (let k = 0; k < SHADE_EASE_STEPS; k++) {
+      const t = k / SHADE_EASE_STEPS;
+      const e = t * t * (3 - 2 * t);                       // smoothstep
+      const pos = (p0 + (p1 - p0) * t) * 100;
+      const a = a1 + (a0 - a1) * Math.pow(1 - e, SHADE_FALLOFF_A);
+      parts.push(`rgba(${v},${v},${v},${Math.min(1, a * boost).toFixed(3)}) ${pos.toFixed(2)}%`);
+    }
+  }
+  const [lp, la, ll] = stops[stops.length - 1];
+  const lv = Math.round(ll * 255);
+  parts.push(`rgba(${lv},${lv},${lv},${Math.min(1, la * boost).toFixed(3)}) ${(lp * 100).toFixed(2)}%`);
   return `linear-gradient(${angle}deg, ${parts.join(', ')})`;
 }
 
