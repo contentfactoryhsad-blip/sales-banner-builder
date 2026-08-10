@@ -217,7 +217,7 @@ function AdMediaStep({ state, update }: StepProps) {
         {channels.length ? (
           <>
             <div ref={contentRef} style={{ position: 'absolute', top: 0, left: 0, transformOrigin: 'top left', willChange: 'transform' }}>
-              <div className="flex flex-col gap-10">
+              <div className="flex flex-col" style={{ gap: NS(32) }}>
                 {channels.map((c) => (
                   <div key={c.id}>
                     {(() => {
@@ -226,21 +226,28 @@ function AdMediaStep({ state, update }: StepProps) {
                       const ready = MEDIA_SIZES[c.id].filter((s) => !!getSpec(state.designType, c.id, s.name));
                       return (
                         <>
-                          <p className="font-lgei font-bold mb-2 text-[#4A4946]" style={{ fontSize: 13 }}>
+                          <p className="font-lgei font-bold text-[#4A4946]" style={{ fontSize: NS(13), marginBottom: NS(6) }}>
                             {c.label} · {ready.length} sizes
                           </p>
                           {ready.length === 0 ? (
-                            <p className="text-[#6b6862]" style={{ fontSize: 12 }}>No sizes ready for this channel yet.</p>
+                            <p className="text-[#6b6862]" style={{ fontSize: NS(12) }}>No sizes ready for this channel yet.</p>
                           ) : (
-                            <div className="flex flex-wrap items-end" style={{ gap: 24, maxWidth: 1600 }}>
+                            <div className="flex flex-wrap items-end" style={{ gap: NS(20), maxWidth: CANVAS_MAX_W }}>
                               {ready.map((s) => (
                                 <div key={`${c.id}-${s.name}`} className="shrink-0">
+                                  {/*
+                                    배너는 **네이티브 크기 그대로** 그린다.
+                                    여기서 또 BASE_SCALE 을 곱하면 바깥 줌(시작값도 BASE_SCALE)과 겹쳐
+                                    0.32 × 0.32 = 10% 로 줄어든다 — 줌 표시는 32% 인데 실제로는 10% 였고,
+                                    그 배율에서는 도형의 가는 선이 한 픽셀 아래로 내려가 뭉개진다.
+                                    축소는 줌 한 곳에서만 한다.
+                                  */}
                                   <SpecBannerPreview
                                     state={state} spec={getSpec(state.designType, c.id, s.name)!}
                                     design={state.designType} channel={c.id} size={s.name}
-                                    displayWidth={Math.round(s.w * BASE_SCALE)}
+                                    displayWidth={s.w}
                                   />
-                                  <p className="text-[#6b6862] mt-1 whitespace-nowrap" style={{ fontSize: 10 }}>{s.name}</p>
+                                  <p className="text-[#6b6862] whitespace-nowrap" style={{ fontSize: NS(10), marginTop: NS(4) }}>{s.name}</p>
                                 </div>
                               ))}
                             </div>
@@ -346,7 +353,18 @@ function ProductUrlsStep({ state, update, setProduct }: StepProps & { setProduct
 }
 
 // ── Step 3: Edit (single 1200×628 window + controls, no zoom/pan) ──────────────
-const BASE_SCALE = 0.32; // 실제 px → 기본 표시 배율 (AD Media 확인창에서 사용)
+const BASE_SCALE = 0.32; // 실제 px → 기본 표시 배율 (AD Media 확인창의 시작 줌)
+
+/**
+ * AD Media 확인창 안쪽 콘텐츠의 가로 상한 (프레임 네이티브 px).
+ *
+ * 확인창은 통째로 줌 배율만큼 축소되므로 안쪽 좌표는 전부 네이티브 px 이다.
+ * 화면 기준 1600px 에 맞추려면 시작 줌으로 나눠 둔다.
+ */
+const CANVAS_MAX_W = Math.round(1600 / BASE_SCALE);
+
+/** 확인창 안쪽 여백·글자를 "화면에서 보이길 원하는 px" 로 적기 위한 환산 */
+const NS = (screenPx: number) => Math.round(screenPx / BASE_SCALE);
 
 function EditStep({ state, update }: StepProps) {
   return (
