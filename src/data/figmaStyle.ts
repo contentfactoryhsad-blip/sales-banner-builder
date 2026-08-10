@@ -61,8 +61,11 @@ export interface DesignStyle {
   stickerShapeScale: number;
   /**
    * 셰이드 그라데이션 불투명도 배율. **1 = Figma 그대로.**
-   * 그라데이션 자체를 건드리는 값이라 A·B 모두 1 로 둔다.
-   * 색 농도는 여기가 아니라 textureOpacity 로 조절할 것.
+   *
+   * 램프 모양(각도·위치·이징)은 그대로 두고 알파 전체에 곱해진다.
+   * A 의 셰이드는 프로모션 컬러라(shadeTint) 짙은 쪽이 100% 면 바탕이 완전히 덮여
+   * 0.8 로 눌러 둔다. B 는 Figma 실측 흰 램프 그대로라 1 이다.
+   * ※ B 의 색 농도는 여기가 아니라 textureOpacity 로 조절할 것.
    */
   shadeOpacity: number;
   /** 셰이드 색 (rgb). Figma 기준 A=검정 / B=흰색. */
@@ -146,7 +149,7 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
     logo: '/lg-logo-white.svg',
     stickerTextScale: 1,
     stickerShapeScale: 1,
-    shadeOpacity: 1,
+    shadeOpacity: 0.8,
     shadeRgb: '0,0,0',
     shadeBlend: 'overlay',
     shadeTint: true,
