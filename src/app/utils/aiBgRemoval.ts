@@ -186,7 +186,16 @@ async function floodWhiteBackground(dataUrl: string): Promise<string> {
   const r = Math.max(1, Math.min(CLOSE_MAX, Math.round(Math.min(w, h) * CLOSE_FRACTION)));
   const eroded = morph(bgRaw, w, h, r, 'erode');
   const trunk = floodFromBorder(w, h, (i) => eroded[i] === 1);
-  const bg = flood(w, h, (i) => trunk[i] === 1, (i) => bgRaw[i] === 1);
+  // 되팽창은 **재확장(reconstruction)이 아니라 열림(opening)** 이어야 한다.
+  //
+  // bgRaw 안에서 다시 흘려보내면 바늘구멍도 bgRaw 에 속해 있으므로 막았던 통로로
+  // 그대로 되돌아 들어가, 결과가 bgRaw 와 비트 단위로 같아진다 — 차단이 무효가 된다.
+  // (합성 검증: 흰 몸통 10000px 중 0px 생존 → 차단 전과 동일)
+  // trunk 를 r 만큼 되팽창해 원본 배경과 교집합하면 목이 가는 통로는 끊긴 채
+  // 진짜 배경만 원래 폭으로 복원된다. (같은 검증에서 10000px 전부 생존)
+  const grown = morph(trunk, w, h, r, 'dilate');
+  const bg = new Uint8Array(N);
+  for (let i = 0; i < N; i++) bg[i] = grown[i] && bgRaw[i] ? 1 : 0;
 
   // Binary keep mask (1 = product). Transparent pixels are dropped whether or
   // not the border could reach them, so interior holes survive.
