@@ -7,7 +7,7 @@ import {
   BODY_FONT, GLASS_FILL, GLASS_STROKE, HEADLINE_FONT, HEADLINE_WEIGHT,
   GRAPHIC_OPACITY, STICKER_FILL, STICKER_FONT, STICKER_LAYOUT, ctaRadius, getGlass, glassToCss, shadeGradient, type SizeLayout,
 } from '../../data/sizeLayouts';
-import { MAX_DISCOUNT, MIN_BOX_COUNT, MIN_DISCOUNT, getGraphic, hasGraphic } from '../../data/builderOptions';
+import { MAX_DISCOUNT, MIN_BOX_COUNT, MIN_DISCOUNT, graphicSrc as graphicSrcOf, hasGraphic } from '../../data/builderOptions';
 
 /**
  * 매체 사이즈별 배너 렌더러 — Figma Banner Template(Criteo) 실측 스펙 기반.
@@ -47,7 +47,7 @@ export function SizedBannerPreview({
   const gridH = usedRows * cellH + (usedRows - 1) * grid.gapY;
 
   const showGraphics = hasGraphic(state.graphicId);
-  const graphicSrc = getGraphic(state.graphicId).src;
+  const graphicSrc = graphicSrcOf(state.graphicId, state.graphicKind);
   const stickerGlass = state.stickerStyle === 'glass';
   const discount = Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, state.discount));
 

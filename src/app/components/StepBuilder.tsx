@@ -6,7 +6,7 @@ import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
 import { createInitialState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion } from '../../data/promotions';
-import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, GRAPHIC_TYPES, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN } from '../../data/builderOptions';
+import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
@@ -499,13 +499,30 @@ function EditBackground({ state, update }: StepProps) {
 }
 
 /**
- * Graphic Type — 배경 위 장식 도형 6종.
- * 도형 이미지가 흰색+알파라 밝은 UI에선 안 보이므로, 썸네일은 어두운 원 위에 얹어 보여준다.
- * 실제 배치(위치·크기·개수)는 사이즈별 스펙이 정하고 여기선 도형만 고른다.
+ * Graphic Type — 배경 위 장식 도형 6종 × 선/면 두 벌.
+ * 도형 이미지가 흰색+알파라 밝은 UI에선 안 보이므로, 썸네일은 검정으로 뒤집어 보여준다.
+ * 실제 배치(위치·크기·개수)는 사이즈별 스펙이 정하고 여기선 도형과 벌만 고른다.
  */
 function EditGraphic({ state, update }: StepProps) {
   return (
     <EditSection label="Graphic Type">
+      {/* 선/면 — 도형 선택은 그대로 두고 벌만 바꾼다 */}
+      <div className="flex items-center gap-1 mb-2">
+        {GRAPHIC_KINDS.map((k) => (
+          <button
+            key={k.id}
+            type="button"
+            onClick={() => update({ graphicKind: k.id })}
+            className={`px-3 h-7 rounded-full text-[12px] font-medium border transition-colors ${
+              state.graphicKind === k.id
+                ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5'
+                : 'border-gray-200 text-gray-500 hover:border-gray-300'
+            }`}
+          >
+            {k.label}
+          </button>
+        ))}
+      </div>
       <div className="flex items-center gap-2 flex-wrap">
         {/* 도형 없음 — 원에 사선 하나. B 는 도형을 안 쓰는 경우가 있다. */}
         <button
@@ -539,7 +556,7 @@ function EditGraphic({ state, update }: StepProps) {
                 · drop-shadow 반복 → 같은 자리에 검정 사본을 겹쳐 얇고 흐린 선의 알파를 끌어올린다
                   (알파 a 가 n번 겹치면 1-(1-a)^(n+1) 로 진해진다)
             */}
-            <img src={g.src} alt={g.label} className="w-full h-full object-cover"
+            <img src={graphicSrc(g.id, state.graphicKind)} alt={g.label} className="w-full h-full object-cover"
               style={{
                 filter: 'brightness(0) drop-shadow(0 0 0 #111) drop-shadow(0 0 0 #111) drop-shadow(0 0 0 #111) drop-shadow(0 0 0 #111)',
               }}

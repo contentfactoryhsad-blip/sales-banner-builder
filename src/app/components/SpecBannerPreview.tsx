@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { BannerState } from '../types';
 import { getPromotion } from '../../data/promotions';
-import { getGraphic, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
+import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
 import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
 import { deriveBannerColors, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
@@ -134,7 +134,7 @@ export function SpecBannerPreview({
 
   const texture = resolveBackground(state.designType, state.backgroundTypeId).texture;
   const showGraphics = hasGraphic(state.graphicId);
-  const graphicSrc = getGraphic(state.graphicId).src;
+  const graphicSrc = graphicSrcOf(state.graphicId, state.graphicKind);
 
   const glassCss = glassToCss(GLASS_DEFAULT);
   const discount = Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, state.discount));

@@ -1,4 +1,4 @@
-import { DEFAULT_GRAPHIC_ID, MIN_BOX_COUNT, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE } from '../data/builderOptions';
+import { DEFAULT_GRAPHIC_ID, DEFAULT_GRAPHIC_KIND, MIN_BOX_COUNT, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, type GraphicKind } from '../data/builderOptions';
 import type { StickerStyle } from '../data/sizeLayouts';
 
 /** 배경 디자인 방식 — A: Fractal Glass / B: Graphic Type (structure.pdf) */
@@ -24,6 +24,8 @@ export interface BannerState {
   backgroundTypeId: string | null;
   /** 3a. 장식 도형 id (builderOptions.GRAPHIC_TYPES). 사이즈별 스펙 위치에 배치된다. */
   graphicId: string;
+  /** 3b. 도형을 선(line)으로 쓸지 면(full)으로 쓸지. 도형 선택과는 별개다. */
+  graphicKind: GraphicKind;
   /** (미사용) 도형 어셋 — Background Type로 대체됨 */
   shapeId: string | null;
   /** 4a. 박스 스타일 id (builderOptions.BOX_STYLES) */
@@ -67,6 +69,7 @@ export function createInitialState(designType: DesignType): BannerState {
     adChannelIds: [],
     backgroundTypeId: null,
     graphicId: DEFAULT_GRAPHIC_ID,
+    graphicKind: DEFAULT_GRAPHIC_KIND,
     shapeId: null,
     boxStyleId: DEFAULT_BOX_STYLE[designType],
     boxCount: null,

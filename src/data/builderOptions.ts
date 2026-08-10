@@ -125,13 +125,26 @@ export const MAX_SUBCOPY = 'Limited-time offers, only on LG.com'.length; // 35
 /**
  * Graphic Type — 배경 위 장식 도형 6종 (reference/graphic → public/graphics).
  *
- * 전부 흰색 + 알파 이미지라 배너에서는 mix-blend-overlay로 얹힌다.
+ * 같은 도형이 선(line)/면(full) 두 벌로 있다. 둘 다 흰색 + 알파 이미지라
+ * 배너에서는 mix-blend-overlay 로 얹힌다 — 다른 건 채워진 넓이뿐이다
+ * (line 은 화면의 1~2%, full 은 11~26%).
+ *
  * 배치(위치·크기·개수)는 사이즈별 스펙(sizeLayouts.SizeLayout.graphics)이 정하고,
- * 여기서는 **어떤 도형을 쓸지**만 고른다.
+ * 여기서는 **어떤 도형을 어느 벌로 쓸지**만 고른다.
  */
+export type GraphicKind = 'line' | 'full';
+
+export const GRAPHIC_KINDS: Array<{ id: GraphicKind; label: string }> = [
+  { id: 'line', label: 'Line' },
+  { id: 'full', label: 'Full' },
+];
+
+export const DEFAULT_GRAPHIC_KIND: GraphicKind = 'line';
+
 export interface GraphicType {
   id: string;
   label: string;
+  /** 선 버전 경로 — 벌을 가리지 않을 때의 기본값 */
   src: string;
 }
 
@@ -140,6 +153,12 @@ export const GRAPHIC_TYPES: GraphicType[] = ['01', '02', '03', '04', '05', '06']
   label: `Graphic ${Number(n)}`,
   src: `/graphics/graphic-${n}.png`,
 }));
+
+/** 이 도형의 해당 벌 이미지 경로. full 은 하위 폴더에 같은 이름으로 들어 있다. */
+export function graphicSrc(id: string, kind: GraphicKind = DEFAULT_GRAPHIC_KIND) {
+  const g = getGraphic(id);
+  return kind === 'full' ? g.src.replace('/graphics/', '/graphics/full/') : g.src;
+}
 
 export const DEFAULT_GRAPHIC_ID = 'graphic-01';
 
