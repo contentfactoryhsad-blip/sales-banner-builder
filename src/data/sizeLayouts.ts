@@ -140,10 +140,10 @@ export const GRAPHIC_OPACITY_BY_KIND: Record<'line' | 'full', number> = {
  * 그대로 비쳐 스티커가 흐릿해 보인다. 알파만 올려 색을 잡아준다.
  * 색상(Hue)은 Edit 의 슬라이더가 돌리고, 여기서는 진하기만 정한다.
  *   0.5  Figma 원본
- *   0.7  현재값 — 배경 무늬가 은은하게만 비친다
+ *   0.8  현재값 — 배경 무늬가 아주 살짝만 비친다
  *   1    완전 불투명
  */
-export const STICKER_FILL = 'rgba(239,100,100,0.7)';
+export const STICKER_FILL = 'rgba(239,100,100,0.8)';
 
 /**
  * 레드 스티커의 기준 색. Edit 의 Hue 슬라이더가 이 색을 회전시킨다.
