@@ -31,6 +31,14 @@ export interface ZipProgress {
  */
 export function useBannerZip(state: BannerState) {
   const hostRef = useRef<HTMLDivElement>(null);
+  /*
+    재진입 방지는 **ref** 로 한다.
+
+    상태(p.busy)로 막으면 늦다 — setP 는 다음 렌더에야 반영되므로, 빠르게 두 번
+    누르면 두 번째 클릭의 클로저가 아직 busy:false 를 보고 그대로 통과한다.
+    그러면 굽기가 두 벌 돌아 ZIP 이 두 개 떨어진다. ref 는 즉시 바뀐다.
+  */
+  const running = useRef(false);
   const [job, setJob] = useState<{ channel: string; size: string; w: number; h: number } | null>(null);
   const [p, setP] = useState<ZipProgress>({ busy: false, done: 0, total: 0, current: null, error: null, failed: [] });
 
@@ -47,7 +55,8 @@ export function useBannerZip(state: BannerState) {
   }, [state.adChannelIds, state.designType]);
 
   const run = async () => {
-    if (p.busy || targets.length === 0) return;
+    if (running.current || targets.length === 0) return;
+    running.current = true;
     setP({ busy: true, done: 0, total: targets.length, current: null, error: null, failed: [] });
     // 마지막 단계에서만 쓰는 라이브러리라 여기서 불러온다 (초기 번들에서 제외)
     const JSZip = (await import('jszip')).default;
@@ -97,6 +106,7 @@ export function useBannerZip(state: BannerState) {
       setP((s) => ({ ...s, busy: false, current: null, error: (e as Error).message }));
     } finally {
       setJob(null);
+      running.current = false;
     }
   };
 

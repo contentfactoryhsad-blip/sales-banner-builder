@@ -12,18 +12,25 @@
 export async function saveBlob(blob: Blob, fileName: string): Promise<void> {
   const picker = (window as unknown as { showSaveFilePicker?: unknown }).showSaveFilePicker;
   if (typeof picker === 'function') {
+    let fh: FileSystemFileHandle | null = null;
     try {
-      const fh = await (picker as (o: unknown) => Promise<FileSystemFileHandle>)({
+      fh = await (picker as (o: unknown) => Promise<FileSystemFileHandle>)({
         suggestedName: fileName,
         types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
       });
+    } catch (e) {
+      // 취소했으면 끝. 그 외(예: 사용자 제스처 만료)는 링크 방식으로 넘어간다.
+      if ((e as { name?: string })?.name === 'AbortError') return;
+    }
+    /*
+      저장 자리를 이미 받았다면 여기서 끝낸다 — 쓰다가 실패해도 링크 방식으로
+      다시 내려받지 않는다. 그러면 파일이 두 개 떨어진다.
+    */
+    if (fh) {
       const w = await fh.createWritable();
       await w.write(blob);
       await w.close();
       return;
-    } catch (e) {
-      // 사용자가 취소한 것이면 조용히 끝낸다. 그 외에는 링크 방식으로 넘어간다.
-      if ((e as { name?: string })?.name === 'AbortError') return;
     }
   }
   const url = URL.createObjectURL(blob);
