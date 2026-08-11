@@ -133,8 +133,17 @@ export const GRAPHIC_OPACITY_BY_KIND: Record<'line' | 'full', number> = {
   full: 0.11,
 };
 
-/** 스티커 원형 색 (Figma Ellipse 4 — #EF6464 50%) */
-export const STICKER_FILL = 'rgba(239,100,100,0.5)';
+/**
+ * 스티커 원형 색 (A 안).
+ *
+ * Figma 는 #EF6464 를 50% 로 깔았는데, 배경이 밝은 프로모션에서는 뒤 무늬가
+ * 그대로 비쳐 스티커가 흐릿해 보인다. 알파만 올려 색을 잡아준다.
+ * 색상(Hue)은 Edit 의 슬라이더가 돌리고, 여기서는 진하기만 정한다.
+ *   0.5  Figma 원본
+ *   0.7  현재값 — 배경 무늬가 은은하게만 비친다
+ *   1    완전 불투명
+ */
+export const STICKER_FILL = 'rgba(239,100,100,0.7)';
 
 /**
  * 레드 스티커의 기준 색. Edit 의 Hue 슬라이더가 이 색을 회전시킨다.

@@ -10,7 +10,7 @@ import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
 import {
-  BODY_FONT, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
+  BODY_FONT, FROST_TO_PX, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
   GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
 } from '../../data/sizeLayouts';
 
@@ -66,6 +66,15 @@ const PROMO_TAIL_SCALE = 0.6;
 
 /** 카피 줄 높이 (Figma lineHeight 106%). CTA 자리 계산에도 쓴다. */
 const COPY_LINE_HEIGHT = 1.06;
+
+/**
+ * 굽는 쪽 유리 블러 배율 (1 = 미리보기와 같은 세기).
+ *
+ * 미리보기는 브라우저의 backdrop-filter 가, 굽는 쪽은 배경을 복사해 filter 로
+ * 흐린다. 같은 반지름을 줘도 굽는 쪽이 조금 더 뿌옇게 나와서 여기서 눌러준다.
+ * 이 숫자 하나만 고치면 된다.
+ */
+const EXPORT_BLUR_SCALE = 0.8;
 
 /** 별 스티커 회전(rad). Figma 기준 15°. */
 const STAR_ROT = (15 * Math.PI) / 180;
@@ -338,7 +347,8 @@ export function SpecBannerPreview({
     프레임 좌표계를 유지한 채 해당 도형만큼 끌어올려 두면 배경이 정확히 이어지고,
     바깥은 부모의 overflow:hidden 이나 clip-path 가 잘라낸다.
   */
-  const glassCopy = (left: number, top: number, blur = glassCss.backdropFilter) => (
+  const stickerBlurOut = `blur(${(GLASS_DEFAULT.frost * FROST_TO_PX * EXPORT_BLUR_SCALE).toFixed(2)}px)`;
+  const glassCopy = (left: number, top: number, blur = stickerBlurOut) => (
     <div style={{
       position: 'absolute', left: -left, top: -top, width: FW, height: FH,
       filter: blur, pointerEvents: 'none',
@@ -370,7 +380,10 @@ export function SpecBannerPreview({
           const g = glassBox(key, boxKey);
           const sw = boxMat.stroke ? (g?.stroke ?? boxMat.strokeRatio * w) : 0;
           const sh = g?.shadow ?? boxMat.shadowRatio * w;
-          const blur = `blur(${(g?.blur ?? 10.7).toFixed(2)}px)`;
+          const blurPx = g?.blur ?? 10.7;
+          const blur = `blur(${blurPx.toFixed(2)}px)`;
+          // 굽는 쪽만 조금 덜 흐리게 — 같은 반지름이어도 결과가 더 뿌옇다
+          const blurOut = `blur(${(blurPx * EXPORT_BLUR_SCALE).toFixed(2)}px)`;
             const fakeGlass = boxMat.glass && emulateGlass;
             return (
             <div key={i}
@@ -397,7 +410,7 @@ export function SpecBannerPreview({
             >
               {fakeGlass && (
                 <>
-                  {glassCopy(bx + x, by + y, blur)}
+                  {glassCopy(bx + x, by + y, blurOut)}
                   <div style={{ position: 'absolute', inset: 0, background: boxMat.fill, pointerEvents: 'none' }} />
                   {/* 테두리와 안쪽 하이라이트를 inset 그림자로 — 흐린 복사본 위에 얹힌다 */}
                   <div style={{
