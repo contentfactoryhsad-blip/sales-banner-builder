@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, Check, Eraser, Paintbrush, RotateCcw, ZoomIn, ZoomOut, Wand2, Loader2 } from "lucide-react";
+import { X, Check, Eraser, Paintbrush, RotateCcw, ZoomIn, ZoomOut, Wand2, Loader2, Sparkles } from "lucide-react";
+import { eraseSoftShadow } from "../utils/aiBgRemoval";
 
 /** i18n 미사용 — 원문(영문) 그대로 통과 */
 const t = (s: string) => s;
@@ -282,6 +283,19 @@ export function BrushMaskEditor({ originalUrl, processedUrl, onDone, onCancel }:
     undoStackRef.current = [...undoStackRef.current.slice(-(MAX_UNDO - 1)), copy];
     setCanUndo(true);
   }, []);
+
+  /*
+    그림자 지우기 — 기본 누끼가 남긴 부드러운 그림자를 없앤다.
+    한 번 누르는 동작이고 Undo 스택에 쌓이므로 마음에 안 들면 되돌리면 된다.
+  */
+  const [shadowPx, setShadowPx] = useState<number | null>(null);
+  const handleShadow = () => {
+    const data = workingDataRef.current;
+    if (!data) return;
+    saveUndo();
+    setShadowPx(eraseSoftShadow(data));
+    renderCanvas();
+  };
 
   const handleUndo = () => {
     const stack = undoStackRef.current;
@@ -748,6 +762,19 @@ export function BrushMaskEditor({ originalUrl, processedUrl, onDone, onCancel }:
 
             {/* ── Undo + Compare ── */}
             <div className="px-4 py-3 flex flex-col gap-2">
+              <button
+                onClick={handleShadow}
+                className="flex items-center gap-2 w-full px-3 py-2 mb-2 text-xs border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                title="배경에 남은 부드러운 그림자를 지웁니다 (Undo 로 되돌릴 수 있습니다)"
+              >
+                <Sparkles size={12} />
+                Remove shadow
+                {shadowPx !== null && (
+                  <span className="ml-auto text-[10px] text-gray-400 tabular-nums">
+                    {shadowPx.toLocaleString()}px
+                  </span>
+                )}
+              </button>
               <button
                 onClick={handleUndo}
                 disabled={!canUndo}
