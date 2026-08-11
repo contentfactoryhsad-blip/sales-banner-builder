@@ -150,9 +150,10 @@ export const MAX_SUBCOPY = 'Limited-time offers, only on LG.com'.length; // 35
  */
 export type GraphicKind = 'line' | 'full';
 
+/** Edit 창에 보이는 순서 — 면(Full)이 먼저 */
 export const GRAPHIC_KINDS: Array<{ id: GraphicKind; label: string }> = [
-  { id: 'line', label: 'Line' },
   { id: 'full', label: 'Full' },
+  { id: 'line', label: 'Line' },
 ];
 
 export const DEFAULT_GRAPHIC_KIND: GraphicKind = 'line';
@@ -171,22 +172,27 @@ export const GRAPHIC_TYPES: GraphicType[] = ['01', '02', '03', '04', '05', '06']
 }));
 
 /** 이 도형의 해당 벌 이미지 경로. full 은 하위 폴더에 같은 이름으로 들어 있다. */
-export function graphicSrc(id: string, kind: GraphicKind = DEFAULT_GRAPHIC_KIND) {
-  const g = getGraphic(id);
+export function graphicSrc(id: string | null, kind: GraphicKind = DEFAULT_GRAPHIC_KIND) {
+  const g = getGraphic(id ?? '');
   return kind === 'full' ? g.src.replace('/graphics/', '/graphics/full/') : g.src;
 }
 
-export const DEFAULT_GRAPHIC_ID = 'graphic-01';
+/**
+ * 처음에는 **아무것도 안 고른 상태**(null)로 둔다 — 박스 개수와 같은 방식이다.
+ * 미리보기에도 도형이 안 그려지고, Edit 에서 고르는 순간부터 나타난다.
+ */
+export const DEFAULT_GRAPHIC_ID: string | null = null;
 
 /**
  * 도형 없음. B 는 도형을 아예 안 쓰는 경우가 있어야 해서 별도 값으로 둔다.
  * (Edit 창에서는 원에 사선 하나 그은 아이콘으로 보여준다)
+ * 미선택(null)과는 다르다 — 이쪽은 "안 쓰기로 골랐다"는 뜻이다.
  */
 export const NO_GRAPHIC_ID = 'none';
 
-/** 이 선택값이 실제로 도형을 그리는가 */
-export function hasGraphic(id: string) {
-  return id !== NO_GRAPHIC_ID;
+/** 이 선택값이 실제로 도형을 그리는가. 미선택(null)도 안 그린다. */
+export function hasGraphic(id: string | null) {
+  return !!id && id !== NO_GRAPHIC_ID;
 }
 
 export function getGraphic(id: string): GraphicType {

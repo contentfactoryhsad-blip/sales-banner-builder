@@ -22,8 +22,11 @@ export interface BannerState {
   adChannelIds: string[];
   /** 3. 배경 타입 id (builderOptions.BACKGROUND_TYPES[design]) */
   backgroundTypeId: string | null;
-  /** 3a. 장식 도형 id (builderOptions.GRAPHIC_TYPES). 사이즈별 스펙 위치에 배치된다. */
-  graphicId: string;
+  /**
+   * 3a. 장식 도형 id (builderOptions.GRAPHIC_TYPES). 사이즈별 스펙 위치에 배치된다.
+   * null = 아직 안 고름 — 미리보기에도 안 그려진다. 'none' 은 "안 쓰기로 골랐다".
+   */
+  graphicId: string | null;
   /**
    * 제품 칸별 Import 정보 (모델명·제품명). 배너에는 안 쓰이고, 다운로드할 때
    * "어떤 제품으로 만들었나"를 사용 기록에 남기는 용도다. Upload 로 넣으면 null.
