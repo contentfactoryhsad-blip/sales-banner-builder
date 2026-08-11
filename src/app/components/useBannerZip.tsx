@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
 import type { BannerState } from '../types';
 import { AD_CHANNELS } from '../../data/builderOptions';
+import { getPromotion } from '../../data/promotions';
 import { MEDIA_SIZES } from '../../data/mediaSizes';
 import { getSpec } from '../../data/figmaStyle';
 import { SpecBannerPreview } from './SpecBannerPreview';
-import { buildFontCss, capturePng, inlineImages, saveBlob, settle, stamp } from '../utils/bannerExport';
+import { buildFontCss, capturePng, inlineImages, logUsage, saveBlob, settle, stamp } from '../utils/bannerExport';
 
 export interface ZipProgress {
   busy: boolean;
@@ -80,6 +81,18 @@ export function useBannerZip(state: BannerState) {
       const blob = await zip.generateAsync({ type: 'blob' });
       await saveBlob(blob, `LG-sales-banner-${state.designType}-${stamp()}.zip`);
       setP((s) => ({ ...s, busy: false, current: null }));
+      // 다 받은 뒤에 기록한다. 실패해도 결과물에는 영향이 없다.
+      const meta = state.productMeta.filter((m, i) => m && state.products[i]);
+      void logUsage({
+        design: state.designType,
+        promotion: state.promotionId ? getPromotion(state.promotionId)?.label ?? state.promotionId : '',
+        products: state.products.filter(Boolean).length,
+        productModels: meta.map((m) => m!.model).filter(Boolean).join('|'),
+        productNames: meta.map((m) => m!.name).filter(Boolean).join('|'),
+        boxes: state.boxCount,
+        channels: state.adChannelIds.join('|'),
+        banners: ok,
+      });
     } catch (e) {
       setP((s) => ({ ...s, busy: false, current: null, error: (e as Error).message }));
     } finally {

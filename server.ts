@@ -11,7 +11,7 @@ import express from 'express';
 import compression from 'compression';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { crawlPage, fetchProxyImage, isImageDomainAllowed } from './api-handlers';
+import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsage } from './api-handlers';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -71,6 +71,37 @@ app.post('/api/crawl-page', async (req, res) => {
   } catch (err: any) {
     return res.status(err?.status ?? 500).json({ error: err?.message ?? 'Failed to crawl page' });
   }
+});
+
+// ─── 사용 기록 ───────────────────────────────────────────────────────────────
+
+/*
+  나라별 법인이 얼마나 쓰는지 보려고 다운로드 한 번을 한 줄로 남긴다.
+  기록이 실패해도 사용자에게는 영향이 없어야 하므로 항상 200 으로 답한다 —
+  다운로드는 이미 끝난 뒤에 부르는 것이라 여기서 막을 이유가 없다.
+*/
+app.post('/api/log-usage', async (req, res) => {
+  try {
+    await appendUsage(req.body || {}, clientIp(req.headers, req.socket.remoteAddress));
+  } catch (err) {
+    console.warn('usage log failed:', err);
+  }
+  return res.status(200).json({ ok: true });
+});
+
+/*
+  모인 기록 내려받기. 브라우저 주소창에 치면 CSV 가 떨어진다.
+    https://도메인/api/usage.csv?key=...
+  key 는 USAGE_KEY 환경변수와 맞아야 한다. 안 걸어두면 아무나 볼 수 있으므로
+  값이 없으면 아예 닫아 둔다.
+*/
+app.get('/api/usage.csv', async (req, res) => {
+  const key = process.env.USAGE_KEY;
+  if (!key || req.query.key !== key) return res.status(403).json({ error: 'Forbidden' });
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="usage.csv"');
+  // 엑셀이 UTF-8 로 열도록 BOM 을 붙인다 (없으면 한글 제품명이 깨진다)
+  return res.send('\uFEFF' + (await readUsage()));
 });
 
 // ─── 정적 파일 + SPA 폴백 ────────────────────────────────────────────────────

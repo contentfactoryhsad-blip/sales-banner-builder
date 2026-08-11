@@ -24,6 +24,11 @@ export interface BannerState {
   backgroundTypeId: string | null;
   /** 3a. 장식 도형 id (builderOptions.GRAPHIC_TYPES). 사이즈별 스펙 위치에 배치된다. */
   graphicId: string;
+  /**
+   * 제품 칸별 Import 정보 (모델명·제품명). 배너에는 안 쓰이고, 다운로드할 때
+   * "어떤 제품으로 만들었나"를 사용 기록에 남기는 용도다. Upload 로 넣으면 null.
+   */
+  productMeta: ({ model: string; name: string } | null)[];
   /** 3b. 도형을 선(line)으로 쓸지 면(full)으로 쓸지. 도형 선택과는 별개다. */
   graphicKind: GraphicKind;
   /** (미사용) 도형 어셋 — Background Type로 대체됨 */
@@ -74,6 +79,7 @@ export function createInitialState(designType: DesignType): BannerState {
     boxStyleId: DEFAULT_BOX_STYLE[designType],
     boxCount: null,
     products: Array(MAX_BOXES).fill(null),
+    productMeta: Array(MAX_BOXES).fill(null),
     promoName: '[Promotion Name]',
     discount: 20,
     stickerStyle: DEFAULT_STICKER_STYLE[designType],

@@ -8,6 +8,8 @@
  *   · 운영  server.ts           (Express)
  */
 import * as cheerio from 'cheerio';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 // 사내 프록시/VPN 의 자체 서명 인증서 우회
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -637,4 +639,93 @@ export async function fetchProxyImage(url: string): Promise<{ contentType: strin
     contentType: upstream.headers.get('content-type') || 'image/jpeg',
     buffer: Buffer.from(await upstream.arrayBuffer()),
   };
+}
+
+// ─── 사용 기록 (법인별 사용량 집계) ──────────────────────────────────────────
+
+/**
+ * 다운로드 한 번 = 한 줄. 나라별 법인이 얼마나 쓰는지 보려는 것이라
+ * **접속 IP 의 국가**를 같이 남긴다.
+ *
+ * IP 원본은 저장하지 않고 마지막 자리를 지워 둔다 (203.0.113.45 → 203.0.113.0).
+ * 어느 사무실인지 가르는 데는 충분하고, 개인을 특정하지는 않는다.
+ */
+export interface UsageRecord {
+  design: string;        // A / B
+  promotion: string;
+  products: number;      // 넣은 제품 수
+  boxes: number | null;  // 박스 개수
+  channels: string;      // "criteo|dv360"
+  banners: number;       // 받은 PNG 장수
+  /** 어떤 제품을 썼는지 — 크롤링에서 받은 모델명을 이어붙인다 ("WT1210WWF|WL21WDU") */
+  productModels: string;
+  /** 모델명이 없을 때를 위한 제품명 ("LG WashTower™ …") */
+  productNames: string;
+}
+
+const USAGE_CSV = path.join(process.cwd(), 'logs', 'usage.csv');
+const USAGE_HEADER = 'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners\n';
+
+/** 프록시 뒤에 있어도 원래 클라이언트 IP 를 찾는다 */
+export function clientIp(headers: Record<string, string | string[] | undefined>, fallback?: string): string {
+  const fwd = headers['x-forwarded-for'];
+  const first = Array.isArray(fwd) ? fwd[0] : fwd;
+  const ip = (first?.split(',')[0] || (headers['x-real-ip'] as string) || fallback || '').trim();
+  return ip.replace(/^::ffff:/, '');
+}
+
+/** 마지막 자리를 지운다 — IPv4 는 마지막 옥텟, IPv6 는 뒤쪽 블록 */
+function maskIp(ip: string): string {
+  if (ip.includes(':')) {
+    const b = ip.split(':');
+    return b.length > 4 ? b.slice(0, 4).join(':') + '::' : ip;   // ::1 같은 짧은 주소는 그대로
+  }
+  const p = ip.split('.');
+  return p.length === 4 ? `${p[0]}.${p[1]}.${p[2]}.0` : ip;
+}
+
+/**
+ * IP → 국가. 사설망(회사 내부·로컬)이면 조회할 것도 없이 'local'.
+ * 외부 조회는 2초만 기다리고, 실패하면 'unknown' 으로 두고 기록은 남긴다 —
+ * 조회 실패 때문에 사용 기록 자체를 잃으면 안 된다.
+ */
+async function lookupCountry(ip: string): Promise<{ country: string; region: string }> {
+  if (!ip || /^(10\.|192\.168\.|127\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd)/.test(ip)) {
+    return { country: 'local', region: '' };
+  }
+  try {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 2000);
+    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=countryCode,country,regionName`, { signal: ac.signal });
+    clearTimeout(t);
+    if (!res.ok) return { country: 'unknown', region: '' };
+    const j = (await res.json()) as { countryCode?: string; regionName?: string };
+    return { country: j.countryCode || 'unknown', region: j.regionName || '' };
+  } catch {
+    return { country: 'unknown', region: '' };
+  }
+}
+
+const csvCell = (v: unknown) => {
+  const s = String(v ?? '');
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+/** 한 줄 덧붙인다. 파일이 없으면 헤더부터 만든다. */
+export async function appendUsage(rec: UsageRecord, ip: string): Promise<void> {
+  const { country, region } = await lookupCountry(ip);
+  const row = [
+    new Date().toISOString(), country, region, maskIp(ip),
+    rec.design, rec.promotion, rec.products, rec.productModels, rec.productNames,
+    rec.boxes ?? '', rec.channels, rec.banners,
+  ].map(csvCell).join(',') + '\n';
+
+  await fs.mkdir(path.dirname(USAGE_CSV), { recursive: true });
+  try { await fs.access(USAGE_CSV); } catch { await fs.writeFile(USAGE_CSV, USAGE_HEADER, 'utf8'); }
+  await fs.appendFile(USAGE_CSV, row, 'utf8');
+}
+
+/** 모인 CSV 를 통째로 준다 (없으면 헤더만) */
+export async function readUsage(): Promise<string> {
+  try { return await fs.readFile(USAGE_CSV, 'utf8'); } catch { return USAGE_HEADER; }
 }

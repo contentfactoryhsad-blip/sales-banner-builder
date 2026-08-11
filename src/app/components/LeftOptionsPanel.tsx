@@ -152,6 +152,7 @@ export function LeftOptionsPanel({
                 index={i + 1}
                 value={state.products[i] ?? null}
                 onChange={(v) => setProduct(i, v)}
+                onMeta={(m) => update({ productMeta: state.productMeta.map((x, k) => (k === i ? m : x)) })}
               />
             ))}
           </div>
@@ -170,10 +171,13 @@ export function ProductRow({
   index,
   value,
   onChange,
+  onMeta,
 }: {
   index: number;
   value: string | null;
   onChange: (v: string | null) => void;
+  /** Import 로 알아낸 제품 정보 — 사용 기록에 "어떤 제품을 썼나"를 남기는 데 쓴다 */
+  onMeta?: (meta: { model: string; name: string } | null) => void;
 }) {
   const [url, setUrl] = useState('');
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -200,7 +204,10 @@ export function ProductRow({
     const res = await scrapeProductImages(trimmed);
     setLoading(false);
     if (res.error) setError(res.error);
-    else setImages(res.images);
+    else {
+      setImages(res.images);
+      onMeta?.({ model: res.modelName ?? '', name: res.productName ?? '' });
+    }
   };
 
   // 소스 → 누끼(배경 제거) → 브러시 편집 창 열기

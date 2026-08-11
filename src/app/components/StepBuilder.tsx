@@ -373,7 +373,8 @@ function ProductUrlsStep({ state, update, setProduct }: StepProps & { setProduct
       {state.boxCount ? (
         <div className="grid grid-cols-2 gap-x-10">
           {Array.from({ length: state.boxCount }).map((_, i) => (
-            <ProductRow key={i} index={i + 1} value={state.products[i] ?? null} onChange={(v) => setProduct(i, v)} />
+            <ProductRow key={i} index={i + 1} value={state.products[i] ?? null} onChange={(v) => setProduct(i, v)}
+              onMeta={(m) => update({ productMeta: state.productMeta.map((x, k) => (k === i ? m : x)) })} />
           ))}
         </div>
       ) : (

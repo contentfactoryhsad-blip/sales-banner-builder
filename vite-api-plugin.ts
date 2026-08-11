@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { crawlPage, fetchProxyImage, isImageDomainAllowed } from './api-handlers';
+import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsage } from './api-handlers';
 
 /**
  * 개발 서버용 API — 운영(server.ts)과 **같은 핸들러**를 쓴다.
@@ -36,6 +36,22 @@ export function apiPlugin(): Plugin {
         } catch (err: any) {
           json(err?.status ?? 500, { error: err?.message ?? 'Failed to fetch image' });
         }
+      });
+
+      // 사용 기록 — 운영(server.ts)과 같은 핸들러를 쓴다
+      server.middlewares.use('/api/log-usage', async (req, res) => {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        try { await appendUsage(JSON.parse(body || '{}'), clientIp(req.headers as never, req.socket.remoteAddress)); }
+        catch (err) { console.warn('usage log failed:', err); }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('{"ok":true}');
+      });
+
+      server.middlewares.use('/api/usage.csv', async (_req, res) => {
+        // 개발에서는 열쇠 없이 본다 — 로컬에서만 뜨는 서버다
+        res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' });
+        res.end('\uFEFF' + (await readUsage()));
       });
 
       server.middlewares.use('/api/crawl-page', async (req, res) => {
