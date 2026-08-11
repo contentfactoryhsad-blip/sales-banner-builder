@@ -71,12 +71,31 @@ export function settle(ms = 120): Promise<void> {
 }
 
 /**
+ * @font-face 를 전부 data URL 로 바꾼 CSS 를 **한 번** 만들어 둔다.
+ *
+ * 안 넘기면 html-to-image 가 배너 한 장마다 폰트 파일을 다시 받아 인라인한다.
+ * 41번 반복이라 느릴 뿐 아니라, 한 번이라도 실패하면 **조용히 건너뛰어** 그 장만
+ * 폰트가 빠진 채 구워진다 (스티커의 Cal Sans 처럼 한 군데서만 쓰는 폰트가 먼저 티난다).
+ * 한 번 만들어 모든 장에 같은 CSS 를 넘기면 그럴 일이 없다.
+ */
+export async function buildFontCss(node: HTMLElement): Promise<string> {
+  const { getFontEmbedCSS } = await import('html-to-image');
+  return getFontEmbedCSS(node);
+}
+
+/**
  * 화면 밖 노드를 PNG 로 굽는다.
  * html-to-image 는 마지막 단계에서만 쓰이므로 그때 가서 불러온다 (초기 번들에서 제외).
  */
-export async function capturePng(node: HTMLElement, width: number, height: number): Promise<Blob> {
+export async function capturePng(
+  node: HTMLElement, width: number, height: number, fontEmbedCSS?: string,
+): Promise<Blob> {
   const { toBlob } = await import('html-to-image');
-  const blob = await toBlob(node, { width, height, pixelRatio: 1, skipFonts: false, cacheBust: true });
+  const blob = await toBlob(node, {
+    width, height, pixelRatio: 1, cacheBust: true,
+    // fontEmbedCSS 를 주면 html-to-image 는 폰트를 다시 받지 않고 이걸 그대로 쓴다
+    ...(fontEmbedCSS ? { fontEmbedCSS } : { skipFonts: false }),
+  });
   if (!blob) throw new Error('렌더 결과가 비었습니다');
   return blob;
 }

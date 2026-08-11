@@ -190,6 +190,12 @@ export function SpecBannerPreview({
   const subRef = useRef<HTMLParagraphElement>(null);
   const [copyBottom, setCopyBottom] = useState<number | null>(null);
   const showSub = !!(inn.sub && state.showSubcopy && state.subcopy);
+  /*
+    ⚠ 의존성 목록을 반드시 둘 것.
+    offsetHeight 는 동기 레이아웃을 강제한다. 목록 없이 매 렌더마다 돌리면
+    AD Media 확인창처럼 배너가 40장 붙은 화면에서 줌·팬 한 번에 40번씩 리플로가
+    걸려 브라우저가 멈춘다. 높이를 바꿀 수 있는 입력이 달라질 때만 다시 잰다.
+  */
   useLayoutEffect(() => {
     const h = headRef.current;
     if (!h || !inn.head) return;
@@ -198,7 +204,10 @@ export function SpecBannerPreview({
     const b = Math.max(hb, sb);
     // 같은 값이면 다시 그리지 않는다 (측정 → 렌더 무한루프 방지)
     setCopyBottom((prev) => (prev !== null && Math.abs(prev - b) < 0.5 ? prev : b));
-  });
+  }, [
+    key, inn.head, inn.sub, showSub, promoK, noWrap, fontsReady,
+    state.promoName, state.headline, state.showHeadline, state.subcopy,
+  ]);
   /*
     Figma 가 잡아둔 카피 바닥 → 그 아래 CTA 까지의 간격.
     서브카피를 끈 상태면 Figma 도 헤드만 있는 셈이므로 헤드 바닥을 기준으로 잰다

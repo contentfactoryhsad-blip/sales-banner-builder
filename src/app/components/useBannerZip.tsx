@@ -4,7 +4,7 @@ import { AD_CHANNELS } from '../../data/builderOptions';
 import { MEDIA_SIZES } from '../../data/mediaSizes';
 import { getSpec } from '../../data/figmaStyle';
 import { SpecBannerPreview } from './SpecBannerPreview';
-import { capturePng, inlineImages, saveBlob, settle, stamp } from '../utils/bannerExport';
+import { buildFontCss, capturePng, inlineImages, saveBlob, settle, stamp } from '../utils/bannerExport';
 
 export interface ZipProgress {
   busy: boolean;
@@ -53,6 +53,7 @@ export function useBannerZip(state: BannerState) {
     const zip = new JSZip();
     const failed: string[] = [];
     let ok = 0;
+    let fontCss: string | null = null;
     try {
       for (let i = 0; i < targets.length; i++) {
         const t = targets[i];
@@ -64,10 +65,9 @@ export function useBannerZip(state: BannerState) {
         if (!host) throw new Error('렌더 자리를 찾지 못했습니다');
         const restore = await inlineImages(host);
         try {
-          // 첫 장은 폰트·이미지를 인라인하며 한 번 헛돌린다. 그래야 1번 파일만
-          // 폰트가 빠진 채로 구워지는 일이 없다.
-          if (i === 0) await capturePng(host, t.w, t.h).catch(() => null);
-          zip.folder(t.channel)!.file(`${t.channel}-${t.name}.png`, await capturePng(host, t.w, t.h));
+          // 폰트 CSS 는 첫 장에서 한 번만 만들어 모든 장에 같은 것을 넘긴다
+          if (fontCss === null) fontCss = await buildFontCss(host);
+          zip.folder(t.channel)!.file(`${t.channel}-${t.name}.png`, await capturePng(host, t.w, t.h, fontCss));
           ok++;
         } catch {
           failed.push(label);
