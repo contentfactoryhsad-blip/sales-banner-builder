@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { BannerState } from '../types';
 import { getPromotion } from '../../data/promotions';
 import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
@@ -176,14 +176,39 @@ export function SpecBannerPreview({
     [promoBrk, inn.head, state.promoName, fontsReady],
   );
   /*
-    계절을 자기 줄로 내리면 카피가 Figma 가 잡아둔 높이보다 한 줄 길어진다.
-    CTA 는 Figma 실측 y 에 고정돼 있어서, 그대로 두면 카피 바로 밑에 붙어
-    컨테이너의 세로 간격(inn.copy[4])이 사라진다. 늘어난 만큼 CTA 를 내린다.
-    (Figma 는 auto-layout 이라 내용이 길어지면 CTA 가 저절로 밀린다)
+    ── CTA 자리: 카피가 실제로 차지한 높이 + Figma 의 간격 ──
+
+    Figma 의 `Copy + CTA btn` 은 세로 auto-layout 이라, 카피가 길어지면 CTA 가
+    저절로 밀린다. 웹은 절대배치라 CTA 가 실측 y 에 고정돼 있어서, 프로모션 명칭이
+    Figma 샘플보다 길어 한 줄 더 접히면 그만큼 간격이 먹혀 버린다
+    ("Back To School. Spring" 처럼 계절이 붙는 이름에서 특히 눈에 띈다).
+
+    그래서 간격만 Figma 에서 가져오고(아래 ctaGap), 시작점은 **그린 뒤 잰 높이**로
+    잡는다. 글자가 Figma 와 똑같이 앉으면 실측 y 그대로라 다른 사이즈는 변화가 없다.
   */
-  const promoExtra = promoBrk && inn.head && state.promoName?.includes(' – ')
-    ? inn.head[4] * PROMO_TAIL_SCALE * COPY_LINE_HEIGHT
-    : 0;
+  const headRef = useRef<HTMLDivElement>(null);
+  const subRef = useRef<HTMLParagraphElement>(null);
+  const [copyBottom, setCopyBottom] = useState<number | null>(null);
+  const showSub = !!(inn.sub && state.showSubcopy && state.subcopy);
+  useLayoutEffect(() => {
+    const h = headRef.current;
+    if (!h || !inn.head) return;
+    const hb = inn.head[1] + h.offsetHeight;
+    const sb = showSub && subRef.current && inn.sub ? inn.sub[1] + subRef.current.offsetHeight : 0;
+    const b = Math.max(hb, sb);
+    // 같은 값이면 다시 그리지 않는다 (측정 → 렌더 무한루프 방지)
+    setCopyBottom((prev) => (prev !== null && Math.abs(prev - b) < 0.5 ? prev : b));
+  });
+  /*
+    Figma 가 잡아둔 카피 바닥 → 그 아래 CTA 까지의 간격.
+    서브카피를 끈 상태면 Figma 도 헤드만 있는 셈이므로 헤드 바닥을 기준으로 잰다
+    (그래야 서브카피를 껐다고 CTA 가 위로 딸려 올라가지 않는다).
+  */
+  const figmaBottom = showSub && inn.sub
+    ? inn.sub[1] + inn.sub[3]
+    : inn.head ? inn.head[1] + inn.head[3] : 0;
+  const ctaGap = inn.cta ? inn.cta[1] - figmaBottom : 0;
+  const ctaTop = inn.cta ? (copyBottom === null ? inn.cta[1] : copyBottom + ctaGap) : 0;
   // Figma letterSpacing 은 PERCENT 단위다. 숫자를 그대로 넘기면 CSS 가 px 로 읽어 크게 벌어진다.
   const headLs = inn.head && inn.head[5] ? (inn.head[4] * inn.head[5]) / 100 : undefined;
   const dpad = discPad(key);
@@ -334,7 +359,7 @@ export function SpecBannerPreview({
         {inn.copy && (
           <div style={{ position: 'absolute', left: inn.copy[0], top: inn.copy[1], width: inn.copy[2], color: style.text }}>
             {inn.head && (
-              <div style={{
+              <div ref={headRef} style={{
                 position: 'absolute', left: inn.head[0], top: inn.head[1],
                 /*
                   Figma 의 WIDTH_AND_HEIGHT 는 글자에 맞춰 상자가 늘어나는 모드다.
@@ -357,8 +382,8 @@ export function SpecBannerPreview({
                 ))}
               </div>
             )}
-            {inn.sub && state.showSubcopy && state.subcopy && (
-              <p style={{
+            {showSub && inn.sub && (
+              <p ref={subRef} style={{
                 position: 'absolute', left: inn.sub[0], top: inn.sub[1],
                 /*
                   서브카피는 접지 않는다. Figma 의 서브카피 상자 높이를 전 사이즈에서
@@ -373,7 +398,7 @@ export function SpecBannerPreview({
             )}
             {inn.cta && (
               <div style={{
-                position: 'absolute', left: inn.cta[0], top: inn.cta[1] + promoExtra,
+                position: 'absolute', left: inn.cta[0], top: ctaTop,
                 // CTA 버튼도 Figma 에선 HUG(글자 폭 + 좌우 패딩)다. 실측 폭을 최소값으로
                 // 두되 글자가 넓어지면 늘어나게 해서 빨간 알약 밖으로 새지 않게 한다.
                 // 좌우 패딩은 실측상 글자 크기의 약 1.2배로 일정하다.
