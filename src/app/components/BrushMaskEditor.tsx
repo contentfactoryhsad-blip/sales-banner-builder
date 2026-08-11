@@ -554,12 +554,40 @@ export function BrushMaskEditor({ originalUrl, processedUrl, onDone, onCancel }:
                         }}
                       />
                     )}
-                    {/* Brush / eraser glyph at pointer tip */}
+                    {/*
+                      AI 모드는 누른 **한 점**을 씨앗으로 그 영역을 처리한다.
+                      그런데 커서가 둥근 뱃지뿐이라 어느 픽셀이 기준인지 안 보였다.
+                      그래서 끝점이 기준인 화살표와, 그 끝에 찍히는 점을 같이 그린다.
+                      뱃지는 기준점을 가리지 않게 멀찍이 밀어 둔다.
+                    */}
+                    {isSmartMode && (
+                      <>
+                        <svg
+                          width={16} height={18}
+                          style={{ position: "absolute", left: 0, top: 0, overflow: "visible" }}
+                        >
+                          {/* 끝(0,0)이 곧 기준점인 화살표 */}
+                          <path
+                            d="M0 0 L0 14 L3.6 10.6 L6.2 16.4 L8.8 15.2 L6.2 9.6 L11 9.4 Z"
+                            fill="#fff" stroke={modeColor} strokeWidth={1.4} strokeLinejoin="round"
+                          />
+                        </svg>
+                        {/* 기준점 — 여기를 누른다 */}
+                        <div
+                          style={{
+                            position: "absolute", left: -3.5, top: -3.5, width: 7, height: 7,
+                            borderRadius: "50%", background: modeColor,
+                            boxShadow: "0 0 0 1.5px #fff, 0 0 4px rgba(0,0,0,0.6)",
+                          }}
+                        />
+                      </>
+                    )}
+                    {/* Brush / eraser glyph — AI 모드에서는 기준점을 가리지 않게 밀어 둔다 */}
                     <div
                       style={{
                         position: "absolute",
-                        left: 2,
-                        top: 2,
+                        left: isSmartMode ? 16 : 2,
+                        top: isSmartMode ? 18 : 2,
                         width: 22,
                         height: 22,
                         borderRadius: "50%",
