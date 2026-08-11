@@ -164,14 +164,27 @@ function AdMediaStep({ state, update }: StepProps) {
     applyTransform();
     setZoomPct(Math.round(nz * 100));
   };
-  const onDown = (e: React.MouseEvent) => { if (!spaceHeld.current) return; dragging.current = true; lastPt.current = { x: e.clientX, y: e.clientY }; };
+  /*
+    will-change: transform 은 **끌고 있는 동안만** 건다.
+
+    이 힌트가 켜져 있으면 브라우저가 콘텐츠를 한 번 래스터해 둔 텍스처를 그대로
+    확대/축소한다 (transform 애니메이션을 싸게 만들려는 게 원래 목적). 그래서 줌을
+    올려도 다시 그리지 않아, 도형의 가는 선(1200px 원본에서 3px)이 배너 크기(179px)로
+    줄어든 채 확대되어 계단지고 끊겨 보였다.
+    끌 때만 켜면 팬은 그대로 부드럽고, 줌은 그 배율에서 새로 래스터된다.
+  */
+  const setSmoothPan = (on: boolean) => {
+    const el = contentRef.current;
+    if (el) el.style.willChange = on ? 'transform' : 'auto';
+  };
+  const onDown = (e: React.MouseEvent) => { if (!spaceHeld.current) return; dragging.current = true; setSmoothPan(true); lastPt.current = { x: e.clientX, y: e.clientY }; };
   const onMove = (e: React.MouseEvent) => {
     if (!dragging.current) return;
     panRef.current = { x: panRef.current.x + (e.clientX - lastPt.current.x), y: panRef.current.y + (e.clientY - lastPt.current.y) };
     lastPt.current = { x: e.clientX, y: e.clientY };
     applyTransform(); // 리렌더 없이 DOM만
   };
-  const onUp = () => { dragging.current = false; };
+  const onUp = () => { if (dragging.current) setSmoothPan(false); dragging.current = false; };
   const onClick = (e: React.MouseEvent) => {
     if (!zHeld.current || spaceHeld.current) return;
     const p = canvasPt(e);
@@ -223,7 +236,7 @@ function AdMediaStep({ state, update }: StepProps) {
               로 정해진다 — 배너를 네이티브로 그린 뒤로는 가장 넓은 배너(1200)가 그대로
               줄 폭이 되어 큰 배너가 한 줄에 하나씩만 놓였다. maxWidth 는 걸리지도 않았다.
             */}
-            <div ref={contentRef} style={{ position: 'absolute', top: 0, left: 0, width: CANVAS_MAX_W, transformOrigin: 'top left', willChange: 'transform' }}>
+            <div ref={contentRef} style={{ position: 'absolute', top: 0, left: 0, width: CANVAS_MAX_W, transformOrigin: 'top left' }}>
               <div className="flex flex-col" style={{ gap: NS(32) }}>
                 {channels.map((c) => (
                   <div key={c.id}>
