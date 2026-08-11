@@ -88,20 +88,31 @@ export function useBannerZip(state: BannerState) {
   };
 
   /*
-    굽는 대상. 화면 밖(-10000px)에 두되 display:none 은 쓰지 않는다 —
-    레이아웃이 잡혀야 CTA 자리 계산(offsetHeight)과 이미지 디코드가 정상이다.
+    굽는 대상.
+
+    화면 밖으로 밀어내는 건 **바깥 껍데기**가 하고, 굽는 노드(hostRef)는 아무 위치
+    스타일도 갖지 않는다. html-to-image 는 노드를 복제해 SVG(foreignObject) 안에
+    넣는데, 복제본은 계산된 스타일을 그대로 물려받는다. 굽는 노드 자신에
+    position:fixed; left:-10000px 이 붙어 있으면 SVG 안에서도 그만큼 밀려나
+    **빈 그림**이 나온다.
+
+    display:none 은 쓰지 않는다 — 레이아웃이 잡혀야 CTA 자리 계산(offsetHeight)과
+    이미지 디코드가 정상이다.
   */
   const host = (
-    <div ref={hostRef} aria-hidden style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}>
-      {job && (() => {
-        const spec = getSpec(state.designType, job.channel, job.size);
-        return spec ? (
-          <SpecBannerPreview
-            state={state} spec={spec} design={state.designType}
-            channel={job.channel} size={job.size} displayWidth={job.w}
-          />
-        ) : null;
-      })()}
+    <div aria-hidden style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}>
+      {/* 굽는 크기를 못박아 둔다 — 껍데기가 shrink-to-fit 이라 폭이 흔들릴 수 있다 */}
+      <div ref={hostRef} style={job ? { width: job.w, height: job.h } : undefined}>
+        {job && (() => {
+          const spec = getSpec(state.designType, job.channel, job.size);
+          return spec ? (
+            <SpecBannerPreview
+              state={state} spec={spec} design={state.designType}
+              channel={job.channel} size={job.size} displayWidth={job.w}
+            />
+          ) : null;
+        })()}
+      </div>
     </div>
   );
 
