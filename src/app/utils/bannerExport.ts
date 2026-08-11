@@ -5,34 +5,35 @@
  * 그린 뒤 PNG 로 굽는다. 캔버스로 다시 그리지 않으므로 웹에서 보이는 것과 결과가
  * 어긋날 일이 없다.
  */
+/** 저장 자리를 미리 잡아둔 결과. null = 저장 창을 못 쓴다(링크로 내려받는다) */
+export type SaveTarget = FileSystemFileHandle | null;
+
 /**
- * 파일 저장. 지원하는 브라우저면 저장 위치를 물어보고(showSaveFilePicker),
- * 아니면 평범한 링크 클릭으로 내려받는다.
+ * 저장할 자리를 **클릭 직후에** 잡아둔다.
+ *
+ * showSaveFilePicker 도, 거기서 받은 자리에 쓰는 것도 "사용자가 방금 눌렀다"는
+ * 권한이 살아 있어야 한다. 배너 41장을 다 구운 뒤에 부르면 그 권한이 만료돼
+ * `createWritable ... not allowed by the user agent` 로 거절당한다.
+ * 그래서 굽기 전에 먼저 잡아두고, 다 구운 다음 그 자리에 쓴다.
+ *
+ * 반환값이 'cancelled' 면 사용자가 창을 닫은 것 — 굽지 말고 그만둔다.
  */
-export async function saveBlob(blob: Blob, fileName: string): Promise<void> {
+export async function pickSaveTarget(fileName: string): Promise<SaveTarget | 'cancelled'> {
   const picker = (window as unknown as { showSaveFilePicker?: unknown }).showSaveFilePicker;
-  if (typeof picker === 'function') {
-    let fh: FileSystemFileHandle | null = null;
-    try {
-      fh = await (picker as (o: unknown) => Promise<FileSystemFileHandle>)({
-        suggestedName: fileName,
-        types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
-      });
-    } catch (e) {
-      // 취소했으면 끝. 그 외(예: 사용자 제스처 만료)는 링크 방식으로 넘어간다.
-      if ((e as { name?: string })?.name === 'AbortError') return;
-    }
-    /*
-      저장 자리를 이미 받았다면 여기서 끝낸다 — 쓰다가 실패해도 링크 방식으로
-      다시 내려받지 않는다. 그러면 파일이 두 개 떨어진다.
-    */
-    if (fh) {
-      const w = await fh.createWritable();
-      await w.write(blob);
-      await w.close();
-      return;
-    }
+  if (typeof picker !== 'function') return null;
+  try {
+    return await (picker as (o: unknown) => Promise<FileSystemFileHandle>)({
+      suggestedName: fileName,
+      types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
+    });
+  } catch (e) {
+    if ((e as { name?: string })?.name === 'AbortError') return 'cancelled';
+    return null;   // 지원 안 하거나 막혔으면 링크 방식으로
   }
+}
+
+/** 링크를 눌러 받게 한다 — 저장 창을 못 쓸 때의 기본 경로 */
+function downloadViaLink(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -41,6 +42,28 @@ export async function saveBlob(blob: Blob, fileName: string): Promise<void> {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/**
+ * 파일 저장. 미리 잡아둔 자리가 있으면 거기에 쓰고, 없거나 실패하면 링크로 받는다.
+ *
+ * 쓰기가 시작된 뒤에 실패하면 링크로 **다시 받지 않는다** — 그러면 파일이 두 개 떨어진다.
+ */
+export async function saveBlob(blob: Blob, fileName: string, target?: SaveTarget): Promise<void> {
+  if (target) {
+    let wrote = false;
+    try {
+      const w = await target.createWritable();
+      await w.write(blob);
+      wrote = true;
+      await w.close();
+      return;
+    } catch (e) {
+      if (wrote) throw e;   // 이미 쓴 뒤라면 중복 저장하지 않고 알린다
+      // 쓰지도 못했으면 아무것도 저장되지 않았으므로 링크로 받는다
+    }
+  }
+  downloadViaLink(blob, fileName);
 }
 
 /**
