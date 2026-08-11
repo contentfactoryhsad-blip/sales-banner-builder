@@ -122,6 +122,8 @@ export function useBannerZip(state: BannerState) {
             <SpecBannerPreview
               state={state} spec={spec} design={state.designType}
               channel={job.channel} size={job.size} displayWidth={job.w}
+              // 굽는 동안만 유리 박스를 직접 흉내낸다 (SVG 안에서는 backdrop-filter 가 안 먹는다)
+              emulateGlass
             />
           ) : null;
         })()}

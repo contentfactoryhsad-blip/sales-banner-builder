@@ -116,7 +116,7 @@ function promoNameNodes(name: string, br: boolean, k: number) {
 }
 
 export function SpecBannerPreview({
-  state, spec, design, channel, size, displayWidth,
+  state, spec, design, channel, size, displayWidth, emulateGlass = false,
 }: {
   state: BannerState;
   spec: FigmaFrameSpec;
@@ -124,6 +124,18 @@ export function SpecBannerPreview({
   channel: string;
   size: string;
   displayWidth: number;
+  /**
+   * 유리 박스의 backdrop-filter 를 **직접 흉내낸다** (PNG 로 구울 때만 켠다).
+   *
+   * html-to-image 는 DOM 을 SVG(foreignObject) 로 옮겨 굽는데 그 안에서는
+   * backdrop-filter 가 동작하지 않는다. 그러면 박스 뒤 배경이 흐려지지 않고
+   * 장식 도형의 가는 선까지 또렷하게 통과해, 화면과 전혀 다른 그림이 나온다.
+   * 켜면 박스 안쪽에 배경 묶음을 한 벌 더 깔고 blur 를 걸어 같은 결과를 만든다.
+   *
+   * 화면에서는 끈다 — 진짜 backdrop-filter 가 더 싸고, 배너 40장이 붙는
+   * AD Media 확인창에서 배경을 6벌씩 더 그리면 감당이 안 된다.
+   */
+  emulateGlass?: boolean;
 }) {
   const key = specKey(channel, size);
   const [FW, FH] = spec.f;
@@ -244,16 +256,18 @@ export function SpecBannerPreview({
     return `rgba(${r},${g},${b},${alpha})`;
   })();
 
-  return (
-    <div style={{ width: displayWidth, height: FH * scale }} className="relative overflow-hidden shrink-0">
-      <div
-        style={{
-          width: FW, height: FH, transform: `scale(${scale})`, transformOrigin: 'top left',
-          position: 'absolute', top: 0, left: 0, overflow: 'hidden',
-          background: promo && state.colorMode === 'overlay'
-            ? `linear-gradient(160deg, ${main} 0%, ${secondary} 100%)` : '#000',
-        }}
-      >
+  /*
+    배경 묶음 — 배경 이미지 + 셰이드 + 장식 도형.
+
+    유리 박스가 "뒤를 흐리게" 보이려면 이 묶음을 박스 안에도 한 벌 더 깔아야 해서
+    (아래 emulateGlass 참고) 한 번 만들어 두 곳에서 쓴다.
+  */
+  /** 프레임 바닥색 — 유리 박스 복사본도 같은 바닥 위에 그려야 색이 맞는다 */
+  const frameBg = promo && state.colorMode === 'overlay'
+    ? `linear-gradient(160deg, ${main} 0%, ${secondary} 100%)` : '#000';
+
+  const backdrop = (
+    <>
         {/*
           배경 — Figma 배치 그대로, 프로모션 색으로 tint. B 는 레이어 블러.
 
@@ -308,6 +322,19 @@ export function SpecBannerPreview({
             style={{ position: 'absolute', left: x, top: y, width: w, height: h, objectFit: 'cover',
                      mixBlendMode: 'overlay', opacity: GRAPHIC_OPACITY_BY_KIND[state.graphicKind], pointerEvents: 'none' }} />
         ))}
+    </>
+  );
+
+  return (
+    <div style={{ width: displayWidth, height: FH * scale }} className="relative overflow-hidden shrink-0">
+      <div
+        style={{
+          width: FW, height: FH, transform: `scale(${scale})`, transformOrigin: 'top left',
+          position: 'absolute', top: 0, left: 0, overflow: 'hidden',
+          background: frameBg,
+        }}
+      >
+        {backdrop}
 
         {/* LG 로고 */}
         {inn.logo && (
@@ -319,20 +346,39 @@ export function SpecBannerPreview({
         {showBoxes && rects.map(([x, y, w, h, r], i) => {
           const sw = boxMat.strokeRatio * w;
           const sh = boxMat.shadowRatio * w;
-          return (
+            const fakeGlass = boxMat.glass && emulateGlass;
+            return (
             <div key={i}
               style={{
                 position: 'absolute', left: bx + x, top: by + y, width: w, height: h,
-                background: boxMat.fill,
+                // 흉내낼 때는 채움을 자식으로 얹는다 — background 는 자식보다 뒤라 복사본을 가린다
+                background: fakeGlass ? undefined : boxMat.fill,
                 border: boxMat.stroke ? `${sw}px solid ${boxMat.stroke}` : undefined,
                 borderRadius: r,
                 boxShadow: `0px ${sh}px ${sh}px 0px rgba(0,0,0,0.07)${boxMat.glass ? `, ${glassCss.innerLight}` : ''}`,
-                backdropFilter: boxMat.glass ? glassCss.backdropFilter : undefined,
-                WebkitBackdropFilter: boxMat.glass ? glassCss.WebkitBackdropFilter : undefined,
+                backdropFilter: boxMat.glass && !fakeGlass ? glassCss.backdropFilter : undefined,
+                WebkitBackdropFilter: boxMat.glass && !fakeGlass ? glassCss.WebkitBackdropFilter : undefined,
                 overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxSizing: 'border-box',
               }}
             >
+              {fakeGlass && (
+                <>
+                  {/*
+                    박스 뒤에 있어야 할 것을 그대로 한 벌 더 그리고 흐린다.
+                    프레임 좌표계를 유지한 채 박스만큼 끌어올려 두면 배경이 정확히 이어지고,
+                    바깥은 박스의 overflow:hidden 이 잘라낸다. 테두리 두께만큼 빼서 맞춘다.
+                  */}
+                  <div style={{
+                    position: 'absolute', left: -(bx + x) - sw, top: -(by + y) - sw,
+                    width: FW, height: FH, filter: glassCss.backdropFilter, pointerEvents: 'none',
+                  }}>
+                    <div style={{ position: 'absolute', inset: 0, background: frameBg }} />
+                    {backdrop}
+                  </div>
+                  <div style={{ position: 'absolute', inset: 0, background: boxMat.fill, pointerEvents: 'none' }} />
+                </>
+              )}
               {state.products[i] && (() => {
                 /*
                   Figma 가 박스마다 잡아둔 제품 자리.
