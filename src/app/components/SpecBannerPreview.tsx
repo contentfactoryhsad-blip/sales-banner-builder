@@ -279,8 +279,19 @@ export function SpecBannerPreview({
     유리 박스가 "뒤를 흐리게" 보이려면 이 묶음을 박스 안에도 한 벌 더 깔아야 해서
     (아래 emulateGlass 참고) 한 번 만들어 두 곳에서 쓴다.
   */
-  /** 프레임 바닥색 — 유리 박스 복사본도 같은 바닥 위에 그려야 색이 맞는다 */
-  const frameBg = promo && state.colorMode === 'overlay'
+  /*
+    프레임 바닥색 — 배경 이미지가 못 덮는 자리에 드러난다.
+
+    B 는 Figma 배치상 배경이 프레임을 다 덮지 않는 사이즈가 13개나 된다
+    (criteo-1200x628 왼쪽 78px, dv360-1200x270 왼쪽 145px, meta-1080x1920 아래 226px …).
+    바닥을 검정으로 두면 프로모션을 고르기 전에는 그 자리가 새까맣게 보인다.
+    프로모션이 없을 때도 같은 그라데이션을 쓰되 색만 중립값으로 간다 —
+    main/secondary 가 이미 NEUTRAL_BANNER_COLORS 로 떨어지므로 조건만 없애면 된다.
+    (A 는 못 덮는 폭이 1px 뿐이라 사실상 변화가 없다)
+
+    유리 박스 복사본도 같은 바닥 위에 그려야 색이 맞아서 변수로 둔다.
+  */
+  const frameBg = state.colorMode === 'overlay'
     ? `linear-gradient(160deg, ${main} 0%, ${secondary} 100%)` : '#000';
 
   const backdrop = (
