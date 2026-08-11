@@ -63,6 +63,9 @@ const HEAD_WRAP_TOLERANCE = 1.03;
  */
 const PROMO_TAIL_SCALE = 0.6;
 
+/** 카피 줄 높이 (Figma lineHeight 106%). CTA 자리 계산에도 쓴다. */
+const COPY_LINE_HEIGHT = 1.06;
+
 /** 별 스티커 회전(rad). Figma 기준 15°. */
 const STAR_ROT = (15 * Math.PI) / 180;
 
@@ -172,6 +175,15 @@ export function SpecBannerPreview({
     // fontsReady 는 웹폰트가 붙은 뒤 다시 재게 하는 신호다
     [promoBrk, inn.head, state.promoName, fontsReady],
   );
+  /*
+    계절을 자기 줄로 내리면 카피가 Figma 가 잡아둔 높이보다 한 줄 길어진다.
+    CTA 는 Figma 실측 y 에 고정돼 있어서, 그대로 두면 카피 바로 밑에 붙어
+    컨테이너의 세로 간격(inn.copy[4])이 사라진다. 늘어난 만큼 CTA 를 내린다.
+    (Figma 는 auto-layout 이라 내용이 길어지면 CTA 가 저절로 밀린다)
+  */
+  const promoExtra = promoBrk && inn.head && state.promoName?.includes(' – ')
+    ? inn.head[4] * PROMO_TAIL_SCALE * COPY_LINE_HEIGHT
+    : 0;
   // Figma letterSpacing 은 PERCENT 단위다. 숫자를 그대로 넘기면 CSS 가 px 로 읽어 크게 벌어진다.
   const headLs = inn.head && inn.head[5] ? (inn.head[4] * inn.head[5]) / 100 : undefined;
   const dpad = discPad(key);
@@ -336,7 +348,7 @@ export function SpecBannerPreview({
                   ? undefined : -(inn.head[2] * (HEAD_WRAP_TOLERANCE - 1)) / 2,
                 fontFamily: HEADLINE_FONT, fontWeight: HEADLINE_WEIGHT,
                 fontSize: inn.head[4], letterSpacing: headLs,
-                lineHeight: 1.06, textAlign: hAlign,
+                lineHeight: COPY_LINE_HEIGHT, textAlign: hAlign,
                 whiteSpace: noWrap ? 'nowrap' : undefined,
               }}>
                 {state.promoName && promoNameNodes(state.promoName, promoBrk, promoK)}
@@ -356,12 +368,12 @@ export function SpecBannerPreview({
                 */
                 width: 'max-content', whiteSpace: 'nowrap',
                 margin: 0,
-                fontFamily: BODY_FONT, fontSize: inn.sub[4], lineHeight: 1.06, textAlign: hAlign,
+                fontFamily: BODY_FONT, fontSize: inn.sub[4], lineHeight: COPY_LINE_HEIGHT, textAlign: hAlign,
               }}>{state.subcopy}</p>
             )}
             {inn.cta && (
               <div style={{
-                position: 'absolute', left: inn.cta[0], top: inn.cta[1],
+                position: 'absolute', left: inn.cta[0], top: inn.cta[1] + promoExtra,
                 // CTA 버튼도 Figma 에선 HUG(글자 폭 + 좌우 패딩)다. 실측 폭을 최소값으로
                 // 두되 글자가 넓어지면 늘어나게 해서 빨간 알약 밖으로 새지 않게 한다.
                 // 좌우 패딩은 실측상 글자 크기의 약 1.2배로 일정하다.
