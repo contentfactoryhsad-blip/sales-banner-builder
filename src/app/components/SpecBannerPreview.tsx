@@ -325,6 +325,21 @@ export function SpecBannerPreview({
     </>
   );
 
+  /*
+    유리 뒤에 있어야 할 것을 한 벌 더 그리고 흐린 조각.
+    프레임 좌표계를 유지한 채 해당 도형만큼 끌어올려 두면 배경이 정확히 이어지고,
+    바깥은 부모의 overflow:hidden 이나 clip-path 가 잘라낸다.
+  */
+  const glassCopy = (left: number, top: number) => (
+    <div style={{
+      position: 'absolute', left: -left, top: -top, width: FW, height: FH,
+      filter: glassCss.backdropFilter, pointerEvents: 'none',
+    }}>
+      <div style={{ position: 'absolute', inset: 0, background: frameBg }} />
+      {backdrop}
+    </div>
+  );
+
   return (
     <div style={{ width: displayWidth, height: FH * scale }} className="relative overflow-hidden shrink-0">
       <div
@@ -369,13 +384,7 @@ export function SpecBannerPreview({
                     프레임 좌표계를 유지한 채 박스만큼 끌어올려 두면 배경이 정확히 이어지고,
                     바깥은 박스의 overflow:hidden 이 잘라낸다. 테두리 두께만큼 빼서 맞춘다.
                   */}
-                  <div style={{
-                    position: 'absolute', left: -(bx + x) - sw, top: -(by + y) - sw,
-                    width: FW, height: FH, filter: glassCss.backdropFilter, pointerEvents: 'none',
-                  }}>
-                    <div style={{ position: 'absolute', inset: 0, background: frameBg }} />
-                    {backdrop}
-                  </div>
+                  {glassCopy(bx + x + sw, by + y + sw)}
                   <div style={{ position: 'absolute', inset: 0, background: boxMat.fill, pointerEvents: 'none' }} />
                 </>
               )}
@@ -516,10 +525,18 @@ export function SpecBannerPreview({
                       <div style={{
                         position: 'absolute', left: off, top: off, width: ss, height: ss,
                         clipPath: `path('${px}')`, WebkitClipPath: `path('${px}')`,
-                        background: BOX_MATERIALS.glass.fill,
-                        backdropFilter: gBackdrop,
-                        WebkitBackdropFilter: gBackdrop,
-                      }} />
+                        background: emulateGlass ? undefined : BOX_MATERIALS.glass.fill,
+                        backdropFilter: emulateGlass ? undefined : gBackdrop,
+                        WebkitBackdropFilter: emulateGlass ? undefined : gBackdrop,
+                        overflow: 'hidden',
+                      }}>
+                        {emulateGlass && (
+                          <>
+                            {glassCopy(sx + off, sy + off)}
+                            <div style={{ position: 'absolute', inset: 0, background: BOX_MATERIALS.glass.fill }} />
+                          </>
+                        )}
+                      </div>
                       <svg viewBox="0 0 100 100" width={ss} height={ss}
                         style={{ position: 'absolute', left: off, top: off, pointerEvents: 'none' }}>
                         <path d={starPath(12, 50, 50, 50, 50 * 0.782, 50 * 0.545, STAR_ROT)}
@@ -537,13 +554,23 @@ export function SpecBannerPreview({
                 ) : (
                   <div style={{
                     position: 'absolute', left: off, top: off, width: ss, height: ss, borderRadius: '50%',
-                    background: isGlass ? BOX_MATERIALS.glass.fill : circleFill,
+                    background: isGlass && emulateGlass ? undefined : (isGlass ? BOX_MATERIALS.glass.fill : circleFill),
                     border: isGlass ? `${ss * BOX_MATERIALS.glass.strokeRatio}px solid ${BOX_MATERIALS.glass.stroke}` : undefined,
-                    backdropFilter: isGlass ? gBackdrop : undefined,
-                    WebkitBackdropFilter: isGlass ? gBackdrop : undefined,
+                    backdropFilter: isGlass && !emulateGlass ? gBackdrop : undefined,
+                    WebkitBackdropFilter: isGlass && !emulateGlass ? gBackdrop : undefined,
                     boxShadow: isGlass ? glassCss.innerLight : undefined,
-                    boxSizing: 'border-box',
-                  }} />
+                    boxSizing: 'border-box', overflow: 'hidden',
+                  }}>
+                    {isGlass && emulateGlass && (() => {
+                      const bw = ss * BOX_MATERIALS.glass.strokeRatio;
+                      return (
+                        <>
+                          {glassCopy(sx + off + bw, sy + off + bw)}
+                          <div style={{ position: 'absolute', inset: 0, background: BOX_MATERIALS.glass.fill }} />
+                        </>
+                      );
+                    })()}
+                  </div>
                 );
               })()}
               <svg viewBox={`0 0 ${S.circle} ${S.circle}`} width={size} height={size}
