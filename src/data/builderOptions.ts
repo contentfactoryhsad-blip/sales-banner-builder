@@ -27,7 +27,22 @@ export interface BackgroundType {
   thumb: string;
   /** 미리보기용 그레이 텍스처 (프로모션 색으로 tint) */
   texture: string;
+  /**
+   * 배경 블러 배율 (1 = Figma 값 그대로).
+   *
+   * B 는 Figma 에서 다섯 배경 모두 레이어 블러 35 인데, 무늬가 굵은 1·3번은
+   * 그 세기가 맞고 나머지는 결이 가늘어 과하게 뭉갠다. 그쪽만 눌러 쓴다.
+   * A 는 블러가 0 이라 이 값과 무관하다.
+   */
+  blurScale: number;
 }
+
+/** 기본은 Figma 그대로(1). 여기 적힌 배경만 그만큼 덜 흐리게 한다. */
+const BG_BLUR_SCALE: Record<string, number> = {
+  'b-bg-02': 0.7,
+  'b-bg-04': 0.7,
+  'b-bg-05': 0.7,
+};
 
 function bgSet(design: 'a' | 'b'): BackgroundType[] {
   return [1, 2, 3, 4, 5].map((n) => {
@@ -37,6 +52,7 @@ function bgSet(design: 'a' | 'b'): BackgroundType[] {
       label: `BG ${n}`,
       thumb: `/bg/${design}/${id}-color.png`,
       texture: `/bg/${design}/${id}-bw.png`,
+      blurScale: BG_BLUR_SCALE[id] ?? 1,
     };
   });
 }

@@ -166,7 +166,8 @@ export function SpecBannerPreview({
     ? { from: hexToRgb(main), to: hexToRgb(secondary) }
     : null;
 
-  const texture = resolveBackground(state.designType, state.backgroundTypeId).texture;
+  const bgType = resolveBackground(state.designType, state.backgroundTypeId);
+  const texture = bgType.texture;
   const showGraphics = hasGraphic(state.graphicId);
   const graphicSrc = graphicSrcOf(state.graphicId, state.graphicKind);
 
@@ -307,7 +308,9 @@ export function SpecBannerPreview({
           (A 는 blur 가 0 이라 filter 가 안 붙어 이 문제가 안 보였다)
         */}
         {spec.bg && (() => {
-          const blur = spec.bg[4] && BG_BLUR_PX ? `blur(${BG_BLUR_PX}px)` : '';
+          // 배경마다 세기가 다르다 — 무늬가 가는 배경은 덜 흐리게 (blurScale)
+          const bgBlurPx = BG_BLUR_PX * bgType.blurScale;
+          const blur = spec.bg[4] && bgBlurPx ? `blur(${bgBlurPx.toFixed(2)}px)` : '';
           const fill = { width: '100%', height: '100%', objectFit: 'cover' } as const;
           return (
             <div style={{ position: 'absolute', left: spec.bg[0], top: spec.bg[1], width: spec.bg[2], height: spec.bg[3] }}>
