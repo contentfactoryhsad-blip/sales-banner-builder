@@ -156,7 +156,7 @@ export const GRAPHIC_KINDS: Array<{ id: GraphicKind; label: string }> = [
   { id: 'line', label: 'Line' },
 ];
 
-export const DEFAULT_GRAPHIC_KIND: GraphicKind = 'line';
+export const DEFAULT_GRAPHIC_KIND: GraphicKind = 'full';
 
 export interface GraphicType {
   id: string;
@@ -178,10 +178,11 @@ export function graphicSrc(id: string | null, kind: GraphicKind = DEFAULT_GRAPHI
 }
 
 /**
- * 처음에는 **아무것도 안 고른 상태**(null)로 둔다 — 박스 개수와 같은 방식이다.
- * 미리보기에도 도형이 안 그려지고, Edit 에서 고르는 순간부터 나타난다.
+ * 기본은 **도형 없음**. 미리보기에는 아무 도형도 안 그려지고, Edit 에서는
+ * None 이 골라진 상태로 시작한다 (아무것도 선택 안 된 것보다 알아보기 쉽다).
+ * 벌(line/full)의 기본은 full 이라, 도형을 고르면 면 버전부터 보인다.
  */
-export const DEFAULT_GRAPHIC_ID: string | null = null;
+export const DEFAULT_GRAPHIC_ID: string | null = 'none';
 
 /**
  * 도형 없음. B 는 도형을 아예 안 쓰는 경우가 있어야 해서 별도 값으로 둔다.
