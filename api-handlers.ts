@@ -762,8 +762,19 @@ export async function readUsageRows(): Promise<Record<string, string>[]> {
   });
 }
 
-/** 열쇠가 맞는가. USAGE_KEY 를 안 걸어두면 아무도 못 본다. */
-export function usageKeyOk(given: unknown): boolean {
-  const key = process.env.USAGE_KEY;
-  return !!key && given === key;
+/**
+ * 열쇠 검사 결과.
+ *   'ok'        맞음
+ *   'no-key'    서버에 USAGE_KEY 가 없다 (설정 누락 — 아무도 못 본다)
+ *   'mismatch'  값이 다르다
+ *
+ * 둘을 나눠야 "열쇠를 잘못 쳤나 / 서버 설정을 빠뜨렸나"를 화면에서 바로 안다.
+ * 어느 쪽이든 내용은 안 보여주므로 알려줘도 위험하지 않다.
+ */
+export function checkUsageKey(given: unknown): 'ok' | 'no-key' | 'mismatch' {
+  // Railway 등에서 값 앞뒤로 따옴표·공백이 붙는 일이 있어 다듬어 비교한다
+  const clean = (v: unknown) => String(v ?? '').trim().replace(/^["']|["']$/g, '');
+  const key = clean(process.env.USAGE_KEY);
+  if (!key) return 'no-key';
+  return clean(given) === key ? 'ok' : 'mismatch';
 }

@@ -60,6 +60,7 @@ export function UsageStats() {
     setError(null);
     try {
       const res = await fetch(`/api/usage.json?key=${encodeURIComponent(k)}`);
+      if (res.status === 503) { setError('서버에 USAGE_KEY 가 설정되지 않았습니다. Railway Variables 를 확인하세요.'); setRows(null); return; }
       if (res.status === 403) { setError('열쇠가 맞지 않습니다.'); setRows(null); localStorage.removeItem(KEY_STORE); setKey(''); return; }
       if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
       const j = (await res.json()) as { rows: Row[] };
