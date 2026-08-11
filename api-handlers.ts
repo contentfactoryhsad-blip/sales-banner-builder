@@ -663,7 +663,14 @@ export interface UsageRecord {
   productNames: string;
 }
 
-const USAGE_CSV = path.join(process.cwd(), 'logs', 'usage.csv');
+/*
+  기록 파일 위치. 기본은 프로젝트 안의 logs/ 인데, **배포처에 따라 반드시 바꿔야 한다.**
+
+  Railway·Render 같은 곳은 컨테이너 디스크가 임시라, 코드를 새로 올리면 그 안의
+  파일이 통째로 사라진다. 영구 볼륨을 붙이고 USAGE_DIR 을 그 경로로 지정하면
+  재배포와 무관하게 남는다. 예) USAGE_DIR=/data
+*/
+const USAGE_CSV = path.join(process.env.USAGE_DIR || path.join(process.cwd(), 'logs'), 'usage.csv');
 const USAGE_HEADER = 'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners\n';
 
 /** 프록시 뒤에 있어도 원래 클라이언트 IP 를 찾는다 */
