@@ -71,16 +71,68 @@ export function settle(ms = 120): Promise<void> {
 }
 
 /**
- * @font-face 를 전부 data URL 로 바꾼 CSS 를 **한 번** 만들어 둔다.
+ * 배너가 실제로 쓰는 폰트 얼굴 (계열 → 굵기).
  *
- * 안 넘기면 html-to-image 가 배너 한 장마다 폰트 파일을 다시 받아 인라인한다.
- * 41번 반복이라 느릴 뿐 아니라, 한 번이라도 실패하면 **조용히 건너뛰어** 그 장만
- * 폰트가 빠진 채 구워진다 (스티커의 Cal Sans 처럼 한 군데서만 쓰는 폰트가 먼저 티난다).
- * 한 번 만들어 모든 장에 같은 CSS 를 넘기면 그럴 일이 없다.
+ * 다 넣으면 7MB 라 굽는 데마다 얹기엔 무겁다. 렌더러가 쓰는 것만 추린다.
+ *   LGEI Headline 600  헤드라인·프로모션명·스티커 "UP TO"
+ *   LGEI Text     400  서브카피·CTA·고지문
+ *   Cal Sans      400  스티커 숫자·%·off
  */
-export async function buildFontCss(node: HTMLElement): Promise<string> {
-  const { getFontEmbedCSS } = await import('html-to-image');
-  return getFontEmbedCSS(node);
+const BANNER_FACES: Record<string, string[]> = {
+  'lgei headline': ['600'],
+  'lgei text': ['400', 'normal'],
+  'cal sans': ['400', 'normal'],
+};
+
+const fontName = (v: string) => v.trim().replace(/["']/g, '').toLowerCase();
+
+/**
+ * @font-face 를 data URL 로 바꾼 CSS 를 **한 번** 만들어 둔다.
+ *
+ * html-to-image 의 getFontEmbedCSS 를 쓰면 안 된다. 그 안의 getUsedFonts 가
+ * 자식을 훑을 때 `child instanceof HTMLElement` 로 거르는데, **SVG 요소는
+ * HTMLElement 가 아니라서** 거기서 순회가 끊긴다. 스티커 글자는 SVG <text> 라
+ * 그 폰트(Cal Sans)가 "안 쓰는 폰트"로 분류되어 통째로 빠졌다.
+ * (같은 SVG 안이라도 LGEI Headline 은 HTML 헤드라인에도 쓰여 살아남았다.
+ *  그래서 스티커 숫자만 폰트가 빠져 보였다.)
+ *
+ * 그래서 직접 만든다. 스타일시트에서 @font-face 를 찾아 위 표에 있는 것만
+ * 폰트 파일을 받아 심는다. 한 번 만들어 모든 장에 같은 CSS 를 넘긴다.
+ */
+export async function buildFontCss(): Promise<string> {
+  const faces: CSSFontFaceRule[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try { rules = sheet.cssRules; } catch { continue; }   // 외부 도메인 시트는 못 읽는다
+    for (const rule of Array.from(rules)) {
+      if (rule.constructor.name !== 'CSSFontFaceRule' && (rule as CSSRule).type !== 5) continue;
+      const r = rule as CSSFontFaceRule;
+      const weights = BANNER_FACES[fontName(r.style.fontFamily)];
+      if (weights && weights.includes((r.style.fontWeight || 'normal').trim())) faces.push(r);
+    }
+  }
+
+  const out = await Promise.all(faces.map(async (r) => {
+    let css = r.cssText;
+    const urls = css.match(/url\(["']?([^"')]+)["']?\)/g) ?? [];
+    for (const u of urls) {
+      const href = u.replace(/url\(["']?([^"')]+)["']?\)/, '$1');
+      try {
+        const res = await fetch(new URL(href, location.href).href, { cache: 'force-cache' });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        const data = await new Promise<string>((ok, no) => {
+          const fr = new FileReader();
+          fr.onload = () => ok(fr.result as string);
+          fr.onerror = no;
+          fr.readAsDataURL(blob);
+        });
+        css = css.replace(u, `url(${data})`);
+      } catch { /* 못 받으면 그 얼굴만 원래 주소로 남는다 */ }
+    }
+    return css;
+  }));
+  return out.join('\n');
 }
 
 /**

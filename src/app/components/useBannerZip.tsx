@@ -67,7 +67,7 @@ export function useBannerZip(state: BannerState) {
         const restore = await inlineImages(host);
         try {
           // 폰트 CSS 는 첫 장에서 한 번만 만들어 모든 장에 같은 것을 넘긴다
-          if (fontCss === null) fontCss = await buildFontCss(host);
+          if (fontCss === null) fontCss = await buildFontCss();
           zip.folder(t.channel)!.file(`${t.channel}-${t.name}.png`, await capturePng(host, t.w, t.h, fontCss));
           ok++;
         } catch {
