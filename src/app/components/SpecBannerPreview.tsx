@@ -366,11 +366,19 @@ export function SpecBannerPreview({
             <div key={i}
               style={{
                 position: 'absolute', left: bx + x, top: by + y, width: w, height: h,
-                // 흉내낼 때는 채움을 자식으로 얹는다 — background 는 자식보다 뒤라 복사본을 가린다
+                /*
+                  흉내낼 때는 채움도 테두리도 **자식으로** 그린다.
+                  요소의 background·border 를 쓰면 흐린 복사본(자식)이 그 위를 덮는데,
+                  복사본은 overflow:hidden 때문에 안쪽(padding box)까지만 잘려서
+                  테두리 띠만 안 흐려진 채 남는다. 그 띠가 딱딱한 선으로 보인다.
+                  진짜 backdrop-filter 는 테두리 아래까지 흐리므로 그쪽에 맞춘다.
+                */
                 background: fakeGlass ? undefined : boxMat.fill,
-                border: boxMat.stroke ? `${sw}px solid ${boxMat.stroke}` : undefined,
+                border: fakeGlass || !boxMat.stroke ? undefined : `${sw}px solid ${boxMat.stroke}`,
                 borderRadius: r,
-                boxShadow: `0px ${sh}px ${sh}px 0px rgba(0,0,0,0.07)${boxMat.glass ? `, ${glassCss.innerLight}` : ''}`,
+                boxShadow: fakeGlass
+                  ? `0px ${sh}px ${sh}px 0px rgba(0,0,0,0.07)`
+                  : `0px ${sh}px ${sh}px 0px rgba(0,0,0,0.07)${boxMat.glass ? `, ${glassCss.innerLight}` : ''}`,
                 backdropFilter: boxMat.glass && !fakeGlass ? glassCss.backdropFilter : undefined,
                 WebkitBackdropFilter: boxMat.glass && !fakeGlass ? glassCss.WebkitBackdropFilter : undefined,
                 overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -379,13 +387,14 @@ export function SpecBannerPreview({
             >
               {fakeGlass && (
                 <>
-                  {/*
-                    박스 뒤에 있어야 할 것을 그대로 한 벌 더 그리고 흐린다.
-                    프레임 좌표계를 유지한 채 박스만큼 끌어올려 두면 배경이 정확히 이어지고,
-                    바깥은 박스의 overflow:hidden 이 잘라낸다. 테두리 두께만큼 빼서 맞춘다.
-                  */}
-                  {glassCopy(bx + x + sw, by + y + sw)}
+                  {glassCopy(bx + x, by + y)}
                   <div style={{ position: 'absolute', inset: 0, background: boxMat.fill, pointerEvents: 'none' }} />
+                  {/* 테두리와 안쪽 하이라이트를 inset 그림자로 — 흐린 복사본 위에 얹힌다 */}
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none',
+                    boxShadow: [boxMat.stroke ? `inset 0 0 0 ${sw}px ${boxMat.stroke}` : '', glassCss.innerLight]
+                      .filter(Boolean).join(', '),
+                  }} />
                 </>
               )}
               {state.products[i] && (() => {
@@ -555,21 +564,24 @@ export function SpecBannerPreview({
                   <div style={{
                     position: 'absolute', left: off, top: off, width: ss, height: ss, borderRadius: '50%',
                     background: isGlass && emulateGlass ? undefined : (isGlass ? BOX_MATERIALS.glass.fill : circleFill),
-                    border: isGlass ? `${ss * BOX_MATERIALS.glass.strokeRatio}px solid ${BOX_MATERIALS.glass.stroke}` : undefined,
+                    border: isGlass && !emulateGlass
+                      ? `${ss * BOX_MATERIALS.glass.strokeRatio}px solid ${BOX_MATERIALS.glass.stroke}` : undefined,
                     backdropFilter: isGlass && !emulateGlass ? gBackdrop : undefined,
                     WebkitBackdropFilter: isGlass && !emulateGlass ? gBackdrop : undefined,
-                    boxShadow: isGlass ? glassCss.innerLight : undefined,
+                    boxShadow: isGlass && !emulateGlass ? glassCss.innerLight : undefined,
                     boxSizing: 'border-box', overflow: 'hidden',
                   }}>
-                    {isGlass && emulateGlass && (() => {
-                      const bw = ss * BOX_MATERIALS.glass.strokeRatio;
-                      return (
-                        <>
-                          {glassCopy(sx + off + bw, sy + off + bw)}
-                          <div style={{ position: 'absolute', inset: 0, background: BOX_MATERIALS.glass.fill }} />
-                        </>
-                      );
-                    })()}
+                    {isGlass && emulateGlass && (
+                      // 박스와 같은 이유로 테두리도 자식(inset 그림자)으로 — 띠만 안 흐려지면 안 된다
+                      <>
+                        {glassCopy(sx + off, sy + off)}
+                        <div style={{ position: 'absolute', inset: 0, background: BOX_MATERIALS.glass.fill }} />
+                        <div style={{
+                          position: 'absolute', inset: 0, borderRadius: 'inherit',
+                          boxShadow: `inset 0 0 0 ${ss * BOX_MATERIALS.glass.strokeRatio}px ${BOX_MATERIALS.glass.stroke}, ${glassCss.innerLight}`,
+                        }} />
+                      </>
+                    )}
                   </div>
                 );
               })()}
