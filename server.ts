@@ -11,7 +11,7 @@ import express from 'express';
 import compression from 'compression';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsage } from './api-handlers';
+import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsage, readUsageRows, usageKeyOk } from './api-handlers';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -95,9 +95,13 @@ app.post('/api/log-usage', async (req, res) => {
   key 는 USAGE_KEY 환경변수와 맞아야 한다. 안 걸어두면 아무나 볼 수 있으므로
   값이 없으면 아예 닫아 둔다.
 */
+app.get('/api/usage.json', async (req, res) => {
+  if (!usageKeyOk(req.query.key)) return res.status(403).json({ error: 'Forbidden' });
+  return res.json({ rows: await readUsageRows() });
+});
+
 app.get('/api/usage.csv', async (req, res) => {
-  const key = process.env.USAGE_KEY;
-  if (!key || req.query.key !== key) return res.status(403).json({ error: 'Forbidden' });
+  if (!usageKeyOk(req.query.key)) return res.status(403).json({ error: 'Forbidden' });
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="usage.csv"');
   // 엑셀이 UTF-8 로 열도록 BOM 을 붙인다 (없으면 한글 제품명이 깨진다)

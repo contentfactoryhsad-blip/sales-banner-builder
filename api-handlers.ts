@@ -729,3 +729,34 @@ export async function appendUsage(rec: UsageRecord, ip: string): Promise<void> {
 export async function readUsage(): Promise<string> {
   try { return await fs.readFile(USAGE_CSV, 'utf8'); } catch { return USAGE_HEADER; }
 }
+
+/** CSV 를 행 객체 배열로. 통계 화면이 쓴다. */
+export async function readUsageRows(): Promise<Record<string, string>[]> {
+  const text = await readUsage();
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const head = lines[0].split(',');
+  return lines.slice(1).map((line) => {
+    // 따옴표로 감싼 칸 안의 쉼표는 구분자가 아니다
+    const cells: string[] = [];
+    let cur = '', q = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (q) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') q = false;
+        else cur += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ',') { cells.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    cells.push(cur);
+    return Object.fromEntries(head.map((h, i) => [h, cells[i] ?? '']));
+  });
+}
+
+/** 열쇠가 맞는가. USAGE_KEY 를 안 걸어두면 아무도 못 본다. */
+export function usageKeyOk(given: unknown): boolean {
+  const key = process.env.USAGE_KEY;
+  return !!key && given === key;
+}

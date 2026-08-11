@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsage } from './api-handlers';
+import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsage, readUsageRows } from './api-handlers';
 
 /**
  * 개발 서버용 API — 운영(server.ts)과 **같은 핸들러**를 쓴다.
@@ -46,6 +46,11 @@ export function apiPlugin(): Plugin {
         catch (err) { console.warn('usage log failed:', err); }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end('{"ok":true}');
+      });
+
+      server.middlewares.use('/api/usage.json', async (_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ rows: await readUsageRows() }));
       });
 
       server.middlewares.use('/api/usage.csv', async (_req, res) => {
