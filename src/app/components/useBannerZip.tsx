@@ -5,7 +5,7 @@ import { getPromotion } from '../../data/promotions';
 import { MEDIA_SIZES } from '../../data/mediaSizes';
 import { getSpec } from '../../data/figmaStyle';
 import { SpecBannerPreview } from './SpecBannerPreview';
-import { buildFontCss, capturePng, inlineImages, logUsage, pickSaveTarget, saveBlob, settle, stamp, type SaveTarget } from '../utils/bannerExport';
+import { buildFontCss, capturePng, inlineImages, logUsage, saveBlob, settle, stamp } from '../utils/bannerExport';
 
 export interface ZipProgress {
   busy: boolean;
@@ -57,14 +57,7 @@ export function useBannerZip(state: BannerState) {
   const run = async () => {
     if (running.current || targets.length === 0) return;
     running.current = true;
-    // 저장 자리는 **클릭 직후**에 잡는다 — 다 구운 뒤엔 권한이 만료돼 쓰기가 거절된다
     const fileName = `LG-sales-banner-${state.designType}-${stamp()}.zip`;
-    let target: SaveTarget = null;
-    try {
-      const picked = await pickSaveTarget(fileName);
-      if (picked === 'cancelled') { running.current = false; return; }
-      target = picked;
-    } catch { /* 못 잡으면 링크 방식으로 */ }
     setP({ busy: true, done: 0, total: targets.length, current: null, error: null, failed: [] });
     // 마지막 단계에서만 쓰는 라이브러리라 여기서 불러온다 (초기 번들에서 제외)
     const JSZip = (await import('jszip')).default;
@@ -96,7 +89,7 @@ export function useBannerZip(state: BannerState) {
       }
       if (ok === 0) throw new Error('구워진 배너가 없습니다');
       const blob = await zip.generateAsync({ type: 'blob' });
-      await saveBlob(blob, fileName, target);
+      await saveBlob(blob, fileName);
       setP((s) => ({ ...s, busy: false, current: null }));
       // 다 받은 뒤에 기록한다. 실패해도 결과물에는 영향이 없다.
       const meta = state.productMeta.filter((m, i) => m && state.products[i]);
