@@ -53,7 +53,7 @@ export const GLASS_STROKE = 'rgba(255,255,255,0.15)';
  * Frost(재질 파라미터) → CSS blur 반경(px) 환산 계수.
  * Figma 렌더에서 박스 안/밖 고주파 성분을 비교해 역산: 실효 blur ≈ 10.7px = 18.87 × 0.567.
  */
-const FROST_TO_PX = 0.567;
+export const FROST_TO_PX = 0.567;
 
 /**
  * Glass 파라미터 → CSS. Light 림은 Figma 렌더의 테두리 픽셀 측정 결과 **1px 얇은 선**이다

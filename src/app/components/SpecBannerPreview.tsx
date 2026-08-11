@@ -5,6 +5,7 @@ import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } fr
 import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
 import { deriveBannerColors, hexToHsl, hexToRgb, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
+import { glassBox } from '../../data/figmaSpec.glass';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
@@ -161,6 +162,13 @@ export function SpecBannerPreview({
   const graphicSrc = graphicSrcOf(state.graphicId, state.graphicKind);
 
   const glassCss = glassToCss(GLASS_DEFAULT);
+  /*
+    유리값은 **사이즈·박스개수별 Figma 실측**을 쓴다.
+    전에는 박스 폭 × 고정비율로 계산했는데 Figma 는 그렇지 않았다 — 박스가
+    컴포넌트 인스턴스라 축척이 제각각이고, 같은 사이즈도 박스 개수에 따라 다르다
+    (예: 1200x628 테두리 3·4개 0.842 / 5·6개 1.271, 320x100 Frost 7.883 vs 18.87).
+    표에 없으면 종전 비율 계산으로 넘어간다.
+  */
   const discount = Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, state.discount));
 
   // 박스 — 요청 개수에 해당하는 버전(없으면 가장 가까운 것)
@@ -330,10 +338,10 @@ export function SpecBannerPreview({
     프레임 좌표계를 유지한 채 해당 도형만큼 끌어올려 두면 배경이 정확히 이어지고,
     바깥은 부모의 overflow:hidden 이나 clip-path 가 잘라낸다.
   */
-  const glassCopy = (left: number, top: number) => (
+  const glassCopy = (left: number, top: number, blur = glassCss.backdropFilter) => (
     <div style={{
       position: 'absolute', left: -left, top: -top, width: FW, height: FH,
-      filter: glassCss.backdropFilter, pointerEvents: 'none',
+      filter: blur, pointerEvents: 'none',
     }}>
       <div style={{ position: 'absolute', inset: 0, background: frameBg }} />
       {backdrop}
@@ -359,8 +367,10 @@ export function SpecBannerPreview({
 
         {/* ── 제품 박스 ── */}
         {showBoxes && rects.map(([x, y, w, h, r], i) => {
-          const sw = boxMat.strokeRatio * w;
-          const sh = boxMat.shadowRatio * w;
+          const g = glassBox(key, boxKey);
+          const sw = boxMat.stroke ? (g?.stroke ?? boxMat.strokeRatio * w) : 0;
+          const sh = g?.shadow ?? boxMat.shadowRatio * w;
+          const blur = `blur(${(g?.blur ?? 10.7).toFixed(2)}px)`;
             const fakeGlass = boxMat.glass && emulateGlass;
             return (
             <div key={i}
@@ -379,15 +389,15 @@ export function SpecBannerPreview({
                 boxShadow: fakeGlass
                   ? `0px ${sh}px ${sh}px 0px rgba(0,0,0,0.07)`
                   : `0px ${sh}px ${sh}px 0px rgba(0,0,0,0.07)${boxMat.glass ? `, ${glassCss.innerLight}` : ''}`,
-                backdropFilter: boxMat.glass && !fakeGlass ? glassCss.backdropFilter : undefined,
-                WebkitBackdropFilter: boxMat.glass && !fakeGlass ? glassCss.WebkitBackdropFilter : undefined,
+                backdropFilter: boxMat.glass && !fakeGlass ? blur : undefined,
+                WebkitBackdropFilter: boxMat.glass && !fakeGlass ? blur : undefined,
                 overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxSizing: 'border-box',
               }}
             >
               {fakeGlass && (
                 <>
-                  {glassCopy(bx + x, by + y)}
+                  {glassCopy(bx + x, by + y, blur)}
                   <div style={{ position: 'absolute', inset: 0, background: boxMat.fill, pointerEvents: 'none' }} />
                   {/* 테두리와 안쪽 하이라이트를 inset 그림자로 — 흐린 복사본 위에 얹힌다 */}
                   <div style={{
