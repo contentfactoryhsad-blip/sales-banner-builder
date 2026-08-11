@@ -12,6 +12,7 @@ import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
 import { SpecBannerPreview } from './SpecBannerPreview';
 import { getSpec } from '../../data/figmaStyle';
+import { useBannerZip } from './useBannerZip';
 import { deriveBannerColors, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 
 const STEPS = ['1. Design Template', '2. Promotion & Product', '3. Edit', '4. AD Media', '5. Review & Download'];
@@ -33,6 +34,7 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
     update({ products: state.products.map((p, idx) => (idx === i ? v : p)) });
 
   const canNext = step === 4 ? state.adChannelIds.length > 0 : true;
+  const zip = useBannerZip(state);
 
   return (
     <div className="h-screen flex flex-col bg-[#f8f7f5]">
@@ -46,7 +48,7 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
           {step === 2 && <ProductUrlsStep state={state} update={update} setProduct={setProduct} />}
           {step === 3 && <EditStep state={state} update={update} />}
           {step === 4 && <AdMediaStep state={state} update={update} />}
-          {step === 5 && <ReviewStep state={state} />}
+          {step === 5 && <ReviewStep state={state} zip={zip} />}
         </div>
       </div>
 
@@ -65,11 +67,21 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
             Next
           </button>
         ) : (
-          <button type="button" className="h-10 px-6 rounded-lg bg-[#FD312E] text-white text-sm font-medium hover:bg-[#E22825] transition-colors">
-            Download (export later)
+          <button
+            type="button"
+            onClick={zip.run}
+            disabled={zip.progress.busy || zip.count === 0}
+            className="h-10 px-6 rounded-lg bg-[#FD312E] text-white text-sm font-medium hover:bg-[#E22825] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {zip.progress.busy
+              ? `Rendering ${zip.progress.done}/${zip.progress.total}…`
+              : `Download ZIP (${zip.count})`}
           </button>
         )}
       </div>
+
+      {/* 굽는 동안만 화면 밖에서 한 장씩 그려지는 자리 */}
+      {zip.host}
     </div>
   );
 }
@@ -755,18 +767,20 @@ function CopyField({ label, checked, value, multiline, max, onToggle, onChange }
 }
 
 // ── Step 5: Review & Download ──────────────────────────────────────────────────
-function ReviewStep({ state }: { state: BannerState }) {
-  const channels = AD_CHANNELS.filter((c) => state.adChannelIds.includes(c.id)).map((c) => c.label).join(', ') || '—';
+function ReviewStep({ state, zip }: { state: BannerState; zip: ReturnType<typeof useBannerZip> }) {
+  const picked = AD_CHANNELS.filter((c) => state.adChannelIds.includes(c.id));
   const promo = state.promotionId ? getPromotion(state.promotionId) : undefined;
+  const { busy, done, total, current, error, failed } = zip.progress;
   return (
     <div>
-      <Head title="Review & Download" desc="Check the banner, then download. (export wired after Figma sizes)" />
+      <Head title="Review & Download" desc="Downloads a ZIP with one folder per media." />
       <dl className="flex flex-col gap-2 text-sm max-w-md">
         {[
           ['Template', DESIGN_TYPES[state.designType].name],
-          ['Media', channels],
+          ['Media', picked.map((c) => c.label).join(', ') || '—'],
           ['Promotion', promo?.label ?? '—'],
           ['Products', String(state.products.filter(Boolean).length)],
+          ['Banners', `${zip.count} files`],
         ].map(([k, v]) => (
           <div key={k} className="flex justify-between gap-3 border-b border-gray-100 pb-2">
             <dt className="text-gray-400">{k}</dt>
@@ -774,6 +788,39 @@ function ReviewStep({ state }: { state: BannerState }) {
           </div>
         ))}
       </dl>
+
+      {/* ZIP 안에 어떤 폴더로 들어가는지 미리 보여준다 */}
+      <div className="mt-6 max-w-md rounded-xl border border-gray-200 bg-white p-4">
+        <p className="text-[11px] text-gray-400 mb-2">ZIP structure</p>
+        <ul className="text-[12px] text-gray-700 font-mono leading-6">
+          {picked.map((c) => (
+            <li key={c.id}>
+              {c.id}/ <span className="text-gray-400">
+                {MEDIA_SIZES[c.id].filter((s) => !!getSpec(state.designType, c.id, s.name)).length} png
+              </span>
+            </li>
+          ))}
+          {picked.length === 0 && <li className="text-gray-400">Pick media in step 4 first.</li>}
+        </ul>
+      </div>
+
+      {busy && (
+        <div className="mt-5 max-w-md">
+          <div className="flex justify-between text-[12px] text-gray-500 mb-1.5">
+            <span>Rendering {current ?? ''}</span>
+            <span className="tabular-nums">{done} / {total}</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-gray-200 overflow-hidden">
+            <div className="h-full bg-[#FD312E] transition-all" style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
+          </div>
+        </div>
+      )}
+      {error && <p className="mt-4 text-[12px] text-[#FD312E]">{error}</p>}
+      {!busy && failed.length > 0 && (
+        <p className="mt-4 text-[12px] text-gray-500">
+          Skipped {failed.length}: {failed.join(', ')}
+        </p>
+      )}
     </div>
   );
 }
