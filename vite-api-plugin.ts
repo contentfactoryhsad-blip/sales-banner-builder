@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsage, readUsageRows } from './api-handlers';
+import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsageIn, readUsageRows } from './api-handlers';
 
 /**
  * 개발 서버용 API — 운영(server.ts)과 **같은 핸들러**를 쓴다.
@@ -53,10 +53,11 @@ export function apiPlugin(): Plugin {
         res.end(JSON.stringify({ rows: await readUsageRows() }));
       });
 
-      server.middlewares.use('/api/usage.csv', async (_req, res) => {
+      server.middlewares.use('/api/usage.csv', async (req, res) => {
         // 개발에서는 열쇠 없이 본다 — 로컬에서만 뜨는 서버다
+        const tz = new URL(req.url || '', 'http://localhost').searchParams.get('tz') || 'Asia/Seoul';
         res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8' });
-        res.end('\uFEFF' + (await readUsage()));
+        res.end('\uFEFF' + (await readUsageIn(tz)));
       });
 
       server.middlewares.use('/api/crawl-page', async (req, res) => {

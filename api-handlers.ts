@@ -778,3 +778,41 @@ export function checkUsageKey(given: unknown): 'ok' | 'no-key' | 'mismatch' {
   if (!key) return 'no-key';
   return clean(given) === key ? 'ok' : 'mismatch';
 }
+
+/**
+ * 내려받을 CSV — 시각을 원하는 시간대로 바꿔서 준다.
+ *
+ * 파일에는 UTC(ISO)로 남긴다. 나라별 법인이 쓰는 도구라 저장은 UTC 가 맞고,
+ * 그래야 나중에 어느 시간대로든 다시 계산할 수 있다. 다만 그대로 받으면
+ * 한국에서 볼 때 9시간 어긋나 보이므로, 내려줄 때 한 번 변환한다.
+ * 헤더에 어느 시간대인지 적어 둬서 나중에 봐도 헷갈리지 않는다.
+ */
+export async function readUsageIn(tz = 'Asia/Seoul'): Promise<string> {
+  const text = await readUsage();
+  const lines = text.split('\n');
+  if (lines.length < 2) return text;
+
+  let fmt: Intl.DateTimeFormat;
+  try {
+    fmt = new Intl.DateTimeFormat('sv-SE', {           // sv-SE 는 YYYY-MM-DD HH:mm:ss 로 낸다
+      timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+  } catch {
+    return text;   // 알 수 없는 시간대면 원본 그대로
+  }
+
+  const head = lines[0].split(',');
+  const i = head.indexOf('time');
+  if (i < 0) return text;
+  head[i] = `time (${tz})`;
+
+  const body = lines.slice(1).map((line) => {
+    if (!line.trim()) return line;
+    const cells = line.split(',');
+    const d = new Date(cells[i]);
+    if (!Number.isNaN(d.getTime())) cells[i] = fmt.format(d);
+    return cells.join(',');
+  });
+  return [head.join(','), ...body].join('\n');
+}

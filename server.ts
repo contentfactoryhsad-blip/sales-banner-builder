@@ -11,7 +11,7 @@ import express from 'express';
 import compression from 'compression';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsage, readUsageRows, checkUsageKey } from './api-handlers';
+import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsageIn, readUsageRows, checkUsageKey } from './api-handlers';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -109,7 +109,7 @@ app.get('/api/usage.csv', async (req, res) => {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="usage.csv"');
   // 엑셀이 UTF-8 로 열도록 BOM 을 붙인다 (없으면 한글 제품명이 깨진다)
-  return res.send('\uFEFF' + (await readUsage()));
+  return res.send('\uFEFF' + (await readUsageIn((req.query.tz as string) || 'Asia/Seoul')));
 });
 
 // ─── 정적 파일 + SPA 폴백 ────────────────────────────────────────────────────

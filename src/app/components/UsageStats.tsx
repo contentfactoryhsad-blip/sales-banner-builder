@@ -242,7 +242,7 @@ export function UsageStats() {
       <AppHeader
         title="Usage Stats"
         right={
-          <a href={`/api/usage.csv?key=${encodeURIComponent(key)}`}
+          <a href={`/api/usage.csv?key=${encodeURIComponent(key)}&tz=${encodeURIComponent(TZ)}`}
             className="text-xs text-gray-500 hover:text-[#FD312E]">CSV 내려받기</a>
         }
       />
