@@ -204,12 +204,14 @@ const CENTERED = [...HEAD_CENTER, ...DV360_HEAD_CENTER, ...PMAXMETA_HEAD_CENTER]
 /**
  * 프로모션 명칭의 뒷단어를 **무조건 다음 줄**로 내리는 사이즈.
  *
- * "Back To School – Spring" 처럼 뒤에 계절이 붙는 명칭이 있는데,
- * 세로로 긴 이 사이즈는 앞말과 계절이 한 줄에 붙어 읽혀서 여기서만 끊는다.
- * 카피 폭 288px 이면 가장 긴 앞말("Back To School." 245px @36px)도 한 줄에 들어간다 —
- * Figma 에서 이 사이즈 카피를 넓혀둔 것이 그 조건을 만든다.
+ * "Back To School – Spring" 처럼 뒤에 계절이 붙는 명칭이 있는데, 세로로 긴 사이즈는
+ * 앞말과 계절이 한 줄에 붙어 읽혀서 이 사이즈들만 끊는다.
+ *   dv360-300x1050  카피 288px @36px
+ *   dv360-120x240   카피 112px @12px
+ * 둘 다 가장 긴 앞말("Back To School.")이 한 줄에 들어가는 폭이다 — 그래야 끊는 게
+ * 의미가 있다. 앞말이 폭을 넘기면 fitScale 이 접는 대신 줄여서 한 줄을 지킨다.
  */
-const PROMO_BREAK = ['dv360-300x1050'];
+const PROMO_BREAK = ['dv360-300x1050', 'dv360-120x240'];
 
 /** 앱의 mediaSizes 이름("1200x628") → Figma 프레임 키("criteo-1200x628") */
 export function specKey(channel: string, size: string) {
