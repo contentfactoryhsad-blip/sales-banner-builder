@@ -24,16 +24,32 @@ type Period =
   | { kind: 'year'; y: string }
   | { kind: 'month'; ym: string };
 
-const ym = (r: Row) => (r.time ?? '').slice(0, 7);        // 2026-08
-const day = (r: Row) => (r.time ?? '').slice(0, 10);      // 2026-08-11
+/*
+  서버는 시각을 UTC(ISO)로 남긴다 — 나라별 법인이 쓰는 도구라 저장은 UTC 가 맞다.
+  다만 화면에서는 **보는 사람의 현지 시각**으로 바꿔 보여준다. 한국에서 열면 KST 다.
+  그대로 두면 9시간 어긋난 시각이 보이고, 월·일 집계도 경계가 밀린다.
+*/
+const p2 = (n: number) => String(n).padStart(2, '0');
+const local = (r: Row) => {
+  const d = new Date(r.time ?? '');
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+const ym = (r: Row) => { const d = local(r); return d ? `${d.getFullYear()}-${p2(d.getMonth() + 1)}` : ''; };
+const day = (r: Row) => { const d = local(r); return d ? `${ym(r)}-${p2(d.getDate())}` : ''; };
+const stampText = (r: Row) => {
+  const d = local(r);
+  return d ? `${ym(r)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}` : '';
+};
+/** 화면에 적어 둘 시간대 이름 (예: Asia/Seoul) */
+const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function inPeriod(r: Row, p: Period): boolean {
-  const t = r.time ?? '';
   if (p.kind === 'all') return true;
   if (p.kind === 'month') return ym(r) === p.ym;
-  if (p.kind === 'year') return t.slice(0, 4) === p.y;
-  const since = new Date(Date.now() - p.n * 86400_000).toISOString();
-  return t >= since;
+  if (p.kind === 'year') return ym(r).slice(0, 4) === p.y;
+  // 최근 N일은 절대 시각으로 — 시간대와 무관하다
+  const d = local(r);
+  return !!d && d.getTime() >= Date.now() - p.n * 86400_000;
 }
 
 function periodLabel(p: Period): string {
@@ -278,7 +294,7 @@ export function UsageStats() {
 
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <p className="font-lgei font-bold text-[15px] text-gray-900 mb-3">
-              최근 기록 <span className="text-[12px] font-normal text-gray-400">· {periodLabel(period)} {shown.length}건</span>
+              최근 기록 <span className="text-[12px] font-normal text-gray-400">· {periodLabel(period)} {shown.length}건 · 시각은 {TZ} 기준</span>
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-[12px]">
@@ -290,7 +306,7 @@ export function UsageStats() {
                 <tbody className="text-gray-700">
                   {[...shown].reverse().slice(0, 50).map((r, i) => (
                     <tr key={i} className="border-t border-gray-100">
-                      <td className="py-1.5 pr-4 whitespace-nowrap tabular-nums">{(r.time ?? '').replace('T', ' ').slice(0, 16)}</td>
+                      <td className="py-1.5 pr-4 whitespace-nowrap tabular-nums">{stampText(r)}</td>
                       <td className="py-1.5 pr-4">{r.country}</td>
                       <td className="py-1.5 pr-4">{r.design}</td>
                       <td className="py-1.5 pr-4">{r.promotion}</td>
