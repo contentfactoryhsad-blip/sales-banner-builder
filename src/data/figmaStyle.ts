@@ -183,7 +183,8 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
       (별이었을 때는 작아 보여서 1.05 로 키웠던 자리다)
     */
     stickerShapeScale: 0.95,
-    shadeOpacity: 0.95,
+    // Figma 그대로 1.0 — 예전엔 0.95 로 5% 눌러 썼다 (셰이드 기준을 Figma 하나로 통일)
+    shadeOpacity: 1,
     shadeRgb: '255,255,255',
     shadeBlend: 'normal',
     textureOpacity: 1,
@@ -267,26 +268,20 @@ export function resolveBoxCount(spec: FigmaFrameSpec, want: number): string {
 /** B 셰이드 램프를 몇 단계로 부드럽게 펼칠지. 클수록 매끄럽고 CSS 문자열만 길어진다. */
 const SHADE_EASE_STEPS = 12;
 
-/**
- * B 셰이드가 흰색에서 **얼마나 빨리 빠지는지**.
- *
- * 1 이면 좌우 대칭이라 램프 앞쪽(카피가 놓이는 구간)이 오래 흰색으로 남아 진해 보인다.
- * 1 보다 키우면 앞쪽이 먼저 옅어지고 꼬리가 길어져 자연스럽게 풀린다.
- * 끝점(Figma 실측 위치)과 시작 알파 1 은 그대로다.
- *   1.0 → 중앙 0.50   1.6 → 중앙 0.33   2.0 → 중앙 0.25
- */
-const SHADE_FALLOFF = 1.6;
+/*
+  B 셰이드는 **Figma 실측 그대로** 그린다 — 손대는 값이 없다.
 
-/**
- * B 셰이드 램프 **시작을 앞으로 당기는 정도** (램프 길이 대비 비율).
- *
- * Figma 의 첫 스톱(예: 1200x628 은 31.4%) 앞쪽은 알파가 1 인 순백 구간이라
- * falloff 로는 절대 옅어지지 않는다. 시작을 당기면 그 구간부터 빠지기 시작해
- * 카피 옆이 자연스럽게 풀린다. 끝점은 그대로 둔다.
- *   0 = Figma 그대로,  0.35 → 31.4% 가 18.1% 로 당겨짐
- * ⚠ 너무 키우면 카피가 놓이는 왼쪽까지 배경이 비쳐 검정 글자 대비가 떨어진다.
- */
-const SHADE_START_PULL = 0.35;
+  예전엔 두 상수로 흰색을 깎았다: 시작을 램프의 35% 만큼 앞으로 당기고
+  (SHADE_START_PULL), 앞쪽 알파를 1.6 제곱으로 빨리 뺐다(SHADE_FALLOFF).
+  카피 옆을 부드럽게 풀려는 의도였는데, 둘 다 **램프 길이 대비 비율**이라
+  순백 구간이 짧은 사이즈에서는 흰 판이 통째로 사라졌다 —
+  criteo-468x60 은 시작점이 5.3% → -21.9% 로 프레임 밖까지 밀려
+  왼쪽 끝조차 흰색이 아니었다.
+  사이즈별 예외 목록으로 13개를 빼서 쓰다가, 기준을 Figma 하나로 통일했다.
+  되살릴 일이 있으면 git 이력에 계산식이 그대로 있다.
+
+  남은 가공은 아래 smoothstep 뿐이고, 그건 보정이 아니라 **띠 방지**다.
+*/
 
 /**
  * A 셰이드(검정)를 얼마나 빨리 빼는지.
@@ -319,16 +314,13 @@ export function shadeCss(
     */
     const parts: string[] = [];
     for (let i = 0; i < stops.length - 1; i++) {
-      const [rawP0, a0] = stops[i];
+      const [p0, a0] = stops[i];
       const [p1, a1] = stops[i + 1];
-      // 첫 구간만 시작을 앞으로 당긴다 (끝점·마지막 구간은 그대로)
-      const p0 = i === 0 ? rawP0 - (p1 - rawP0) * SHADE_START_PULL : rawP0;
       for (let k = 0; k < SHADE_EASE_STEPS; k++) {
         const t = k / SHADE_EASE_STEPS;
         const e = t * t * (3 - 2 * t);                 // smoothstep
         const pos = p0 + (p1 - p0) * t;
-        // 알파를 falloff 로 눌러 앞쪽이 먼저 옅어지게 한다 (1-e 가 남은 알파 비율)
-        const a = a1 + (a0 - a1) * Math.pow(1 - e, SHADE_FALLOFF);
+        const a = a1 + (a0 - a1) * (1 - e);
         parts.push(`rgba(${rgb},${Math.min(1, a * boost).toFixed(3)}) ${pos.toFixed(2)}%`);
       }
     }

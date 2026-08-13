@@ -293,8 +293,20 @@ export function SpecBannerPreview({
 
     유리 박스 복사본도 같은 바닥 위에 그려야 색이 맞아서 변수로 둔다.
   */
+  /*
+    프레임 바탕 — 배경 이미지가 안 덮는 자리에 드러나는 색이다.
+
+    그라데이션 맵 모드에서 예전엔 검정이었는데, 그게 **왼쪽에 어두운 쐐기**로 새어
+    나왔다. 두 가지가 겹친 결과다:
+      · 배경 이미지가 프레임을 다 안 덮는 사이즈가 13개 있다
+        (criteo-1200x628 은 왼쪽 78px, dv360-1200x270 은 145px 이 빈다)
+      · CSS filter: blur() 는 요소 가장자리의 **알파까지** 퍼뜨린다 — 경계가
+        반투명해져 뒤 바탕이 배어 나온다
+    빈 자리는 13개 전부 가로형은 왼쪽, 세로형은 아래 — 흰 셰이드가 덮는 쪽이다.
+    그래서 바탕을 흰색으로 두면 새어 나와도 셰이드와 같은 색이라 보이지 않는다.
+  */
   const frameBg = state.colorMode === 'overlay'
-    ? `linear-gradient(160deg, ${main} 0%, ${secondary} 100%)` : '#000';
+    ? `linear-gradient(160deg, ${main} 0%, ${secondary} 100%)` : '#ffffff';
 
   const backdrop = (
     <>

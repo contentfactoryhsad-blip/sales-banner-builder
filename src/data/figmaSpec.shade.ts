@@ -24,7 +24,7 @@ export type ShadeSpec = [number, Array<[number, number]>];
 
 export const SHADE: Record<'B', Record<string, ShadeSpec>> = {
   B: {
-    'criteo-1200x628': [89.27, [[31.37, 1], [69.45, 0]]],
+    'criteo-1200x628': [89.27, [[18.29, 1], [54.88, 0]]],  // 2026-08-13 재실측 (원본에서 그라데이션 수정)
     'criteo-1200x1200': [0, [[28.83, 1], [69, 0]]],
     'criteo-800x1200': [0.44, [[29.19, 1], [94.27, 0]]],
     'criteo-1024x768': [89.69, [[29.28, 1], [72.47, 0]]],
