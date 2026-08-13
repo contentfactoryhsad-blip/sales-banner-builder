@@ -1,4 +1,4 @@
-import { DEFAULT_GRAPHIC_ID, DEFAULT_GRAPHIC_KIND, MIN_BOX_COUNT, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, type GraphicKind } from '../data/builderOptions';
+import { DEFAULT_COLOR_MODE, DEFAULT_GRAPHIC_ID, DEFAULT_GRAPHIC_KIND, MIN_BOX_COUNT, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, type GraphicKind } from '../data/builderOptions';
 import type { StickerStyle } from '../data/sizeLayouts';
 
 /** 배경 디자인 방식 — A: Fractal Glass / B: Graphic Type (structure.pdf) */
@@ -72,7 +72,7 @@ export function createInitialState(designType: DesignType): BannerState {
     promotionId: null,
     mainHue: null,
     secondaryHue: null,
-    colorMode: 'overlay',
+    colorMode: DEFAULT_COLOR_MODE[designType],
     adChannelId: null,
     adChannelIds: [],
     backgroundTypeId: null,

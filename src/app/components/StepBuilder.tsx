@@ -6,7 +6,7 @@ import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
 import { createInitialState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion } from '../../data/promotions';
-import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
+import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
@@ -105,7 +105,7 @@ function DesignStep({ state, update }: StepProps) {
           const d = DESIGN_TYPES[key];
           const selected = state.designType === key;
           return (
-            <button key={key} onClick={() => update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], stickerStyle: DEFAULT_STICKER_STYLE[key] })} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
+            <button key={key} onClick={() => update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] })} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
               <div className="mb-3 flex justify-center rounded-lg overflow-hidden" style={{ background: '#F8F7F5' }}>
                 <MainPreview state={{ ...createInitialState(key), boxCount: 6 }} displayWidth={340} />
               </div>
@@ -576,8 +576,8 @@ function EditBackground({ state, update }: StepProps) {
 function EditGraphic({ state, update }: StepProps) {
   return (
     <EditSection label="Graphic Type">
-      {/* 선/면 — 도형 선택은 그대로 두고 벌만 바꾼다 */}
-      <div className="flex items-center gap-1 mb-2">
+      {/* 선/면 — 도형 선택은 그대로 두고 벌만 바꾼다. 벌이 하나뿐이면 감춘다. */}
+      <div className={`items-center gap-1 mb-2 ${GRAPHIC_KINDS.length > 1 ? 'flex' : 'hidden'}`}>
         {GRAPHIC_KINDS.map((k) => (
           <button
             key={k.id}

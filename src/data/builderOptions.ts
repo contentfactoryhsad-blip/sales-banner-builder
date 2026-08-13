@@ -118,6 +118,20 @@ export const STICKER_STYLES_BY_DESIGN: Record<'A' | 'B', { id: StickerStyle; lab
   B: [{ id: 'star', label: 'Star' }],
 };
 
+/**
+ * 흑백 무늬에 프로모션 색을 입히는 방식의 기본값.
+ *
+ * B 는 gradient — 무늬 밝기를 색으로 **매핑**한다(포토샵 그레이디언트 맵).
+ * overlay/luminosity 로 섞으면 결과 밝기를 무늬가 정해서(b-bg-03 평균 143)
+ * 그 밝기대의 낮은 채도밖에 못 내고 회색빛이 돈다. 매핑은 섞는 게 아니라
+ * 갈아끼우는 것이라 탁해질 수가 없다.
+ * A 는 Figma 블러가 0 이고 종전 결과가 확정본이라 overlay 그대로 둔다.
+ */
+export const DEFAULT_COLOR_MODE: Record<'A' | 'B', 'overlay' | 'gradient' | 'multiply'> = {
+  A: 'overlay',
+  B: 'gradient',
+};
+
 export const DEFAULT_BOX_STYLE: Record<'A' | 'B', string> = { A: 'glass', B: 'white' };
 export const DEFAULT_STICKER_STYLE: Record<'A' | 'B', StickerStyle> = { A: 'red', B: 'star' };
 
@@ -150,10 +164,15 @@ export const MAX_SUBCOPY = 'Limited-time offers, only on LG.com'.length; // 35
  */
 export type GraphicKind = 'line' | 'full';
 
-/** Edit 창에 보이는 순서 — 면(Full)이 먼저 */
+/**
+ * Edit 창에 보이는 벌.
+ *
+ * Line 은 요청으로 뺐다 — A·B 모두 Full 만 쓴다. 이미지(public/graphics)와
+ * graphicSrc 의 line 처리는 그대로 두었으니, 다시 쓰려면 여기 한 줄만 되살리면 된다.
+ * 벌이 하나뿐이면 Edit 창의 선택 줄도 자동으로 숨는다.
+ */
 export const GRAPHIC_KINDS: Array<{ id: GraphicKind; label: string }> = [
   { id: 'full', label: 'Full' },
-  { id: 'line', label: 'Line' },
 ];
 
 export const DEFAULT_GRAPHIC_KIND: GraphicKind = 'full';
