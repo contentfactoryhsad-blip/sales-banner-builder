@@ -59,7 +59,7 @@ export function LeftOptionsPanel({
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => { update({ promotionId: p.id, mainHue: null, secondaryHue: null, promoName: p.label }); setPromoOpen(false); }}
+                  onClick={() => { update({ promotionId: p.id, colorSet: 'recommended', promoName: p.label }); setPromoOpen(false); }}
                   className={`flex items-center gap-2.5 text-left px-2.5 py-2 rounded-md border transition-colors ${
                     selected ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-transparent hover:bg-gray-50'
                   }`}

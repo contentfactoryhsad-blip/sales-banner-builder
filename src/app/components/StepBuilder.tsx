@@ -1,19 +1,21 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { AppHeader } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
-import { createInitialState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
-import { PROMOTIONS, getPromotion } from '../../data/promotions';
-import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
+import { createInitialState, sampleState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
+import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
+import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
+import { copyBudget, reflowCopy } from '../utils/copyFit';
+import { useFontsReady } from '../utils/textFit';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
 import { SpecBannerPreview } from './SpecBannerPreview';
 import { getSpec } from '../../data/figmaStyle';
 import { useBannerZip } from './useBannerZip';
-import { deriveBannerColors, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 
 const STEPS = ['1. Design Template', '2. Promotion & Product', '3. Edit', '4. AD Media', '5. Review & Download'];
 
@@ -107,7 +109,7 @@ function DesignStep({ state, update }: StepProps) {
           return (
             <button key={key} onClick={() => update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] })} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
               <div className="mb-3 flex justify-center rounded-lg overflow-hidden" style={{ background: '#F8F7F5' }}>
-                <MainPreview state={{ ...createInitialState(key), boxCount: 6 }} displayWidth={340} />
+                <MainPreview state={sampleState(key)} displayWidth={340} />
               </div>
               <p className="text-[11px] font-semibold text-[#FD312E]">OPTION {key}</p>
               <p className="font-lgei font-bold text-[16px] text-gray-900">{d.name}</p>
@@ -120,6 +122,12 @@ function DesignStep({ state, update }: StepProps) {
   );
 }
 
+/** 오른쪽 세로 줌 바 — 확인창 위쪽 끝부터 한가운데까지. 안쪽 여백은 손잡이 반지름만큼. */
+const BAR_H = 260;
+const BAR_PAD = 12;
+const ZOOM_MIN = 0.1;
+const ZOOM_MAX = 4;
+
 // ── Step 4: AD Media (매체 선택 + 하단 줌/팬 확인창) ────────────────────────────
 function AdMediaStep({ state, update }: StepProps) {
   const toggle = (id: string) => {
@@ -130,17 +138,18 @@ function AdMediaStep({ state, update }: StepProps) {
 
   // 줌/팬 (하단 확인창) — 팬은 리렌더 없이 ref + DOM transform 직접 갱신(부드럽게)
   const [zoomPct, setZoomPct] = useState(32);
-  const [spaceOn, setSpaceOn] = useState(false);
   const [zOn, setZOn] = useState(false);
   const [altOn, setAltOn] = useState(false);
   const dragging = useRef(false);
-  const spaceHeld = useRef(false);
   const zHeld = useRef(false);
   const lastPt = useRef({ x: 0, y: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const panRef = useRef({ x: 24, y: 24 });
   const zoomRef = useRef(0.32);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [barDragging, setBarDragging] = useState(false);
+  const [grabbing, setGrabbing] = useState(false);
 
   const applyTransform = () => {
     const el = contentRef.current;
@@ -150,12 +159,10 @@ function AdMediaStep({ state, update }: StepProps) {
 
   useEffect(() => {
     const kd = (e: KeyboardEvent) => {
-      if (e.code === 'Space') { spaceHeld.current = true; setSpaceOn(true); e.preventDefault(); }
       if (e.key === 'z' || e.key === 'Z') { zHeld.current = true; setZOn(true); }
       if (e.altKey) setAltOn(true);
     };
     const ku = (e: KeyboardEvent) => {
-      if (e.code === 'Space') { spaceHeld.current = false; setSpaceOn(false); }
       if (e.key === 'z' || e.key === 'Z') { zHeld.current = false; setZOn(false); }
       if (e.key === 'Alt') setAltOn(false);
     };
@@ -189,16 +196,22 @@ function AdMediaStep({ state, update }: StepProps) {
     const el = contentRef.current;
     if (el) el.style.willChange = on ? 'transform' : 'auto';
   };
-  const onDown = (e: React.MouseEvent) => { if (!spaceHeld.current) return; dragging.current = true; setSmoothPan(true); lastPt.current = { x: e.clientX, y: e.clientY }; };
+  /*
+    그냥 눌러서 끌면 팬이다.
+    이 확인창은 보기만 하는 곳이라 잘못 눌러서 망가질 것이 없으니, 가장 자주 쓰는
+    동작을 아무 준비 없이 되게 한다. (예전엔 Space 를 잡아야 팬이었는데, 드래그가
+    곧 팬이 된 뒤로는 같은 일을 두 가지로 하는 셈이라 없앴다.)
+  */
+  const onDown = (e: React.MouseEvent) => { dragging.current = true; setGrabbing(true); setSmoothPan(true); lastPt.current = { x: e.clientX, y: e.clientY }; };
   const onMove = (e: React.MouseEvent) => {
     if (!dragging.current) return;
     panRef.current = { x: panRef.current.x + (e.clientX - lastPt.current.x), y: panRef.current.y + (e.clientY - lastPt.current.y) };
     lastPt.current = { x: e.clientX, y: e.clientY };
     applyTransform(); // 리렌더 없이 DOM만
   };
-  const onUp = () => { if (dragging.current) setSmoothPan(false); dragging.current = false; };
+  const onUp = () => { if (dragging.current) { setSmoothPan(false); setGrabbing(false); } dragging.current = false; };
   const onClick = (e: React.MouseEvent) => {
-    if (!zHeld.current || spaceHeld.current) return;
+    if (!zHeld.current) return;
     const p = canvasPt(e);
     zoomAt(p.x, p.y, e.altKey ? 1 / 1.35 : 1.35);
   };
@@ -209,10 +222,42 @@ function AdMediaStep({ state, update }: StepProps) {
     setZoomPct(Math.round(zoomRef.current * 100));
   };
   const reset = () => { panRef.current = { x: 24, y: 24 }; zoomRef.current = 0.32; applyTransform(); setZoomPct(32); };
-  const cursor = spaceOn ? (dragging.current ? 'grabbing' : 'grab') : zOn ? (altOn ? 'zoom-out' : 'zoom-in') : 'default';
+
+  /*
+    오른쪽 세로 줌 바 — 잡고 위로 올리면 줌인, 내리면 줌아웃.
+
+    배율은 **로그로** 건다. 0.1→0.5 와 3.6→4 는 더한 값은 같아도 체감이 전혀 달라서,
+    선형으로 깔면 바 아래쪽 절반이 거의 안 움직이는 것처럼 느껴진다.
+    확대 기준점은 확인창 한가운데다 — 바를 끄는 동안 보고 있던 자리가 밀려나지 않는다.
+  */
+  const zoomFromBar = (clientY: number) => {
+    const r = barRef.current?.getBoundingClientRect();
+    const c = canvasRef.current?.getBoundingClientRect();
+    if (!r || !c) return;
+    const span = r.height - BAR_PAD * 2;
+    const t = Math.min(1, Math.max(0, 1 - (clientY - (r.top + BAR_PAD)) / span)); // 위가 1
+    const nz = ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, t);
+    zoomAt(c.width / 2, c.height / 2, nz / zoomRef.current);
+  };
+  // 바 밖으로 끌고 나가도 계속 따라오게 창 전체에서 듣는다
+  useEffect(() => {
+    if (!barDragging) return;
+    const mm = (e: MouseEvent) => zoomFromBar(e.clientY);
+    const mu = () => setBarDragging(false);
+    window.addEventListener('mousemove', mm);
+    window.addEventListener('mouseup', mu);
+    return () => { window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [barDragging]);
+  const barT = Math.min(1, Math.max(0, Math.log(zoomPct / 100 / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN)));
+
+  // 기본이 팬이므로 손 모양이 기본이다. Z 를 잡고 있을 때만 돋보기로 바뀐다.
+  const cursor = zOn ? (altOn ? 'zoom-out' : 'zoom-in') : grabbing ? 'grabbing' : 'grab';
 
   const promo = state.promotionId ? getPromotion(state.promotionId) : undefined;
-  const derived = promo ? deriveBannerColors(promo.main.hex, promo.secondary.hex, state.mainHue, state.secondaryHue) : NEUTRAL_BANNER_COLORS;
+  const derived = promo
+    ? (() => { const q = promoPair(promo, state.colorSet); return { main: q.main.hex, secondary: q.secondary.hex }; })()
+    : NEUTRAL_BANNER_COLORS;
   const texture = resolveBackground(state.designType, state.backgroundTypeId).texture;
 
   return (
@@ -291,6 +336,22 @@ function AdMediaStep({ state, update }: StepProps) {
                 ))}
               </div>
             </div>
+            {/* 세로 줌 바 — 잡고 위로 올리면 줌인, 내리면 줌아웃 */}
+            <div
+              ref={barRef}
+              onMouseDown={(e) => { e.stopPropagation(); setBarDragging(true); zoomFromBar(e.clientY); }}
+              onClick={(e) => e.stopPropagation()} /* 캔버스의 Z-클릭 줌이 같이 터지지 않게 */
+              className="absolute right-4 top-4 w-7 rounded-full bg-white/90 shadow-md border border-gray-200 cursor-ns-resize"
+              style={{ height: BAR_H }}
+              title="Drag up to zoom in, down to zoom out"
+            >
+              <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-gray-200" style={{ top: BAR_PAD, bottom: BAR_PAD, width: 3 }} />
+              <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-[#FD312E]"
+                style={{ top: BAR_PAD + (1 - barT) * (BAR_H - BAR_PAD * 2), bottom: BAR_PAD, width: 3 }} />
+              <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-white border-2 border-[#FD312E] shadow"
+                style={{ width: 13, height: 13, top: BAR_PAD + (1 - barT) * (BAR_H - BAR_PAD * 2) - 6.5 }} />
+            </div>
+
             <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-white rounded-full shadow-md border border-gray-200 px-1.5 py-1">
               <button onClick={() => zoomStep(-0.05)} className="p-1.5 text-gray-500 hover:text-gray-800"><ZoomOut size={15} /></button>
               <span className="text-xs text-gray-600 w-10 text-center tabular-nums">{zoomPct}%</span>
@@ -298,7 +359,7 @@ function AdMediaStep({ state, update }: StepProps) {
               <div className="w-px h-4 bg-gray-200" />
               <button onClick={reset} className="p-1.5 text-gray-500 hover:text-gray-800" title="Reset"><Maximize2 size={14} /></button>
             </div>
-            <p className="absolute bottom-4 left-4 text-[11px] text-[#6b6862]">Space + drag to pan · Z zoom in · Alt+Z zoom out · scroll to zoom</p>
+            <p className="absolute bottom-4 left-4 text-[11px] text-[#6b6862]">Drag to pan · Z zoom in · Alt+Z zoom out · scroll to zoom · drag the right bar to zoom</p>
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-[#6b6862] text-sm">Select media above to preview all sizes.</div>
@@ -324,7 +385,7 @@ function ProductUrlsStep({ state, update, setProduct }: StepProps & { setProduct
             return (
               <button
                 key={p.id}
-                onClick={() => update({ promotionId: p.id, mainHue: null, secondaryHue: null, promoName: p.label })}
+                onClick={() => update({ promotionId: p.id, colorSet: 'recommended', promoName: p.label })}
                 className={`inline-flex items-center gap-2 rounded-lg border pl-2.5 pr-3 py-2 transition-colors ${selected ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 bg-white hover:border-gray-300'}`}
               >
                 <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-[#FD312E] border-[#FD312E]' : 'border-gray-300 bg-white'}`}>
@@ -417,7 +478,6 @@ function EditStep({ state, update }: StepProps) {
           <EditGraphic state={state} update={update} />
           <EditBox state={state} update={update} />
           <EditSticker state={state} update={update} />
-          <EditPromoName state={state} update={update} />
           <EditCopy state={state} update={update} />
         </aside>
       </div>
@@ -504,30 +564,44 @@ function EditPromotion({ state, update }: StepProps) {
       </EditSection>
     );
   }
-  const colors = deriveBannerColors(promo.main.hex, promo.secondary.hex, state.mainHue, state.secondaryHue);
-  // 슬라이더 위치는 조정 전이면 프로모션 원본 색의 Hue를 가리킨다
-  const mainHue = state.mainHue ?? Math.round(hexToHsl(promo.main.hex).h);
-  const secHue = state.secondaryHue ?? Math.round(hexToHsl(promo.secondary.hex).h);
-  const touched = state.mainHue !== null || state.secondaryHue !== null;
+  /*
+    Hue 슬라이더 대신 **두 벌 중 하나**만 고르게 한다.
+    아무 색이나 나오면 브랜드 톤이 흐트러지고, 나라별 법인이 제각각 쓰게 된다.
+    추천 = 2단계에서 프로모션을 고를 때 따라온 색, 서브 = 같은 분위기의 대안.
+  */
+  const sets: { id: ColorSet; label: string }[] = [
+    { id: 'recommended', label: 'Recommended' },
+    { id: 'sub', label: 'Sub' },
+  ];
 
   return (
-    <EditSection label="Color · Hue">
+    <EditSection label="Color">
       <p className="text-[11px] text-gray-400 -mt-1 mb-2 truncate">{promo.label}</p>
-      <div className="flex flex-col gap-2">
-        <HueRow swatch={colors.main} hue={mainHue} onChange={(h) => update({ mainHue: h })} />
-        <HueRow swatch={colors.secondary} hue={secHue} onChange={(h) => update({ secondaryHue: h })} />
+      <div className="flex flex-col gap-1.5">
+        {sets.map((set) => {
+          const q = promoPair(promo, set.id);
+          const on = state.colorSet === set.id;
+          return (
+            <button
+              key={set.id} type="button" onClick={() => update({ colorSet: set.id })}
+              title={`${q.main.name} · ${q.secondary.name}`}
+              className={`flex items-center gap-2.5 w-full px-2.5 h-11 rounded-xl border transition-colors ${
+                on ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <span className="flex shrink-0 rounded-full overflow-hidden border border-black/5">
+                {[q.main.hex, q.secondary.hex].map((c) => (
+                  <span key={c} style={{ background: c, width: 18, height: 18 }} />
+                ))}
+              </span>
+              <span className="flex flex-col items-start leading-tight min-w-0">
+                <span className={`text-[12px] font-medium ${on ? 'text-[#FD312E]' : 'text-gray-700'}`}>{set.label}</span>
+                <span className="text-[10px] text-gray-400 truncate">{q.main.name} · {q.secondary.name}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
-
-      {/* null 로 되돌려야 프로모션 원래 색과 정확히 일치 (슬라이더로는 반올림 오차) */}
-      {touched && (
-        <button
-          type="button"
-          onClick={() => update({ mainHue: null, secondaryHue: null })}
-          className="text-[11px] text-[#FD312E] underline mt-2"
-        >
-          Reset to {promo.label} color
-        </button>
-      )}
     </EditSection>
   );
 }
@@ -739,42 +813,98 @@ function EditSticker({ state, update }: StepProps) {
   );
 }
 
-/** 프로모션 명칭 — 입력만. (폰트는 Figma 확정대로 LGEI Headline Semibold 고정) */
-function EditPromoName({ state, update }: StepProps) {
-  return (
-    <EditSection label="Promotion Name">
-      <input type="text" value={state.promoName} onChange={(e) => update({ promoName: e.target.value })} placeholder="Promotion name"
-        className="w-full h-9 px-2.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
-    </EditSection>
-  );
-}
-
+/**
+ * Copy — 프로모션 명칭까지 한 묶음으로 편집한다.
+ *
+ * 배너에서 이 셋은 좌패널 한 상자 안에 세로로 쌓이는 한 덩어리다(SpecBannerPreview
+ * 의 head 블록). 그래서 편집도 한 자리에서 한다 — 예전엔 "Promotion Name" 이
+ * 별도 섹션이라 같은 상자를 두 곳에서 나눠 고치는 꼴이었다.
+ * 명칭 자체는 Step 2 에서 프로모션을 고르면 자동으로 채워지고, 여기서 고칠 수 있다.
+ * (폰트는 Figma 확정대로 LGEI Headline Semibold 고정)
+ */
 function EditCopy({ state, update }: StepProps) {
+  // 웹폰트가 붙기 전에 잰 폭은 대체 폰트 기준이라 틀리다 — 붙고 나면 다시 잰다
+  const fontsReady = useFontsReady();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const budget = useMemo(() => copyBudget(state.designType), [state.designType, fontsReady]);
+  /*
+    프로모션 명칭 + 헤드카피를 한 칸에서 고친다 — 배너에서 둘은 같은 상자 안에
+    위아래로 붙는 한 덩어리라 나눠 놓을 이유가 없다.
+    저장은 예전대로 두 값으로 나눠 둔다. 사이즈별로 명칭은 명칭대로(promoBreak·
+    fitScale), 헤드카피는 헤드카피대로(headLines) 따로 접히기 때문이다.
+
+    **글은 이 칸이 직접 들고 있는다.** 예전엔 입력값을 쪼갰다 다시 합쳐서 textarea 에
+    되돌려줬는데, 그러면 친 것과 되돌아온 것이 달라지는 순간(빈 줄에 \n 을 도로
+    붙이거나 공백을 다듬을 때) 커서가 튀고 윗줄이 안 지워졌다.
+  */
+  const [raw, setRaw] = useState(() => joinCopy(state.promoName, state.headline));
+  const total = raw.replace(/\n/g, '').length;
+
+  // 바깥에서 바뀐 값(2단계에서 프로모션을 고르면 명칭이 바뀐다)만 받아 적는다.
+  // 내가 방금 올려보낸 값이면 쪼갠 결과가 같으므로 건드리지 않는다.
+  useEffect(() => {
+    const [p, h] = splitCopy(raw);
+    if (p !== state.promoName || h !== state.headline) setRaw(joinCopy(state.promoName, state.headline));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.promoName, state.headline]);
+
+  const onHeadChange = (v: string) => {
+    // 글자수 뚜껑은 늘리는 방향일 때만 (지우는 건 언제나 허용)
+    if (v.length > raw.length && v.replace(/\n/g, '').length > MAX_HEAD_BLOCK) return;
+    // 폭을 넘치면 막는 게 아니라 아랫줄로 흘려보낸다. 그래도 못 담으면 그때 안 받는다.
+    const flowed = reflowCopy(v, budget, COPY_LINES);
+    if (flowed === null) return;
+    setRaw(flowed);
+    const [p, h] = splitCopy(flowed);
+    update({ promoName: p, headline: h, showHeadline: true });
+  };
+
   return (
     <EditSection label="Copy">
       <div className="flex flex-col gap-2.5">
-        <CopyField label="Head copy" max={MAX_HEADLINE} multiline checked={state.showHeadline} value={state.headline} onToggle={(v) => update({ showHeadline: v })} onChange={(v) => update({ headline: v })} />
-        <CopyField label="Sub copy" max={MAX_SUBCOPY} multiline checked={state.showSubcopy} value={state.subcopy} onToggle={(v) => update({ showSubcopy: v })} onChange={(v) => update({ subcopy: v })} />
+        <div>
+          <label className="flex items-center gap-2 mb-1 select-none">
+            <span className="text-xs font-medium text-gray-600">Head copy</span>
+            <span className="text-[10px] text-gray-400 ml-auto tabular-nums">Max {MAX_HEAD_BLOCK} chars · {total}/{MAX_HEAD_BLOCK}</span>
+          </label>
+          <textarea value={raw} rows={2} onChange={(e) => onHeadChange(e.target.value)}
+            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E] resize-none" />
+        </div>
+        <CopyField label="Sub copy" max={MAX_SUBCOPY} multiline value={state.subcopy} onChange={(v) => update({ subcopy: v })} />
       </div>
     </EditSection>
   );
 }
 
-function CopyField({ label, checked, value, multiline, max, onToggle, onChange }: { label: string; checked: boolean; value: string; multiline?: boolean; max?: number; onToggle: (v: boolean) => void; onChange: (v: string) => void }) {
+/** 헤드카피 칸이 쓰는 줄 수 — 첫 줄 프로모션 명칭 + 둘째 줄 헤드카피. */
+const COPY_LINES = 2;
+
+/** 첫 줄 = 프로모션 명칭, 나머지 = 헤드카피. 둘로 나눌 때와 합칠 때가 늘 짝이 맞아야 한다. */
+function splitCopy(raw: string): [string, string] {
+  const [first = '', ...rest] = raw.split('\n');
+  return [first, rest.join(' ').trim()];
+}
+function joinCopy(promoName: string, headline: string) {
+  return headline ? `${promoName}\n${headline}` : promoName;
+}
+
+/** checked/onToggle 을 주지 않으면 체크박스 없이 늘 켜진 칸이 된다. */
+function CopyField({ label, checked, value, multiline, max, onToggle, onChange }: { label: string; checked?: boolean; value: string; multiline?: boolean; max?: number; onToggle?: (v: boolean) => void; onChange: (v: string) => void }) {
   const cls = 'w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E] disabled:opacity-40 disabled:bg-gray-50';
+  const on = checked !== false;
   return (
     <div>
       <label className="flex items-center gap-2 mb-1 cursor-pointer select-none">
-        <input type="checkbox" checked={checked} onChange={(e) => onToggle(e.target.checked)} className="accent-[#FD312E]" />
+        {onToggle && <input type="checkbox" checked={on} onChange={(e) => onToggle(e.target.checked)} className="accent-[#FD312E]" />}
         <span className="text-xs font-medium text-gray-600">{label}</span>
         {max !== undefined && (
           <span className="text-[10px] text-gray-400 ml-auto tabular-nums">Max {max} chars · {value.length}/{max}</span>
         )}
       </label>
       {multiline ? (
-        <textarea value={value} rows={2} maxLength={max} disabled={!checked} onChange={(e) => onChange(e.target.value)} className={`${cls} resize-none`} />
+        <textarea value={value} rows={2} maxLength={max} disabled={!on} onChange={(e) => onChange(e.target.value)} className={`${cls} resize-none`} />
       ) : (
-        <input type="text" value={value} maxLength={max} disabled={!checked} onChange={(e) => onChange(e.target.value)} className={cls} />
+        <input type="text" value={value} maxLength={max} disabled={!on} onChange={(e) => onChange(e.target.value)} className={cls} />
       )}
     </div>
   );

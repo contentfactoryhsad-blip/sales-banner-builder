@@ -49,27 +49,7 @@ export function hslToHex(h: number, s: number, l: number): string {
   return `#${to(r)}${to(g)}${to(b)}`;
 }
 
-/**
- * 프로모션 main/secondary 색에서 **Hue만** 조정한 결과를 반환.
- *
- * 두 색을 **각각 독립적으로** 회전한다(예전엔 hue 하나로 둘을 묶어 돌렸다).
- * 각 색의 S/L은 그대로 유지되므로 톤은 프로모션 원본을 따른다.
- * hue가 null이면 그 색은 원래 값 그대로 — 슬라이더로 눈대중하면 반올림 오차가 생기므로
- * "원래 색"은 반드시 null로 표현한다.
- */
-export function deriveBannerColors(
-  mainHex: string,
-  secondaryHex: string,
-  mainHue: number | null,
-  secondaryHue: number | null,
-): { main: string; secondary: string } {
-  const m = hexToHsl(mainHex);
-  const s = hexToHsl(secondaryHex);
-  return {
-    main: mainHue === null ? mainHex : hslToHex(mainHue, m.s, m.l),
-    secondary: secondaryHue === null ? secondaryHex : hslToHex(secondaryHue, s.s, s.l),
-  };
-}
+
 
 /**
  * 프로모션 미선택 시의 폴백 색.

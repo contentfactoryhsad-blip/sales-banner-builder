@@ -1,9 +1,9 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { BannerState } from '../types';
-import { getPromotion } from '../../data/promotions';
+import { getPromotion, promoPair } from '../../data/promotions';
 import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
 import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
-import { deriveBannerColors, hexToHsl, hexToRgb, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { hexToHsl, hexToRgb, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
 import { GradientMapBackground } from './GradientMapBackground';
@@ -153,8 +153,9 @@ export function SpecBannerPreview({
   const style = DESIGN_STYLES[design];
 
   const promo = state.promotionId ? getPromotion(state.promotionId) : undefined;
-  const { main, secondary } = promo
-    ? deriveBannerColors(promo.main.hex, promo.secondary.hex, state.mainHue, state.secondaryHue)
+  const pair = promo ? promoPair(promo, state.colorSet) : null;
+  const { main, secondary } = pair
+    ? { main: pair.main.hex, secondary: pair.secondary.hex }
     : NEUTRAL_BANNER_COLORS;
 
   /*

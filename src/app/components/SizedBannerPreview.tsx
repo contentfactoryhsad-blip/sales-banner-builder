@@ -1,7 +1,7 @@
 import type { BannerState } from '../types';
-import { getPromotion } from '../../data/promotions';
+import { getPromotion, promoPair } from '../../data/promotions';
 import { resolveBackground } from '../../data/builderOptions';
-import { deriveBannerColors , NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { GradientMapBackground } from './GradientMapBackground';
 import {
   BODY_FONT, GLASS_FILL, GLASS_STROKE, HEADLINE_FONT, HEADLINE_WEIGHT,
@@ -29,7 +29,7 @@ export function SizedBannerPreview({
 }) {
   const promo = state.promotionId ? getPromotion(state.promotionId) : undefined;
   const { main, secondary } = promo
-    ? deriveBannerColors(promo.main.hex, promo.secondary.hex, state.mainHue, state.secondaryHue)
+    ? (() => { const q = promoPair(promo, state.colorSet); return { main: q.main.hex, secondary: q.secondary.hex }; })()
     : NEUTRAL_BANNER_COLORS;
 
   const scale = displayWidth / layout.w;

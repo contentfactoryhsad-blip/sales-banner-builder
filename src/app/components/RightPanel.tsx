@@ -1,10 +1,15 @@
 import type { BannerState } from '../types';
-import { getPromotion } from '../../data/promotions';
+import { getPromotion, promoPair, type ColorSet } from '../../data/promotions';
 import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES } from '../../data/builderOptions';
-import { deriveBannerColors, hexToHsl } from '../utils/color';
 
-const HUE_GRADIENT =
-  'linear-gradient(to right, hsl(0,70%,55%), hsl(60,70%,55%), hsl(120,70%,55%), hsl(180,70%,55%), hsl(240,70%,55%), hsl(300,70%,55%), hsl(360,70%,55%))';
+/*
+  Hue 슬라이더 대신 **두 벌 중 하나**만 고르게 한다 (StepBuilder 의 Edit 섹션과 동일).
+  아무 색이나 나오면 브랜드 톤이 흐트러지고, 나라별 법인이 제각각 쓰게 된다.
+*/
+const COLOR_SETS: { id: ColorSet; label: string }[] = [
+  { id: 'recommended', label: 'Recommended' },
+  { id: 'sub', label: 'Sub' },
+];
 
 /** 우측 편집/세부 패널 — 명칭 입력 + 선택 요약. (참고본의 Edit Panel 자리) */
 export function RightPanel({
@@ -27,12 +32,6 @@ export function RightPanel({
   const channel = AD_CHANNELS.find((c) => c.id === state.adChannelId);
   const bgType = BACKGROUND_TYPES[state.designType].find((b) => b.id === state.backgroundTypeId);
   const box = BOX_STYLES.find((b) => b.id === state.boxStyleId);
-
-  // Hue 조정: S/L 유지, Hue만 변경
-  const colors = deriveBannerColors(promo.main.hex, promo.secondary.hex, state.mainHue, state.secondaryHue);
-  const mainHue = state.mainHue ?? Math.round(hexToHsl(promo.main.hex).h);
-  const secHue = state.secondaryHue ?? Math.round(hexToHsl(promo.secondary.hex).h);
-  const hueTouched = state.mainHue !== null || state.secondaryHue !== null;
 
   return (
     <aside className="w-80 shrink-0 bg-white border-l border-gray-200 overflow-y-auto p-5 flex flex-col gap-6">
@@ -61,38 +60,36 @@ export function RightPanel({
         </div>
       </div>
 
-      {/* Color · Hue — 명도/채도 유지, Hue만 좌우로 조정해 자기 색 만들기 */}
+      {/* Color — 프로모션이 들고 온 두 벌(추천/서브) 중에서만 고른다 */}
       <div>
-        <p className="font-lgei font-bold text-[15px] text-gray-900 mb-1">Color · Hue</p>
-        <p className="text-xs text-gray-400 mb-3">Main / combo — slide each hue independently</p>
+        <p className="font-lgei font-bold text-[15px] text-gray-900 mb-1">Color</p>
+        <p className="text-xs text-gray-400 mb-3">Pick one of the two sets for {promo.label}</p>
 
-        <div className="flex flex-col gap-2">
-          {([
-            ['main', colors.main, mainHue, (h: number) => update({ mainHue: h })],
-            ['combo', colors.secondary, secHue, (h: number) => update({ secondaryHue: h })],
-          ] as const).map(([key, swatch, hue, onChange]) => (
-            <div key={key} className="flex items-center gap-2.5">
-              <span className="w-9 h-9 rounded-lg border border-black/10 shrink-0" style={{ background: swatch }} title={`${key} ${swatch}`} />
-              <input
-                type="range" min={0} max={360} value={hue}
-                onChange={(e) => onChange(Number(e.target.value))}
-                className="flex-1 h-2.5 rounded-full appearance-none cursor-pointer outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-400 [&::-webkit-slider-thumb]:shadow"
-                style={{ background: HUE_GRADIENT }}
-              />
-              <span className="text-xs text-gray-500 tabular-nums shrink-0 w-9 text-right">{Math.round(hue)}°</span>
-            </div>
-          ))}
+        <div className="flex flex-col gap-1.5">
+          {COLOR_SETS.map((set) => {
+            const q = promoPair(promo, set.id);
+            const on = state.colorSet === set.id;
+            return (
+              <button
+                key={set.id} type="button" onClick={() => update({ colorSet: set.id })}
+                title={`${q.main.name} · ${q.secondary.name}`}
+                className={`flex items-center gap-2.5 w-full px-2.5 h-11 rounded-xl border transition-colors ${
+                  on ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <span className="flex shrink-0 rounded-full overflow-hidden border border-black/5">
+                  {[q.main.hex, q.secondary.hex].map((c) => (
+                    <span key={c} style={{ background: c, width: 18, height: 18 }} />
+                  ))}
+                </span>
+                <span className="flex flex-col items-start leading-tight min-w-0">
+                  <span className={`text-[12px] font-medium ${on ? 'text-[#FD312E]' : 'text-gray-700'}`}>{set.label}</span>
+                  <span className="text-[10px] text-gray-400 truncate">{q.main.name} · {q.secondary.name}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
-
-        {hueTouched && (
-          <button
-            type="button"
-            onClick={() => update({ mainHue: null, secondaryHue: null })}
-            className="text-[11px] text-[#FD312E] underline mt-2"
-          >
-            Reset to {promo.label} color
-          </button>
-        )}
       </div>
 
       {/* Summary */}

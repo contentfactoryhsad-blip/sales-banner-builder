@@ -1,5 +1,6 @@
 import { DEFAULT_COLOR_MODE, DEFAULT_GRAPHIC_ID, DEFAULT_GRAPHIC_KIND, MIN_BOX_COUNT, DEFAULT_BOX_STYLE, DEFAULT_STICKER_STYLE, type GraphicKind } from '../data/builderOptions';
 import type { StickerStyle } from '../data/sizeLayouts';
+import { PROMOTIONS, type ColorSet } from '../data/promotions';
 
 /** 배경 디자인 방식 — A: Fractal Glass / B: Graphic Type (structure.pdf) */
 export type DesignType = 'A' | 'B';
@@ -10,10 +11,11 @@ export interface BannerState {
   designType: DesignType;
   /** 1. 선택한 프로모션 id (promotions.ts) */
   promotionId: string | null;
-  /** Main 컬러 Hue (0-360). null = 프로모션 원래 색. S/L은 유지, Hue만 변경 */
-  mainHue: number | null;
-  /** 조합(Secondary) 컬러 Hue. main과 독립적으로 조정한다. */
-  secondaryHue: number | null;
+  /**
+   * 프로모션 컬러를 어느 벌로 쓸지 — 추천(promotion.main/secondary) 또는 서브(promotion.sub).
+   * 예전에는 Hue 를 자유롭게 돌렸는데, 아무 색이나 나오면 브랜드 톤이 흐트러져 두 벌로 좁혔다.
+   */
+  colorSet: ColorSet;
   /** 배경 색 입히는 방식: 'overlay'(기본, 흑백+overlay) | 'gradient'(그라데이션 맵 LUT) */
   colorMode: 'overlay' | 'gradient';
   /** 2. 광고 매체 id (한판/Single-page — 단일 선택) */
@@ -69,9 +71,13 @@ export const MAX_BOXES = 6;
 export function createInitialState(designType: DesignType): BannerState {
   return {
     designType,
-    promotionId: null,
-    mainHue: null,
-    secondaryHue: null,
+    /**
+     * 첫 프로모션이 골라진 채로 시작한다 — 시안(A/B)이 그렇듯 아무것도 안 골라진
+     * 상태로 두면 미리보기가 흑백이라 무엇을 만드는 화면인지 알아보기 어렵다.
+     * 명칭도 같이 맞춰 둔다 (선택 버튼이 promoName 을 함께 바꾸므로).
+     */
+    promotionId: PROMOTIONS[0].id,
+    colorSet: 'recommended',
     colorMode: DEFAULT_COLOR_MODE[designType],
     adChannelId: null,
     adChannelIds: [],
@@ -83,7 +89,7 @@ export function createInitialState(designType: DesignType): BannerState {
     boxCount: null,
     products: Array(MAX_BOXES).fill(null),
     productMeta: Array(MAX_BOXES).fill(null),
-    promoName: '[Promotion Name]',
+    promoName: PROMOTIONS[0].label,
     discount: 20,
     stickerStyle: DEFAULT_STICKER_STYLE[designType],
     stickerHue: null,
@@ -92,6 +98,30 @@ export function createInitialState(designType: DesignType): BannerState {
     subcopy: 'Limited-time offers, only on LG.com',
     showHeadline: true,
     showSubcopy: true,
+  };
+}
+
+/**
+ * 첫 화면 A/B 카드에 보여줄 **대표 시안** 상태.
+ *
+ * 빈 초기 상태(createInitialState)로 그리면 프로모션도 제품 박스도 없어서
+ * 무늬만 있는 회색 배너가 나온다 — 고르는 사람이 두 시안의 차이를 못 본다.
+ * 그래서 완성된 배너 한 장을 보여준다: Anniversary · 박스 6개.
+ *
+ * 박스 재질·스티커·배경은 **일부러 손대지 않는다.** 시안별 기본값이 곧 그 시안의
+ * 얼굴이라, 기본값이 바뀌면 이 카드도 같이 따라가야 한다.
+ * (A = 글래스 박스 + 반투명 스티커 + BG1, B = 흰 박스 + 불투명 스티커 + BG5)
+ *
+ * 색 입히는 방식만 예외로 못박는다 — 카드는 A·B 둘 다 그라데이션 맵으로 보여준다.
+ * A 의 기본값은 overlay 라(Figma 확정본이 그쪽이다) 여기서만 갈라진다.
+ */
+export function sampleState(designType: DesignType): BannerState {
+  return {
+    ...createInitialState(designType),
+    promotionId: 'anniversary',
+    promoName: 'Anniversary',
+    boxCount: MAX_BOXES,
+    colorMode: 'gradient',
   };
 }
 

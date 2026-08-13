@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 let ctx: CanvasRenderingContext2D | null | undefined;
 const cache = new Map<string, number>();
 
-function measure(text: string, px: number, weight: number, family: string) {
+export function measure(text: string, px: number, weight: number, family: string) {
   const key = `${px}|${weight}|${family}|${text}`;
   const hit = cache.get(key);
   if (hit !== undefined) return hit;

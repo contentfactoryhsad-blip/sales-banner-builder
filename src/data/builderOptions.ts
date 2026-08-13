@@ -63,10 +63,10 @@ export const BACKGROUND_TYPES: Record<'A' | 'B', BackgroundType[]> = {
   B: bgSet('b'),
 };
 
-/** 기본으로 선택되는 배경. B 는 요청대로 b-bg-03. */
+/** 기본으로 선택되는 배경. B 는 요청대로 b-bg-05 (예전엔 b-bg-03 이었다). */
 export const DEFAULT_BACKGROUND_ID: Record<'A' | 'B', string> = {
   A: 'a-bg-01',
-  B: 'b-bg-03',
+  B: 'b-bg-05',
 };
 
 /** 선택값 → 배경. 미선택(null)이면 그 디자인의 기본 배경. */
@@ -166,6 +166,15 @@ export function resolveStickerStyle(design: 'A' | 'B', id: StickerStyle | null):
  */
 export const MAX_HEADLINE = 'Save on LG favorites'.length;          // 20
 export const MAX_SUBCOPY = 'Limited-time offers, only on LG.com'.length; // 35
+
+/**
+ * 헤드카피 칸(프로모션 명칭 줄 + 헤드카피 줄)의 글자수 상한 — 기준 문구 두 줄치.
+ *
+ * 넘침을 실제로 막는 것은 이 숫자가 아니라 **줄별 폭 실측**(utils/copyFit)이다.
+ * 글자마다 폭이 달라 글자수로는 못 막기 때문. 이 값은 가는 글자만 써서 폭은
+ * 남는데 글자수만 계속 늘어나는 경우의 뚜껑이고, 화면에 보여줄 눈대중 기준이다.
+ */
+export const MAX_HEAD_BLOCK = MAX_HEADLINE * 2;                     // 40
 
 /**
  * Graphic Type — 배경 위 장식 도형 6종 (reference/graphic → public/graphics).
