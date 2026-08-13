@@ -179,10 +179,10 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
     logo: '/lg-logo.svg',
     stickerTextScale: 0.95,
     /*
-      A 와 같은 크기로 둔다. 1.05 는 별 모양이 작아 보여서 키웠던 값인데,
-      이제 A·B 가 같은 원이라 크기를 벌릴 이유가 없다.
+      원만 5% 줄인다. 안의 글자는 stickerTextScale 이 따로 정하므로 영향받지 않는다.
+      (별이었을 때는 작아 보여서 1.05 로 키웠던 자리다)
     */
-    stickerShapeScale: 1,
+    stickerShapeScale: 0.95,
     shadeOpacity: 0.95,
     shadeRgb: '255,255,255',
     shadeBlend: 'normal',
