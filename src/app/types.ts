@@ -15,7 +15,7 @@ export interface BannerState {
   /** 조합(Secondary) 컬러 Hue. main과 독립적으로 조정한다. */
   secondaryHue: number | null;
   /** 배경 색 입히는 방식: 'overlay'(기본, 흑백+overlay) | 'gradient'(그라데이션 맵 LUT) */
-  colorMode: 'overlay' | 'gradient';
+  colorMode: 'overlay' | 'gradient' | 'multiply';
   /** 2. 광고 매체 id (한판/Single-page — 단일 선택) */
   adChannelId: string | null;
   /** 광고 매체 복수 선택 (단계별/Step 모드 — 여러 매체) */

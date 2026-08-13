@@ -543,10 +543,27 @@ function EditBackground({ state, update }: StepProps) {
           </button>
         ))}
       </div>
-      <label className="flex items-center gap-2 mt-3 cursor-pointer select-none">
-        <input type="checkbox" checked={state.colorMode === 'gradient'} onChange={(e) => update({ colorMode: e.target.checked ? 'gradient' : 'overlay' })} className="accent-[#FD312E]" />
-        <span className="text-xs text-gray-600">Gradient map coloring <span className="text-gray-400">(default: overlay)</span></span>
-      </label>
+      {/* 색 입히는 방식 — 흑백 무늬에 프로모션 색을 어떻게 얹을지 */}
+      <div className="mt-3">
+        <p className="text-[11px] text-gray-400 mb-1.5">Coloring</p>
+        <div className="flex items-center gap-1">
+          {([
+            ['overlay',  'Overlay',      '무늬 밝기 + 바탕 색 (기본)'],
+            ['multiply', 'Multiply',     '곱셈 — 색이 선명, 살짝 어두움'],
+            ['gradient', 'Gradient map', '밝기를 색으로 매핑 — 가장 쨍함'],
+          ] as const).map(([id, label, desc]) => (
+            <button
+              key={id} type="button" onClick={() => update({ colorMode: id })} title={desc}
+              className={`px-2.5 h-7 rounded-full text-[11px] font-medium border transition-colors ${
+                state.colorMode === id ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5'
+                                       : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
     </EditSection>
   );
 }
