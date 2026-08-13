@@ -33,8 +33,16 @@ export interface DesignStyle {
     /** Figma Glass 이펙트 사용 여부 (A만) */
     glass: boolean;
   };
-  /** 스티커 */
+  /** 스티커 모양 — A·B 모두 원. (별 렌더 경로는 남겨 뒀다) */
   sticker: 'circle' | 'star';
+  /**
+   * 원형 스티커를 **불투명**하게 칠할지.
+   *
+   * A 는 Figma 대로 반투명(STICKER_FILL)이라 뒤 배경이 살짝 비친다.
+   * B 는 흰 셰이드 위라 반투명이면 묻혀서, 별에 쓰던 색을 그대로 꽉 채운다.
+   * 색상 자체는 둘 다 STICKER_RED 를 Edit 의 Hue 로 돌린 값이다.
+   */
+  stickerCircleOpaque?: boolean;
   /**
    * 카피 글자색. Figma 의 Mode 배리언트와 대응한다.
    *   A = Dark mode  (검정 셰이드 위) → 흰 글씨
@@ -159,17 +167,22 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
   },
   B: {
     label: 'Solid',
-    desc: '단색 흰 박스 · 별 스티커 · 흰 셰이드 · 배경 블러',
+    desc: '단색 흰 박스 · 원형 스티커(불투명) · 흰 셰이드 · 배경 블러',
     box: { fill: '#ffffff', stroke: null,
            strokeRatio: 0, shadowRatio: 6.29 / 234.748, glass: false },
-    sticker: 'star',
+    sticker: 'circle',
+    stickerCircleOpaque: true,
     text: '#141414',
     discColor: '#000000',
     discShadow: '0px 0px 30px rgba(255,255,255,0.9), 0px 0px 10px rgba(255,255,255,0.7)',
     graphics: false,
     logo: '/lg-logo.svg',
     stickerTextScale: 0.95,
-    stickerShapeScale: 1.05,
+    /*
+      A 와 같은 크기로 둔다. 1.05 는 별 모양이 작아 보여서 키웠던 값인데,
+      이제 A·B 가 같은 원이라 크기를 벌릴 이유가 없다.
+    */
+    stickerShapeScale: 1,
     shadeOpacity: 0.95,
     shadeRgb: '255,255,255',
     shadeBlend: 'normal',

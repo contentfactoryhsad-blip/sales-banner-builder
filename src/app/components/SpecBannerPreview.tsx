@@ -618,7 +618,10 @@ export function SpecBannerPreview({
                 ) : (
                   <div style={{
                     position: 'absolute', left: off, top: off, width: ss, height: ss, borderRadius: '50%',
-                    background: isGlass && emulateGlass ? undefined : (isGlass ? BOX_MATERIALS.glass.fill : circleFill),
+                    background: isGlass && emulateGlass ? undefined
+                      : isGlass ? BOX_MATERIALS.glass.fill
+                      // B 는 흰 셰이드 위라 반투명이면 묻힌다 — 꽉 채운다
+                      : style.stickerCircleOpaque ? redHex : circleFill,
                     border: isGlass && !emulateGlass
                       ? `${ss * BOX_MATERIALS.glass.strokeRatio}px solid ${BOX_MATERIALS.glass.stroke}` : undefined,
                     backdropFilter: isGlass && !emulateGlass ? gBackdrop : undefined,

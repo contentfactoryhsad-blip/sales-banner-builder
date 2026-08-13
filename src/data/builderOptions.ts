@@ -110,12 +110,13 @@ export const BOX_STYLES_BY_DESIGN: Record<'A' | 'B', BoxStyle[]> = {
 };
 
 /**
- * 스티커 선택지 — A 는 원, B 는 별이 기본이라 목록도 다르다.
- * B 의 글래스는 별 모양과 안 어울려서 뺐다(요청). B 는 Star 하나뿐이다.
+ * 스티커 선택지 — A·B 동일하게 원형/글래스 두 가지.
+ * 별(Star)은 뺐다. 모양은 같고 **채움만 다르다** — A 는 반투명, B 는 불투명
+ * (figmaStyle 의 stickerCircleOpaque). 색상은 둘 다 Edit 의 Hue 를 따른다.
  */
 export const STICKER_STYLES_BY_DESIGN: Record<'A' | 'B', { id: StickerStyle; label: string }[]> = {
   A: [{ id: 'red', label: 'Red circle' }, { id: 'glass', label: 'Glass' }],
-  B: [{ id: 'star', label: 'Star' }],
+  B: [{ id: 'red', label: 'Red circle' }, { id: 'glass', label: 'Glass' }],
 };
 
 /**
@@ -133,11 +134,11 @@ export const DEFAULT_COLOR_MODE: Record<'A' | 'B', 'overlay' | 'gradient' | 'mul
 };
 
 export const DEFAULT_BOX_STYLE: Record<'A' | 'B', string> = { A: 'glass', B: 'white' };
-export const DEFAULT_STICKER_STYLE: Record<'A' | 'B', StickerStyle> = { A: 'red', B: 'star' };
+export const DEFAULT_STICKER_STYLE: Record<'A' | 'B', StickerStyle> = { A: 'red', B: 'red' };
 
 /**
  * 저장된 선택값이 그 시안의 목록에 없으면 기본값으로 되돌린다.
- * (B 에서 글래스를 뺐으므로, 예전에 글래스를 골라둔 상태가 남아 있어도 별로 나온다)
+ * (별을 뺐으므로, 예전에 'star' 를 골라둔 상태가 남아 있어도 원형으로 나온다)
  */
 export function resolveStickerStyle(design: 'A' | 'B', id: StickerStyle | null): StickerStyle {
   return STICKER_STYLES_BY_DESIGN[design].some((o) => o.id === id)
