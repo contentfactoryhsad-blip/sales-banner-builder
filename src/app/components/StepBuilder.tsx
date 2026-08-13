@@ -6,7 +6,7 @@ import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
 import { createInitialState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion } from '../../data/promotions';
-import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
+import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
@@ -547,19 +547,15 @@ function EditBackground({ state, update }: StepProps) {
       <div className="mt-3">
         <p className="text-[11px] text-gray-400 mb-1.5">Coloring</p>
         <div className="flex items-center gap-1">
-          {([
-            ['overlay',  'Overlay',      '무늬 밝기 + 바탕 색 (기본)'],
-            ['multiply', 'Multiply',     '곱셈 — 색이 선명, 살짝 어두움'],
-            ['gradient', 'Gradient map', '밝기를 색으로 매핑 — 가장 쨍함'],
-          ] as const).map(([id, label, desc]) => (
+          {COLOR_MODES_BY_DESIGN[state.designType].map((m) => (
             <button
-              key={id} type="button" onClick={() => update({ colorMode: id })} title={desc}
+              key={m.id} type="button" onClick={() => update({ colorMode: m.id })} title={m.desc}
               className={`px-2.5 h-7 rounded-full text-[11px] font-medium border transition-colors ${
-                state.colorMode === id ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5'
-                                       : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                state.colorMode === m.id ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5'
+                                         : 'border-gray-200 text-gray-500 hover:border-gray-300'
               }`}
             >
-              {label}
+              {m.label}
             </button>
           ))}
         </div>

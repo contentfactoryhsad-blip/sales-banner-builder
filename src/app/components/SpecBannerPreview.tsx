@@ -76,18 +76,6 @@ const COPY_LINE_HEIGHT = 1.06;
  */
 const EXPORT_BLUR_SCALE = 0.8;
 
-/**
- * multiply 로 색을 입힐 때 텍스처에 거는 보정.
- *
- * 곱셈은 `결과 = 바탕색 × 무늬/255` 라, 무늬를 그대로 곱하면 전체가 어두워진다
- * (b-bg-03 은 luma 160~232, 평균 188 → 밝기가 74% 로 깎인다).
- * 무늬의 명암 **차이는 살리고** 전체를 흰색 쪽으로 밀어 올린다:
- *   contrast(0.56)   160~232 → 146~186 (폭 72 → 40)
- *   brightness(1.37) 146~186 → 200~255 (평균 225 = 곱하는 값 0.88)
- * 결과는 무늬가 보이면서도 바탕색의 채도가 거의 그대로 남는다.
- */
-const MULTIPLY_FILTER = 'contrast(0.56) brightness(1.37)';
-
 /** 별 스티커 회전(rad). Figma 기준 15°. */
 const STAR_ROT = (15 * Math.PI) / 180;
 
@@ -335,12 +323,6 @@ export function SpecBannerPreview({
                 <div style={{ ...fill, filter: blur || undefined }}>
                   <GradientMapBackground texture={texture} main={main} secondary={secondary} />
                 </div>
-              ) : state.colorMode === 'multiply' ? (
-                <img src={texture} alt="" draggable={false}
-                  style={{
-                    ...fill, mixBlendMode: 'multiply',
-                    filter: [blur, MULTIPLY_FILTER].filter(Boolean).join(' '),
-                  }} />
               ) : (
                 <img src={texture} alt="" draggable={false}
                   style={{

@@ -128,9 +128,23 @@ export const STICKER_STYLES_BY_DESIGN: Record<'A' | 'B', { id: StickerStyle; lab
  * 갈아끼우는 것이라 탁해질 수가 없다.
  * A 는 Figma 블러가 0 이고 종전 결과가 확정본이라 overlay 그대로 둔다.
  */
-export const DEFAULT_COLOR_MODE: Record<'A' | 'B', 'overlay' | 'gradient' | 'multiply'> = {
+export type ColorMode = 'overlay' | 'gradient';
+
+export const DEFAULT_COLOR_MODE: Record<'A' | 'B', ColorMode> = {
   A: 'overlay',
   B: 'gradient',
+};
+
+/** Edit 창에 보이는 순서 — 시안별로 **기본값을 먼저** 보여준다 */
+export const COLOR_MODES_BY_DESIGN: Record<'A' | 'B', { id: ColorMode; label: string; desc: string }[]> = {
+  A: [
+    { id: 'overlay',  label: 'Overlay',      desc: '무늬 밝기 + 바탕 색 (A 기본)' },
+    { id: 'gradient', label: 'Gradient map', desc: '밝기를 색으로 매핑 — 색이 가장 선명' },
+  ],
+  B: [
+    { id: 'gradient', label: 'Gradient map', desc: '밝기를 색으로 매핑 — 색이 가장 선명 (B 기본)' },
+    { id: 'overlay',  label: 'Overlay',      desc: '무늬 밝기 + 바탕 색' },
+  ],
 };
 
 export const DEFAULT_BOX_STYLE: Record<'A' | 'B', string> = { A: 'glass', B: 'white' };
