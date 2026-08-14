@@ -37,6 +37,37 @@ import {
 const BG_BLUR_PX = 17.5;
 
 /**
+ * 배경을 프레임 밖까지 키워 그리는 사이즈.
+ *
+ * CSS filter: blur() 는 색만이 아니라 **알파도** 흐린다. 그래서 흐린 요소의 가장자리가
+ * 반투명해지고 뒤 바탕이 비친다. 번지는 폭은 대략 블러값의 두 배(여기선 약 24px)다.
+ * 300x250 은 배경이 프레임보다 좌우 3px·위 12px 밖에 안 커서, 번짐이 여백을 한참 넘어
+ * 안쪽까지 먹어 세 변이 뿌옇게 떴다.
+ *
+ * 모자란 만큼만 키워 번짐을 프레임 밖으로 밀어낸다. 그만큼 무늬가 확대되므로
+ * (300x250 은 약 1.14배) 증상이 실제로 보이는 사이즈에만 건다.
+ * ⚠ 배경이 **일부러 닿지 않게** 배치된 변(여백이 음수)은 채우지 않는다 — 그건 번짐이
+ * 아니라 원본 배치이고, 그 자리는 흰 셰이드가 덮는다. 채우면 디자인이 달라진다.
+ */
+const BG_INFLATE = new Set([
+  'criteo-300x250', 'dv360-300x250',
+  'dv360-320x320', 'dv360-120x600', 'dv360-120x240',
+]);
+
+/** 이 사이즈의 배경 사각형 [left, top, width, height]. 해당 없으면 실측값 그대로. */
+function inflateBg(
+  key: string, bg: NonNullable<FigmaFrameSpec['bg']>, fw: number, fh: number, blurPx: number,
+): [number, number, number, number] {
+  const [x, y, w, h] = bg;
+  if (!blurPx || !BG_INFLATE.has(key)) return [x, y, w, h];
+  const spread = blurPx * 2;
+  // 각 변이 프레임 밖으로 나가 있는 정도. 음수면 아예 안 닿는 것이라 건드리지 않는다.
+  const need = (margin: number) => (margin >= 0 ? Math.max(0, spread - margin) : 0);
+  const l = need(-x), t = need(-y), r = need(x + w - fw), b = need(y + h - fh);
+  return [x - l, y - t, w + l + r, h + t + b];
+}
+
+/**
  * 헤드라인 줄바꿈 폭 여유.
  *
  * Figma 에 저장된 헤드라인 폭은 Figma 자체 텍스트 엔진이 잰 결과다. 브라우저는
@@ -326,8 +357,9 @@ export function SpecBannerPreview({
           const bgBlurPx = BG_BLUR_PX * bgType.blurScale;
           const blur = spec.bg[4] && bgBlurPx ? `blur(${bgBlurPx.toFixed(2)}px)` : '';
           const fill = { width: '100%', height: '100%', objectFit: 'cover' } as const;
+          const box = inflateBg(key, spec.bg, FW, FH, bgBlurPx);
           return (
-            <div style={{ position: 'absolute', left: spec.bg[0], top: spec.bg[1], width: spec.bg[2], height: spec.bg[3] }}>
+            <div style={{ position: 'absolute', left: box[0], top: box[1], width: box[2], height: box[3] }}>
               {/* 프로모션 미선택 = 입힐 색이 없다. Figma 처럼 흑백 텍스처를 그대로 두고
                   그 위에 셰이드 그라데이션만 얹는다. 무채색을 합성하면 오히려 달라진다. */}
               {!promo ? (
