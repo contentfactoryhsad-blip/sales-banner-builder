@@ -9,11 +9,12 @@ import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/p
 import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
+import { LOGO_VARIANTS } from '../../data/logos';
 import { copyBudget, reflowCopy } from '../utils/copyFit';
 import { useFontsReady } from '../utils/textFit';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
 import { SpecBannerPreview } from './SpecBannerPreview';
-import { getSpec } from '../../data/figmaStyle';
+import { getSpec, specKey } from '../../data/figmaStyle';
 import { useBannerZip } from './useBannerZip';
 import { hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 
@@ -151,6 +152,15 @@ function AdMediaStep({ state, update }: StepProps) {
   const [barDragging, setBarDragging] = useState(false);
   const [grabbing, setGrabbing] = useState(false);
 
+  /*
+    확인창에서 고른 사이즈 — 아래 편집줄이 이걸 대상으로 삼는다.
+    끌어서 팬을 하면 mouseup 뒤에 click 이 따라오므로, 움직인 거리를 재서
+    **끌었으면 고르지 않는다**. 안 그러면 화면을 옮길 때마다 선택이 바뀐다.
+  */
+  const [pickedKey, setPickedKey] = useState<string | null>(null);
+  const moved = useRef(false);
+  const pickSize = (k: string) => { if (!moved.current) setPickedKey((p) => (p === k ? null : k)); };
+
   const applyTransform = () => {
     const el = contentRef.current;
     if (el) el.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`;
@@ -202,9 +212,11 @@ function AdMediaStep({ state, update }: StepProps) {
     동작을 아무 준비 없이 되게 한다. (예전엔 Space 를 잡아야 팬이었는데, 드래그가
     곧 팬이 된 뒤로는 같은 일을 두 가지로 하는 셈이라 없앴다.)
   */
-  const onDown = (e: React.MouseEvent) => { dragging.current = true; setGrabbing(true); setSmoothPan(true); lastPt.current = { x: e.clientX, y: e.clientY }; };
+  const onDown = (e: React.MouseEvent) => { dragging.current = true; moved.current = false; setGrabbing(true); setSmoothPan(true); lastPt.current = { x: e.clientX, y: e.clientY }; };
   const onMove = (e: React.MouseEvent) => {
     if (!dragging.current) return;
+    // 손떨림으로 선택이 막히지 않게 4px 여유를 둔다
+    if (Math.abs(e.clientX - lastPt.current.x) > 4 || Math.abs(e.clientY - lastPt.current.y) > 4) moved.current = true;
     panRef.current = { x: panRef.current.x + (e.clientX - lastPt.current.x), y: panRef.current.y + (e.clientY - lastPt.current.y) };
     lastPt.current = { x: e.clientX, y: e.clientY };
     applyTransform(); // 리렌더 없이 DOM만
@@ -263,6 +275,8 @@ function AdMediaStep({ state, update }: StepProps) {
   return (
     <div>
       <Head title="AD Media" desc="Select media — the 1200×628 design applies to all its sizes." />
+
+      <p className="font-lgei font-bold text-[15px] text-gray-900 mb-2">Media Select</p>
       <div className="grid grid-cols-2 gap-3">
         {AD_CHANNELS.map((c) => {
           const selected = state.adChannelIds.includes(c.id);
@@ -276,6 +290,64 @@ function AdMediaStep({ state, update }: StepProps) {
           );
         })}
       </div>
+
+      {/* 로고 갈아끼우기 — 확인창에서 고른 사이즈 하나만 대상으로 한다 */}
+      {channels.length > 0 && (
+        <div className="mt-7">
+          <div className="flex items-baseline gap-4 mb-2 flex-wrap">
+            <p className="font-lgei font-bold text-[15px] text-gray-900">Logo Change</p>
+            <p className="text-xs text-gray-500">Check the logo against each background below, then pick the version that stays legible.</p>
+          </div>
+          <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center gap-4 min-h-[56px]">
+            {!pickedKey ? (
+              <p className="text-xs text-gray-400">Click a size in the preview below to change its logo.</p>
+            ) : (
+              <>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-gray-400 leading-none mb-1">Selected size</p>
+                  <p className="text-[13px] font-medium text-gray-900 leading-none">{pickedKey}</p>
+                </div>
+                <div className="w-px h-8 bg-gray-200" />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Logo</span>
+                  {LOGO_VARIANTS.map((v) => {
+                    const on = (state.logoBySize[pickedKey] ?? '') === v.id;
+                    return (
+                      <button
+                        key={v.id} type="button"
+                        onClick={() => update({ logoBySize: { ...state.logoBySize, [pickedKey]: v.id } })}
+                        title={v.label}
+                        className={`h-9 px-2.5 rounded-lg border flex items-center gap-2 transition-colors ${
+                          on ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {/* 흰 로고는 흰 바탕에서 안 보이므로 어두운 칸에 얹어 보여준다 */}
+                        <span className="flex items-center justify-center rounded"
+                          style={{ width: 40, height: 18, background: v.id === 'white' ? '#4a4946' : '#f3f1ee' }}>
+                          <img src={v.src} alt="" style={{ height: 12 }} draggable={false} />
+                        </span>
+                        <span className={`text-[12px] ${on ? 'text-[#FD312E] font-medium' : 'text-gray-600'}`}>{v.label}</span>
+                      </button>
+                    );
+                  })}
+                  {state.logoBySize[pickedKey] && (
+                    <button
+                      type="button"
+                      onClick={() => { const n = { ...state.logoBySize }; delete n[pickedKey]; update({ logoBySize: n }); }}
+                      className="text-[11px] text-[#FD312E] underline ml-1"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <span className="ml-auto text-[11px] text-gray-400">
+                  {Object.keys(state.logoBySize).length} size(s) changed
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 하단 확인창 (줌/팬) */}
       <div
@@ -311,7 +383,15 @@ function AdMediaStep({ state, update }: StepProps) {
                           ) : (
                             <div className="flex flex-wrap items-end" style={{ gap: NS(20), maxWidth: CANVAS_MAX_W }}>
                               {ready.map((s) => (
-                                <div key={`${c.id}-${s.name}`} className="shrink-0">
+                                <div
+                                  key={`${c.id}-${s.name}`}
+                                  className="shrink-0 cursor-pointer"
+                                  onClick={(e) => { e.stopPropagation(); pickSize(specKey(c.id, s.name)); }}
+                                  style={{
+                                    outline: pickedKey === specKey(c.id, s.name) ? `${NS(3)}px solid #FD312E` : undefined,
+                                    outlineOffset: NS(3),
+                                  }}
+                                >
                                   {/*
                                     배너는 **네이티브 크기 그대로** 그린다.
                                     여기서 또 BASE_SCALE 을 곱하면 바깥 줌(시작값도 BASE_SCALE)과 겹쳐
@@ -365,6 +445,14 @@ function AdMediaStep({ state, update }: StepProps) {
           <div className="absolute inset-0 flex items-center justify-center text-[#6b6862] text-sm">Select media above to preview all sizes.</div>
         )}
       </div>
+
+      {/*
+        간편 편집줄 — 확인창에서 고른 사이즈 하나만 손본다.
+
+        같은 디자인을 41개로 펼치면 로고 자리에 오는 배경 밝기가 사이즈마다 달라져
+        로고가 묻히는 사이즈가 생긴다. 어디가 묻히는지는 규칙으로 정하기 어렵고
+        보면 바로 아는 문제라, 눈으로 고르고 그 사이즈만 갈아 끼우게 한다.
+      */}
     </div>
   );
 }

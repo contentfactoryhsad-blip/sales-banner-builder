@@ -6,6 +6,7 @@ import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyl
 import { hexToHsl, hexToRgb, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
+import { logoSrc } from '../../data/logos';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
@@ -398,7 +399,7 @@ export function SpecBannerPreview({
 
         {/* LG 로고 */}
         {inn.logo && (
-          <img src={style.logo} alt="LG" draggable={false}
+          <img src={logoSrc(state.logoBySize[key], style.logo)} alt="LG" draggable={false}
             style={{ position: 'absolute', left: inn.logo[0], top: inn.logo[1], width: inn.logo[2], height: inn.logo[3] }} />
         )}
 

@@ -45,6 +45,12 @@ export interface BannerState {
   boxCount: number | null;
   /** 5. 제품 이미지 (박스 슬롯별, 최대 6개). null = 비어있음. URL(프록시) 또는 dataURL. */
   products: (string | null)[];
+  /**
+   * 사이즈별 로고 교체. 키는 "채널-사이즈"(figmaStyle.specKey), 값은 LOGO_VARIANTS 의 id.
+   * 없는 사이즈는 시안 기본 로고를 쓴다 — 묻히는 사이즈만 골라 담는 자리다.
+   */
+  logoBySize: Record<string, string>;
+
   /** 세일 프로모션 명칭 (사용자 입력) */
   promoName: string;
 
@@ -89,6 +95,7 @@ export function createInitialState(designType: DesignType): BannerState {
     boxCount: null,
     products: Array(MAX_BOXES).fill(null),
     productMeta: Array(MAX_BOXES).fill(null),
+    logoBySize: {},
     promoName: PROMOTIONS[0].label,
     discount: 20,
     stickerStyle: DEFAULT_STICKER_STYLE[designType],
