@@ -37,6 +37,24 @@ import {
 const BG_BLUR_PX = 17.5;
 
 /**
+ * 블러 기준이 되는 배경 폭 — criteo-1200x628 의 배경 상자(1541px).
+ *
+ * Figma 는 41개 사이즈 **전부에 블러 35** 를 걸어 뒀는데, 배경 상자 크기는 사이즈마다
+ * 다르다(120px ~ 1995px, 16배 차이). 블러는 px 고정이라 상자가 작을수록 무늬 대비
+ * 훨씬 세게 먹는다 — dv360-120x60 은 블러가 상자 폭의 14.6% 로, 1200x628(1.14%)의
+ * 12.8배다. 그래서 작은 사이즈는 무늬가 형체 없이 뭉개지고 큰 사이즈만 결이 살아,
+ * 41개를 나란히 놓으면 배경 느낌이 제각각으로 보였다.
+ *
+ * 확정 시안인 1200x628 의 비율(1.14%)을 기준으로 삼아 상자 크기에 비례시킨다.
+ * 전 사이즈가 같은 결로 보인다.
+ *   dv360-120x60 17.5 → 1.4   ·   criteo-300x250 17.5 → 3.5   ·   meta-1080x1920 17.5 → 22.7
+ *
+ * ⚠ Figma 에서 의도적으로 벗어나는 지점이다. 배경 상자는 41개 모두 정사각이라
+ * 폭 하나로 비율을 잡아도 된다. A 는 Figma 블러가 0 이라 이 계산과 무관하다.
+ */
+const BG_BLUR_REF_W = 1541;
+
+/**
  * 배경을 프레임 밖까지 키워 그리는 사이즈.
  *
  * CSS filter: blur() 는 색만이 아니라 **알파도** 흐린다. 그래서 흐린 요소의 가장자리가
@@ -52,6 +70,7 @@ const BG_BLUR_PX = 17.5;
 const BG_INFLATE = new Set([
   'criteo-300x250', 'dv360-300x250',
   'dv360-320x320', 'dv360-120x600', 'dv360-120x240',
+  'criteo-320x50', 'dv360-320x50',
 ]);
 
 /** 이 사이즈의 배경 사각형 [left, top, width, height]. 해당 없으면 실측값 그대로. */
@@ -354,7 +373,8 @@ export function SpecBannerPreview({
         */}
         {spec.bg && (() => {
           // 배경마다 세기가 다르다 — 무늬가 가는 배경은 덜 흐리게 (blurScale)
-          const bgBlurPx = BG_BLUR_PX * bgType.blurScale;
+          // 사이즈별로는 배경 상자 크기에 비례시킨다 (BG_BLUR_REF_W 설명 참고)
+          const bgBlurPx = BG_BLUR_PX * bgType.blurScale * (spec.bg[2] / BG_BLUR_REF_W);
           const blur = spec.bg[4] && bgBlurPx ? `blur(${bgBlurPx.toFixed(2)}px)` : '';
           const fill = { width: '100%', height: '100%', objectFit: 'cover' } as const;
           const box = inflateBg(key, spec.bg, FW, FH, bgBlurPx);
