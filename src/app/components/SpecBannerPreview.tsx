@@ -7,6 +7,7 @@ import { hexToHsl, hexToRgb, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/co
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
 import { logoSrc } from '../../data/logos';
+import { BG_POS_BY_BACKGROUND } from '../../data/figmaSpec.bgpos';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
@@ -372,12 +373,20 @@ export function SpecBannerPreview({
           (A 는 blur 가 0 이라 filter 가 안 붙어 이 문제가 안 보였다)
         */}
         {spec.bg && (() => {
+          /*
+            배치는 **판(배경 종류)별로** 다르다 — 같은 사이즈라도 배경 그림마다 보여줄
+            부분이 달라서다. 그 판의 값이 없으면 기본 spec 을 그대로 쓴다.
+          */
+          const pos = BG_POS_BY_BACKGROUND[bgType.id]?.[key];
+          const bgRect: NonNullable<FigmaFrameSpec['bg']> = pos
+            ? [pos[0], pos[1], pos[2], pos[3], spec.bg[4]]
+            : spec.bg;
           // 배경마다 세기가 다르다 — 무늬가 가는 배경은 덜 흐리게 (blurScale)
           // 사이즈별로는 배경 상자 크기에 비례시킨다 (BG_BLUR_REF_W 설명 참고)
-          const bgBlurPx = BG_BLUR_PX * bgType.blurScale * (spec.bg[2] / BG_BLUR_REF_W);
-          const blur = spec.bg[4] && bgBlurPx ? `blur(${bgBlurPx.toFixed(2)}px)` : '';
+          const bgBlurPx = BG_BLUR_PX * bgType.blurScale * (bgRect[2] / BG_BLUR_REF_W);
+          const blur = bgRect[4] && bgBlurPx ? `blur(${bgBlurPx.toFixed(2)}px)` : '';
           const fill = { width: '100%', height: '100%', objectFit: 'cover' } as const;
-          const box = inflateBg(key, spec.bg, FW, FH, bgBlurPx);
+          const box = inflateBg(key, bgRect, FW, FH, bgBlurPx);
           return (
             <div style={{ position: 'absolute', left: box[0], top: box[1], width: box[2], height: box[3] }}>
               {/* 프로모션 미선택 = 입힐 색이 없다. Figma 처럼 흑백 텍스처를 그대로 두고
