@@ -24,6 +24,9 @@ export const LOGO_VARIANTS: LogoVariant[] = [
   { id: 'black', label: 'Black', src: '/lg-logo-black.svg' },
 ];
 
+/** 흰 로고 경로 — 규칙으로 못박을 때 쓴다 (B 세로형). */
+export const LOGO_WHITE = '/lg-logo-white.svg';
+
 /** 고른 로고의 경로. 안 골랐거나 없는 값이면 시안 기본 로고를 그대로 쓴다. */
 export function logoSrc(id: string | undefined, fallback: string) {
   return LOGO_VARIANTS.find((v) => v.id === id)?.src ?? fallback;

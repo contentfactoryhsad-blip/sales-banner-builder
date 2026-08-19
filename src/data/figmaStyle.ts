@@ -228,6 +228,17 @@ const CENTERED = [...HEAD_CENTER, ...DV360_HEAD_CENTER, ...PMAXMETA_HEAD_CENTER]
 const PROMO_BREAK = ['dv360-300x1050', 'dv360-120x240'];
 
 /** 앱의 mediaSizes 이름("1200x628") → Figma 프레임 키("criteo-1200x628") */
+/**
+ * 가로형/세로형 판정.
+ *
+ * 겉보기 비율이 아니라 **레이아웃**이 갈리는 지점이다 — 가로형은 카피가 왼쪽,
+ * 세로형은 아래에 온다. 41개를 재보면 가로형은 최소 1.33:1(1024x768),
+ * 세로형은 최대 1.2:1(300x250 · 336x280)이라 그 사이 어디로 잡아도 정확히 나뉜다.
+ * 300x250 처럼 가로로 넓어도 카피가 아래 오는 판은 세로형이다.
+ */
+export const WIDE_RATIO = 1.25;
+export const isWideFrame = (w: number, h: number) => w / h >= WIDE_RATIO;
+
 export function specKey(channel: string, size: string) {
   return `${channel}-${size}`;
 }

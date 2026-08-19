@@ -6,11 +6,11 @@ import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyl
 import { hexToHsl, hexToRgb, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
-import { logoSrc } from '../../data/logos';
+import { LOGO_WHITE, logoSrc } from '../../data/logos';
 import { BG_POS_BY_BACKGROUND } from '../../data/figmaSpec.bgpos';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
-import { BOX_MATERIALS, DESIGN_STYLES, discPad, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
+import { BOX_MATERIALS, DESIGN_STYLES, discPad, isWideFrame, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
 import {
   BODY_FONT, FROST_TO_PX, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
   GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
@@ -201,6 +201,16 @@ export function SpecBannerPreview({
 }) {
   const key = specKey(channel, size);
   const [FW, FH] = spec.f;
+  /*
+    B 의 세로형은 로고를 **흰색으로 못박는다.**
+
+    세로형은 카피가 아래에 오고 위쪽은 배경이 짙게 남는 자리라, B 기본인 컬러 로고가
+    묻힌다. 사이즈마다 사람이 골라 주는 것보다 판이 정해 주는 편이 낫다.
+    A 는 원래 전 사이즈가 흰 로고라 이 규칙과 무관하다.
+  */
+  const baseLogo = design === 'B' && !isWideFrame(FW, FH)
+    ? LOGO_WHITE
+    : DESIGN_STYLES[design].logo;
   const scale = displayWidth / FW;
   const style = DESIGN_STYLES[design];
 
@@ -460,7 +470,7 @@ export function SpecBannerPreview({
 
         {/* LG 로고 */}
         {inn.logo && (
-          <img src={logoSrc(state.logoBySize[key], style.logo)} alt="LG" draggable={false}
+          <img src={logoSrc(state.logoBySize[key], baseLogo)} alt="LG" draggable={false}
             style={{ position: 'absolute', left: inn.logo[0], top: inn.logo[1], width: inn.logo[2], height: inn.logo[3] }} />
         )}
 

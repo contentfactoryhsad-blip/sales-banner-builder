@@ -10,11 +10,12 @@ import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
 import { LOGO_VARIANTS } from '../../data/logos';
+import { ENABLE_LOGO_CHANGE } from '../featureFlags';
 import { copyBudget, reflowCopy } from '../utils/copyFit';
 import { useFontsReady } from '../utils/textFit';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
 import { SpecBannerPreview } from './SpecBannerPreview';
-import { getSpec, specKey } from '../../data/figmaStyle';
+import { getSpec, isWideFrame, specKey } from '../../data/figmaStyle';
 import { useBannerZip } from './useBannerZip';
 import { hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
 
@@ -121,6 +122,47 @@ function DesignStep({ state, update }: StepProps) {
       </div>
     </div>
   );
+}
+
+/**
+ * 사이즈들을 **세로 칸으로 묶는다** — 큰 배너 위에 남는 자리에 작은 배너를 올린다.
+ *
+ * 그냥 한 줄에 늘어놓으면 세로로 긴 배너(1080x1920) 옆이 통째로 비어, 매체 하나가
+ * 화면을 한참 차지한다. 큰 것부터 칸을 만들고, 뒤에 오는 작은 배너는 **폭이 들어가고
+ * 가장 높은 칸을 넘지 않는** 칸에 얹는다. 칸 안은 작은 것이 위, 큰 것이 아래다.
+ *
+ * 칸 자체는 바깥 flex-wrap 이 접어 주므로 여기서는 폭 제한을 신경 쓰지 않는다.
+ */
+const isWide = (s: MediaSize) => isWideFrame(s.w, s.h);
+
+const CAPTION_H = 34;   // 배너 아래 사이즈 이름이 차지하는 높이 (네이티브 px 기준)
+const STACK_GAP = 20;
+
+function packSizes(sizes: MediaSize[]): MediaSize[][] {
+  const items = [...sizes].sort((a, b) => b.h - a.h);
+  const cols: { w: number; h: number; items: MediaSize[] }[] = [];
+  for (const s of items) {
+    const h = s.h + CAPTION_H;
+    const tallest = cols.reduce((m, c) => Math.max(m, c.h), 0);
+    let best: (typeof cols)[number] | null = null;
+    for (const c of cols) {
+      if (s.w > c.w) continue;                       // 칸보다 넓으면 못 들어간다
+      if (c.h + STACK_GAP + h > tallest) continue;   // 넣으면 칸이 가장 높은 칸보다 커진다
+      if (!best || c.h < best.h) best = c;           // 가장 빈 칸에
+    }
+    if (best) { best.items.push(s); best.h += STACK_GAP + h; }
+    else cols.push({ w: s.w, h, items: [s] });
+  }
+  /*
+    칸 높이는 서로 맞추고(stretch) 칸 안은 위·아래로 벌린다(justify-between) —
+    첫 배너가 매체 제목 바로 아래에 붙고 마지막 배너는 바닥에 맞춰진다.
+    칸 순서는 **낮은 칸이 왼쪽**이다 — 담을 때는 큰 것부터 넣어 가장 높은 칸이 먼저
+    만들어지므로, 그대로 두면 제일 긴 배너가 왼쪽에 서서 그림과 반대가 된다.
+    칸 안은 작은 것이 위다 (담긴 순서가 큰 것부터라 뒤집는다).
+  */
+  return [...cols]
+    .sort((a, b) => a.h - b.h)
+    .map((c) => [...c.items].reverse());
 }
 
 /** 오른쪽 세로 줌 바 — 확인창 위쪽 끝부터 한가운데까지. 안쪽 여백은 손잡이 반지름만큼. */
@@ -292,7 +334,7 @@ function AdMediaStep({ state, update }: StepProps) {
       </div>
 
       {/* 로고 갈아끼우기 — 확인창에서 고른 사이즈 하나만 대상으로 한다 */}
-      {channels.length > 0 && (
+      {ENABLE_LOGO_CHANGE && channels.length > 0 && (
         <div className="mt-7">
           <div className="flex items-baseline gap-4 mb-2 flex-wrap">
             <p className="font-lgei font-bold text-[15px] text-gray-900">Logo Change</p>
@@ -365,14 +407,27 @@ function AdMediaStep({ state, update }: StepProps) {
               로 정해진다 — 배너를 네이티브로 그린 뒤로는 가장 넓은 배너(1200)가 그대로
               줄 폭이 되어 큰 배너가 한 줄에 하나씩만 놓였다. maxWidth 는 걸리지도 않았다.
             */}
-            <div ref={contentRef} style={{ position: 'absolute', top: 0, left: 0, width: CANVAS_MAX_W, transformOrigin: 'top left' }}>
-              <div className="flex flex-col" style={{ gap: NS(32) }}>
+            <div ref={contentRef} style={{ position: 'absolute', top: 0, left: 0, width: 'max-content', transformOrigin: 'top left' }}>
+              {/* 매체가 늘어나면 오른쪽으로 붙는다 — 세로로 쌓으면 아래로만 길어져 비교가 안 된다 */}
+              <div className="flex items-start" style={{ gap: NS(56) }}>
                 {channels.map((c) => (
-                  <div key={c.id}>
+                  /*
+                    칸 폭은 **내용에 맞춘다.** CANVAS_MAX_W 로 고정하면 사이즈가 적은 매체
+                    (META 는 3개)의 칸이 텅 비어 다음 매체가 멀리 밀린다.
+                    max-width 는 그대로라 사이즈가 많은 매체는 예전처럼 그 폭에서 접힌다.
+                  */
+                  <div key={c.id} className="shrink-0" style={{ width: 'max-content', maxWidth: CANVAS_MAX_W }}>
                     {(() => {
                       // Figma 에서 완성된(스펙이 있는) 사이즈만 보여준다.
                       // 숨김 처리된 프레임은 스펙이 없으므로 자연히 제외된다.
                       const ready = MEDIA_SIZES[c.id].filter((s) => !!getSpec(state.designType, c.id, s.name));
+                      /*
+                        META 만 칸으로 묶는다 — 1080x1920 옆이 통째로 비어서
+                        작은 398x208 을 그 빈자리에 올린다. 사이즈가 많은 매체는
+                        묶으면 순서가 뒤섞여 찾기 어려워지므로 그대로 둔다.
+                      */
+                      const columns = c.id === 'meta' ? packSizes(ready) : null;
+                      const rows = columns ? null : [ready.filter(isWide), ready.filter((s) => !isWide(s))].filter((r) => r.length > 0);
                       return (
                         <>
                           <p className="font-lgei font-bold text-[#4A4946]" style={{ fontSize: NS(13), marginBottom: NS(6) }}>
@@ -381,8 +436,11 @@ function AdMediaStep({ state, update }: StepProps) {
                           {ready.length === 0 ? (
                             <p className="text-[#6b6862]" style={{ fontSize: NS(12) }}>No sizes ready for this channel yet.</p>
                           ) : (
-                            <div className="flex flex-wrap items-end" style={{ gap: NS(20), maxWidth: CANVAS_MAX_W }}>
-                              {ready.map((s) => (
+                            <div className={columns ? 'flex flex-wrap items-stretch' : ''} style={{ gap: NS(20), maxWidth: CANVAS_MAX_W }}>
+                              {(columns ?? rows!).map((col, ci) => (
+                            <div key={ci} className={columns ? 'flex flex-col justify-between' : 'flex flex-wrap items-end'}
+                              style={{ gap: NS(20), maxWidth: CANVAS_MAX_W, marginBottom: columns ? undefined : NS(24) }}>
+                              {col.map((s) => (
                                 <div
                                   key={`${c.id}-${s.name}`}
                                   className="shrink-0 cursor-pointer"
@@ -406,6 +464,8 @@ function AdMediaStep({ state, update }: StepProps) {
                                   />
                                   <p className="text-[#6b6862] whitespace-nowrap" style={{ fontSize: NS(10), marginTop: NS(4) }}>{s.name}</p>
                                 </div>
+                              ))}
+                            </div>
                               ))}
                             </div>
                           )}
