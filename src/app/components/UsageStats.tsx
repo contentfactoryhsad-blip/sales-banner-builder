@@ -299,7 +299,7 @@ export function UsageStats() {
             <div className="overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead className="text-gray-400">
-                  <tr>{['시각', '국가', '시안', '프로모션', '제품', '박스', '매체', '장수'].map((h) => (
+                  <tr>{['시각', '국가', '시안', '프로모션', '제품', '박스', '매체', '장수', '의견'].map((h) => (
                     <th key={h} className="text-left font-normal pb-2 pr-4 whitespace-nowrap">{h}</th>
                   ))}</tr>
                 </thead>
@@ -314,6 +314,7 @@ export function UsageStats() {
                       <td className="py-1.5 pr-4">{r.boxes}</td>
                       <td className="py-1.5 pr-4">{r.channels}</td>
                       <td className="py-1.5 pr-4 tabular-nums">{r.banners}</td>
+                      <td className="py-1.5 pr-4 max-w-[260px] truncate" title={r.comment}>{r.comment}</td>
                     </tr>
                   ))}
                 </tbody>

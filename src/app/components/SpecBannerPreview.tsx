@@ -3,7 +3,7 @@ import type { BannerState } from '../types';
 import { getPromotion, promoPair } from '../../data/promotions';
 import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
 import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
-import { hexToHsl, hexToRgb, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { hexToHsl, hexToRgb, hslToHex, withAlpha, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
 import { LOGO_WHITE, logoSrc } from '../../data/logos';
@@ -316,6 +316,8 @@ export function SpecBannerPreview({
   const dpad = discPad(key);
   // Edit 에서 고른 값이 우선. 미선택이면 시안 기본값.
   const boxMat = BOX_MATERIALS[state.boxStyleId ?? DEFAULT_BOX_STYLE[design]] ?? BOX_MATERIALS.glass;
+  // Edit 에서 투명도를 만졌으면 그 값으로, 아니면 재질이 갖고 있던 알파 그대로
+  const boxFill = state.boxOpacity === null ? boxMat.fill : withAlpha(boxMat.fill, state.boxOpacity);
   const stickerKind = resolveStickerStyle(design, state.stickerStyle);
   /*
     레드 스티커 색. Edit 의 Hue 슬라이더가 기준 빨강을 회전시킨다.
@@ -331,7 +333,7 @@ export function SpecBannerPreview({
     if (state.stickerHue === null) return STICKER_FILL;
     const m = STICKER_FILL.match(/rgba?\(([^)]+)\)/);
     const alpha = m ? Number(m[1].split(',')[3] ?? 1) : 1;
-    const base = hexToHsl(STICKER_FILL.startsWith('rgba') ? '#ef6464' : STICKER_FILL);
+    const base = hexToHsl(STICKER_FILL.startsWith('rgba') ? STICKER_RED : STICKER_FILL);
     const hex = hslToHex(state.stickerHue, base.s, base.l);
     const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r},${g},${b},${alpha})`;
@@ -495,7 +497,7 @@ export function SpecBannerPreview({
                   테두리 띠만 안 흐려진 채 남는다. 그 띠가 딱딱한 선으로 보인다.
                   진짜 backdrop-filter 는 테두리 아래까지 흐리므로 그쪽에 맞춘다.
                 */
-                background: fakeGlass ? undefined : boxMat.fill,
+                background: fakeGlass ? undefined : boxFill,
                 border: fakeGlass || !boxMat.stroke ? undefined : `${sw}px solid ${boxMat.stroke}`,
                 borderRadius: r,
                 boxShadow: fakeGlass
@@ -510,7 +512,7 @@ export function SpecBannerPreview({
               {fakeGlass && (
                 <>
                   {glassCopy(bx + x, by + y, blurOut)}
-                  <div style={{ position: 'absolute', inset: 0, background: boxMat.fill, pointerEvents: 'none' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: boxFill, pointerEvents: 'none' }} />
                   {/* 테두리와 안쪽 하이라이트를 inset 그림자로 — 흐린 복사본 위에 얹힌다 */}
                   <div style={{
                     position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none',

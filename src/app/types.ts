@@ -40,6 +40,11 @@ export interface BannerState {
   shapeId: string | null;
   /** 4a. 박스 스타일 id (builderOptions.BOX_STYLES) */
   boxStyleId: string | null;
+  /**
+   * 박스 투명도(0~1). null = 재질 기본값(glass 0.15 · white 1) 그대로.
+   * 재질을 바꾸면 null 로 되돌려 그 재질의 기본값부터 다시 시작한다.
+   */
+  boxOpacity: number | null;
   /** 4b. 박스(제품) 개수 3~6. 최소 3개부터 시작한다. */
   /** 제품 박스 개수. null = 아직 안 고름 (버튼이 아무것도 선택 안 된 상태로 보인다) */
   boxCount: number | null;
@@ -53,6 +58,12 @@ export interface BannerState {
 
   /** 세일 프로모션 명칭 (사용자 입력) */
   promoName: string;
+
+  /**
+   * 마지막 화면에서 남기는 의견. 배너에는 안 쓰이고 다운로드할 때 사용 기록에 함께
+   * 실려 통계 화면(#stats)에서 보인다 — 나라별 법인이 남기는 요청·불편을 모으는 자리다.
+   */
+  comment: string;
 
   /** 할인율 스티커의 숫자 (10~90). "UP TO {discount}% off" */
   discount: number;
@@ -92,11 +103,13 @@ export function createInitialState(designType: DesignType): BannerState {
     graphicKind: DEFAULT_GRAPHIC_KIND,
     shapeId: null,
     boxStyleId: DEFAULT_BOX_STYLE[designType],
+    boxOpacity: null,
     boxCount: null,
     products: Array(MAX_BOXES).fill(null),
     productMeta: Array(MAX_BOXES).fill(null),
     logoBySize: {},
     promoName: PROMOTIONS[0].label,
+    comment: '',
     discount: 20,
     stickerStyle: DEFAULT_STICKER_STYLE[designType],
     stickerHue: null,

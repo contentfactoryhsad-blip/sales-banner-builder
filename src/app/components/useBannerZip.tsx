@@ -102,6 +102,7 @@ export function useBannerZip(state: BannerState) {
         boxes: state.boxCount,
         channels: state.adChannelIds.join('|'),
         banners: ok,
+        comment: state.comment.trim(),
       });
     } catch (e) {
       setP((s) => ({ ...s, busy: false, current: null, error: (e as Error).message }));

@@ -57,3 +57,21 @@ export function hslToHex(h: number, s: number, l: number): string {
  * (Figma 도 그렇다) 이 값은 gradient 모드 폴백 등 제한적으로만 쓰인다.
  */
 export const NEUTRAL_BANNER_COLORS = { main: '#dedbd5', secondary: '#f4f1ec' };
+
+/**
+ * 색의 **알파만** 바꾼 rgba 문자열. hex 도 rgba 도 받는다.
+ * 박스 재질의 투명도를 Edit 에서 조절할 때 쓴다 — 원래 색은 그대로 두고 알파만 갈아끼운다.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  const m = color.match(/rgba?\(([^)]+)\)/);
+  const [r, g, b] = m ? m[1].split(',').map(Number) : hexToRgb(color);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/** 이 색이 원래 갖고 있는 알파 (hex 는 1). 슬라이더 기본값으로 쓴다. */
+export function alphaOf(color: string): number {
+  const m = color.match(/rgba\(([^)]+)\)/);
+  if (!m) return 1;
+  const parts = m[1].split(',');
+  return parts.length > 3 ? Number(parts[3]) : 1;
+}

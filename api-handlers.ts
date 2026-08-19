@@ -661,6 +661,8 @@ export interface UsageRecord {
   productModels: string;
   /** 모델명이 없을 때를 위한 제품명 ("LG WashTower™ …") */
   productNames: string;
+  /** 마지막 화면에서 사용자가 남긴 한 줄 의견 (선택) */
+  comment: string;
 }
 
 /*
@@ -671,7 +673,9 @@ export interface UsageRecord {
   재배포와 무관하게 남는다. 예) USAGE_DIR=/data
 */
 const USAGE_CSV = path.join(process.env.USAGE_DIR || path.join(process.cwd(), 'logs'), 'usage.csv');
-const USAGE_HEADER = 'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners\n';
+const USAGE_HEADER = 'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners,comment\n';
+/** comment 가 없던 시절의 머리줄. 기존 파일을 만나면 이 줄만 갈아끼운다. */
+const USAGE_HEADER_V1 = 'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners\n';
 
 /** 프록시 뒤에 있어도 원래 클라이언트 IP 를 찾는다 */
 export function clientIp(headers: Record<string, string | string[] | undefined>, fallback?: string): string {
@@ -724,11 +728,22 @@ export async function appendUsage(rec: UsageRecord, ip: string): Promise<void> {
   const row = [
     new Date().toISOString(), country, region, maskIp(ip),
     rec.design, rec.promotion, rec.products, rec.productModels, rec.productNames,
-    rec.boxes ?? '', rec.channels, rec.banners,
+    rec.boxes ?? '', rec.channels, rec.banners, rec.comment ?? '',
   ].map(csvCell).join(',') + '\n';
 
   await fs.mkdir(path.dirname(USAGE_CSV), { recursive: true });
-  try { await fs.access(USAGE_CSV); } catch { await fs.writeFile(USAGE_CSV, USAGE_HEADER, 'utf8'); }
+  try {
+    await fs.access(USAGE_CSV);
+    /*
+      예전 파일에는 comment 칸이 없다. 머리줄을 그대로 두면 새로 붙는 줄의 마지막 값이
+      갈 곳이 없어 통계 화면에서 조용히 버려진다. 머리줄 한 줄만 갈아끼운다 —
+      기존 줄들은 칸이 하나 모자란 채로 남고, 그 줄의 comment 는 빈 값이 된다.
+    */
+    const cur = await fs.readFile(USAGE_CSV, 'utf8');
+    if (cur.startsWith(USAGE_HEADER_V1)) {
+      await fs.writeFile(USAGE_CSV, USAGE_HEADER + cur.slice(USAGE_HEADER_V1.length), 'utf8');
+    }
+  } catch { await fs.writeFile(USAGE_CSV, USAGE_HEADER, 'utf8'); }
   await fs.appendFile(USAGE_CSV, row, 'utf8');
 }
 

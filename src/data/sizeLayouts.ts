@@ -140,16 +140,17 @@ export const GRAPHIC_OPACITY_BY_KIND: Record<'line' | 'full', number> = {
  * 그대로 비쳐 스티커가 흐릿해 보인다. 알파만 올려 색을 잡아준다.
  * 색상(Hue)은 Edit 의 슬라이더가 돌리고, 여기서는 진하기만 정한다.
  *   0.5  Figma 원본
- *   0.8  현재값 — 배경 무늬가 아주 살짝만 비친다
- *   1    완전 불투명
+ *   0.8  한동안 쓰던 값 — 배경 무늬가 아주 살짝 비쳤다
+ *   1    현재값 — A·B 스티커를 같은 색으로 맞추려고 불투명으로 뒀다.
+ *        반투명이면 뒤 배경이 섞여 시안마다·사이즈마다 색이 달라 보인다.
  */
-export const STICKER_FILL = 'rgba(239,100,100,0.8)';
+export const STICKER_FILL = 'rgba(253,49,46,1)';
 
 /**
  * 레드 스티커의 기준 색. Edit 의 Hue 슬라이더가 이 색을 회전시킨다.
  * (원형 스티커는 반투명 STICKER_FILL, 별은 불투명 — 둘 다 이 Hue 를 따른다)
  */
-export const STICKER_RED = '#FF0500';
+export const STICKER_RED = '#FD312E';
 
 /** 스티커 배경 스타일 — 레드 원 / 별 / 글래스(제품 박스와 같은 재질) */
 export type StickerStyle = 'red' | 'star' | 'glass';

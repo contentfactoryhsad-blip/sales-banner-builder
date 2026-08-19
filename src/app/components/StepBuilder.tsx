@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { AppHeader } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
@@ -15,9 +14,12 @@ import { copyBudget, reflowCopy } from '../utils/copyFit';
 import { useFontsReady } from '../utils/textFit';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
 import { SpecBannerPreview } from './SpecBannerPreview';
-import { getSpec, isWideFrame, specKey } from '../../data/figmaStyle';
+import { BOX_MATERIALS, getSpec, isWideFrame, specKey } from '../../data/figmaStyle';
 import { useBannerZip } from './useBannerZip';
-import { hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { alphaOf, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
+
+/** 의견 입력 상한 — 기록 CSV 한 칸에 들어갈 만한 길이 */
+const MAX_COMMENT = 300;
 
 const STEPS = ['1. Design Template', '2. Promotion & Product', '3. Edit', '4. AD Media', '5. Review & Download'];
 
@@ -52,7 +54,7 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
           {step === 2 && <ProductUrlsStep state={state} update={update} setProduct={setProduct} />}
           {step === 3 && <EditStep state={state} update={update} />}
           {step === 4 && <AdMediaStep state={state} update={update} />}
-          {step === 5 && <ReviewStep state={state} zip={zip} />}
+          {step === 5 && <ReviewStep state={state} update={update} zip={zip} />}
         </div>
       </div>
 
@@ -165,7 +167,9 @@ function packSizes(sizes: MediaSize[]): MediaSize[][] {
     .map((c) => [...c.items].reverse());
 }
 
-/** 오른쪽 세로 줌 바 — 확인창 위쪽 끝부터 한가운데까지. 안쪽 여백은 손잡이 반지름만큼. */
+/** 스크롤 바 굵기(px). 얇게 두고 손잡이만 보이게 한다. */
+const SB_SIZE = 12;
+/** 오른쪽 세로 줌 슬라이더 — 스크롤바(SB_SIZE)를 피해 안쪽에 둔다. */
 const BAR_H = 260;
 const BAR_PAD = 12;
 const ZOOM_MIN = 0.1;
@@ -180,7 +184,6 @@ function AdMediaStep({ state, update }: StepProps) {
   const channels = AD_CHANNELS.filter((c) => state.adChannelIds.includes(c.id));
 
   // 줌/팬 (하단 확인창) — 팬은 리렌더 없이 ref + DOM transform 직접 갱신(부드럽게)
-  const [zoomPct, setZoomPct] = useState(32);
   const [zOn, setZOn] = useState(false);
   const [altOn, setAltOn] = useState(false);
   const dragging = useRef(false);
@@ -190,8 +193,11 @@ function AdMediaStep({ state, update }: StepProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const panRef = useRef({ x: 24, y: 24 });
   const zoomRef = useRef(0.32);
+  const hThumbRef = useRef<HTMLDivElement>(null);
+  const vThumbRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
-  const [barDragging, setBarDragging] = useState(false);
+  const zFillRef = useRef<HTMLDivElement>(null);
+  const zThumbRef = useRef<HTMLDivElement>(null);
   const [grabbing, setGrabbing] = useState(false);
 
   /*
@@ -206,6 +212,7 @@ function AdMediaStep({ state, update }: StepProps) {
   const applyTransform = () => {
     const el = contentRef.current;
     if (el) el.style.transform = `translate(${panRef.current.x}px, ${panRef.current.y}px) scale(${zoomRef.current})`;
+    syncBars();
   };
   useLayoutEffect(() => { applyTransform(); }); // 리렌더 후 현재 transform 재적용
 
@@ -233,7 +240,6 @@ function AdMediaStep({ state, update }: StepProps) {
     panRef.current = { x: cx - (cx - panRef.current.x) * (nz / z), y: cy - (cy - panRef.current.y) * (nz / z) };
     zoomRef.current = nz;
     applyTransform();
-    setZoomPct(Math.round(nz * 100));
   };
   /*
     will-change: transform 은 **끌고 있는 동안만** 건다.
@@ -270,42 +276,101 @@ function AdMediaStep({ state, update }: StepProps) {
     zoomAt(p.x, p.y, e.altKey ? 1 / 1.35 : 1.35);
   };
   const onWheel = (e: React.WheelEvent) => { const p = canvasPt(e); zoomAt(p.x, p.y, e.deltaY < 0 ? 1.1 : 1 / 1.1); };
-  const zoomStep = (d: number) => {
-    zoomRef.current = Math.min(4, Math.max(0.1, +(zoomRef.current + d).toFixed(2)));
-    applyTransform();
-    setZoomPct(Math.round(zoomRef.current * 100));
-  };
-  const reset = () => { panRef.current = { x: 24, y: 24 }; zoomRef.current = 0.32; applyTransform(); setZoomPct(32); };
-
   /*
-    오른쪽 세로 줌 바 — 잡고 위로 올리면 줌인, 내리면 줌아웃.
+    스크롤 바 — 줌으로 화면 밖으로 나간 만큼만 손잡이가 생긴다.
 
-    배율은 **로그로** 건다. 0.1→0.5 와 3.6→4 는 더한 값은 같아도 체감이 전혀 달라서,
-    선형으로 깔면 바 아래쪽 절반이 거의 안 움직이는 것처럼 느껴진다.
-    확대 기준점은 확인창 한가운데다 — 바를 끄는 동안 보고 있던 자리가 밀려나지 않는다.
+    팬은 리렌더 없이 DOM transform 만 갱신하므로(부드럽게), 손잡이도 같은 자리에서
+    ref 로 직접 옮긴다. 상태로 두면 끌 때마다 리렌더가 걸려 배너 40장이 다시 그려진다.
   */
+  const syncBars = () => {
+    const cv = canvasRef.current, ct = contentRef.current;
+    if (!cv || !ct) return;
+    const z = zoomRef.current;
+    const vw = cv.clientWidth, vh = cv.clientHeight;
+    const cw = ct.offsetWidth * z, ch = ct.offsetHeight * z;
+    const put = (el: HTMLDivElement | null, view: number, content: number, pan: number, horiz: boolean) => {
+      if (!el) return;
+      // 내용이 화면 안에 다 들어오면 손잡이를 감춘다
+      if (content <= view + 1) { el.style.display = 'none'; return; }
+      el.style.display = 'block';
+      const track = view - SB_SIZE;                       // 양 끝 여백만큼 뺀 길이
+      const len = Math.max(28, (view / content) * track);
+      const max = content - view;                          // 움직일 수 있는 총량
+      const t = Math.min(1, Math.max(0, -pan / max));
+      const pos = SB_SIZE / 2 + t * (track - len);
+      if (horiz) { el.style.width = `${len}px`; el.style.left = `${pos}px`; }
+      else { el.style.height = `${len}px`; el.style.top = `${pos}px`; }
+    };
+    put(hThumbRef.current, vw, cw, panRef.current.x, true);
+    put(vThumbRef.current, vh, ch, panRef.current.y, false);
+
+    /*
+      줌 슬라이더 손잡이도 같은 자리에서 옮긴다. 배율은 **로그로** 잡는다 —
+      0.1→0.5 와 3.6→4 는 더한 값은 같아도 체감이 전혀 달라, 선형으로 깔면
+      아래쪽 절반이 거의 안 움직이는 것처럼 느껴진다.
+    */
+    const t = Math.min(1, Math.max(0, Math.log(z / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN)));
+    const y = BAR_PAD + (1 - t) * (BAR_H - BAR_PAD * 2);
+    if (zFillRef.current) zFillRef.current.style.top = `${y}px`;
+    if (zThumbRef.current) zThumbRef.current.style.top = `${y - 6.5}px`;
+  };
+
+  /** 슬라이더 위치 → 배율. 확대 기준점은 확인창 한가운데라 보던 자리가 안 밀린다. */
   const zoomFromBar = (clientY: number) => {
     const r = barRef.current?.getBoundingClientRect();
     const c = canvasRef.current?.getBoundingClientRect();
     if (!r || !c) return;
     const span = r.height - BAR_PAD * 2;
-    const t = Math.min(1, Math.max(0, 1 - (clientY - (r.top + BAR_PAD)) / span)); // 위가 1
+    const t = Math.min(1, Math.max(0, 1 - (clientY - (r.top + BAR_PAD)) / span));
     const nz = ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, t);
     zoomAt(c.width / 2, c.height / 2, nz / zoomRef.current);
   };
-  // 바 밖으로 끌고 나가도 계속 따라오게 창 전체에서 듣는다
-  useEffect(() => {
-    if (!barDragging) return;
-    const mm = (e: MouseEvent) => zoomFromBar(e.clientY);
-    const mu = () => setBarDragging(false);
-    window.addEventListener('mousemove', mm);
-    window.addEventListener('mouseup', mu);
-    return () => { window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', mu); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [barDragging]);
-  const barT = Math.min(1, Math.max(0, Math.log(zoomPct / 100 / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN)));
+  const startZoomBar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    zoomFromBar(e.clientY);
+    const move = (ev: MouseEvent) => zoomFromBar(ev.clientY);
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
 
-  // 기본이 팬이므로 손 모양이 기본이다. Z 를 잡고 있을 때만 돋보기로 바뀐다.
+  /** 손잡이를 끌면 그 비율만큼 내용을 옮긴다 */
+  const startThumb = (e: React.MouseEvent, axis: 'x' | 'y') => {
+    e.stopPropagation();
+    e.preventDefault();
+    const cv = canvasRef.current, ct = contentRef.current;
+    if (!cv || !ct) return;
+    const z = zoomRef.current;
+    const view = axis === 'x' ? cv.clientWidth : cv.clientHeight;
+    const content = (axis === 'x' ? ct.offsetWidth : ct.offsetHeight) * z;
+    const max = content - view;
+    if (max <= 0) return;
+    const track = view - SB_SIZE;
+    const len = Math.max(28, (view / content) * track);
+    const start = axis === 'x' ? e.clientX : e.clientY;
+    const from = axis === 'x' ? panRef.current.x : panRef.current.y;
+    setSmoothPan(true);
+    const move = (ev: MouseEvent) => {
+      const d = (axis === 'x' ? ev.clientX : ev.clientY) - start;
+      // 손잡이가 움직인 거리 → 내용이 움직여야 할 거리
+      const delta = (d / Math.max(1, track - len)) * max;
+      const v = Math.min(0, Math.max(-max, from - delta));
+      if (axis === 'x') panRef.current.x = v; else panRef.current.y = v;
+      applyTransform();
+    };
+    const up = () => {
+      setSmoothPan(false);
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
   const cursor = zOn ? (altOn ? 'zoom-out' : 'zoom-in') : grabbing ? 'grabbing' : 'grab';
 
   const promo = state.promotionId ? getPromotion(state.promotionId) : undefined;
@@ -476,35 +541,44 @@ function AdMediaStep({ state, update }: StepProps) {
                 ))}
               </div>
             </div>
-            {/* 세로 줌 바 — 잡고 위로 올리면 줌인, 내리면 줌아웃 */}
+            {/* 스크롤 바 — 줌으로 화면 밖으로 나간 만큼만 나타난다 */}
+            <div className="absolute left-0 right-0 bottom-0" style={{ height: SB_SIZE, pointerEvents: 'none' }}>
+              <div ref={hThumbRef} onMouseDown={(e) => startThumb(e, 'x')}
+                className="absolute rounded-full bg-black/25 hover:bg-black/40 transition-colors"
+                style={{ top: 3, height: SB_SIZE - 6, pointerEvents: 'auto', cursor: 'grab' }} />
+            </div>
+            <div className="absolute top-0 bottom-0 right-0" style={{ width: SB_SIZE, pointerEvents: 'none' }}>
+              <div ref={vThumbRef} onMouseDown={(e) => startThumb(e, 'y')}
+                className="absolute rounded-full bg-black/25 hover:bg-black/40 transition-colors"
+                style={{ left: 3, width: SB_SIZE - 6, pointerEvents: 'auto', cursor: 'grab' }} />
+            </div>
+
+            {/* 세로 줌 슬라이더 — 잡고 올리면 줌인, 내리면 줌아웃 (스크롤바 안쪽) */}
             <div
               ref={barRef}
-              onMouseDown={(e) => { e.stopPropagation(); setBarDragging(true); zoomFromBar(e.clientY); }}
-              onClick={(e) => e.stopPropagation()} /* 캔버스의 Z-클릭 줌이 같이 터지지 않게 */
-              className="absolute right-4 top-4 w-7 rounded-full bg-white/90 shadow-md border border-gray-200 cursor-ns-resize"
-              style={{ height: BAR_H }}
+              onMouseDown={startZoomBar}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute w-7 rounded-full bg-white/90 shadow-md border border-gray-200 cursor-ns-resize"
+              style={{ height: BAR_H, top: 16, right: SB_SIZE + 8 }}
               title="Drag up to zoom in, down to zoom out"
             >
               <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-gray-200" style={{ top: BAR_PAD, bottom: BAR_PAD, width: 3 }} />
-              <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-[#FD312E]"
-                style={{ top: BAR_PAD + (1 - barT) * (BAR_H - BAR_PAD * 2), bottom: BAR_PAD, width: 3 }} />
-              <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-white border-2 border-[#FD312E] shadow"
-                style={{ width: 13, height: 13, top: BAR_PAD + (1 - barT) * (BAR_H - BAR_PAD * 2) - 6.5 }} />
+              <div ref={zFillRef} className="absolute left-1/2 -translate-x-1/2 rounded-full bg-[#FD312E]"
+                style={{ bottom: BAR_PAD, width: 3 }} />
+              <div ref={zThumbRef} className="absolute left-1/2 -translate-x-1/2 rounded-full bg-white border-2 border-[#FD312E] shadow"
+                style={{ width: 13, height: 13 }} />
             </div>
 
-            <div className="absolute bottom-4 right-4 flex items-center gap-1 bg-white rounded-full shadow-md border border-gray-200 px-1.5 py-1">
-              <button onClick={() => zoomStep(-0.05)} className="p-1.5 text-gray-500 hover:text-gray-800"><ZoomOut size={15} /></button>
-              <span className="text-xs text-gray-600 w-10 text-center tabular-nums">{zoomPct}%</span>
-              <button onClick={() => zoomStep(0.05)} className="p-1.5 text-gray-500 hover:text-gray-800"><ZoomIn size={15} /></button>
-              <div className="w-px h-4 bg-gray-200" />
-              <button onClick={reset} className="p-1.5 text-gray-500 hover:text-gray-800" title="Reset"><Maximize2 size={14} /></button>
-            </div>
-            <p className="absolute bottom-4 left-4 text-[11px] text-[#6b6862]">Drag to pan · Z zoom in · Alt+Z zoom out · scroll to zoom · drag the right bar to zoom</p>
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-[#6b6862] text-sm">Select media above to preview all sizes.</div>
         )}
       </div>
+      {channels.length > 0 && (
+        <p className="mt-2 text-[11px] text-gray-400">
+          Drag to pan · Z zoom in · Alt+Z zoom out · scroll to zoom · drag the right slider to zoom
+        </p>
+      )}
 
       {/*
         간편 편집줄 — 확인창에서 고른 사이즈 하나만 손본다.
@@ -857,16 +931,41 @@ function EditGraphic({ state, update }: StepProps) {
 }
 
 function EditBox({ state, update }: StepProps) {
+  const styleId = state.boxStyleId ?? DEFAULT_BOX_STYLE[state.designType];
+  /*
+    슬라이더는 **재질이 원래 갖고 있던 알파**에서 시작한다 (glass 0.15 · white 1).
+    재질을 바꾸면 null 로 되돌려, 그 재질 기본값부터 다시 잡게 한다 —
+    글래스에서 0.6 으로 올려둔 값이 화이트로 넘어가면 흰 박스가 반투명해진다.
+  */
+  const base = alphaOf(BOX_MATERIALS[styleId]?.fill ?? '#ffffff');
+  const value = state.boxOpacity ?? base;
   return (
     <EditSection label="Box">
       {/* Sticker 스타일 버튼과 동일한 규격(flex-1 · h-9 · rounded-lg)으로 폭을 채운다 */}
       <div className="flex items-center gap-1.5">
         {BOX_STYLES_BY_DESIGN[state.designType].map((b) => (
-          <button key={b.id} type="button" onClick={() => update({ boxStyleId: b.id })}
-            className={`flex-1 h-9 rounded-lg border text-xs transition-colors ${(state.boxStyleId ?? DEFAULT_BOX_STYLE[state.designType]) === b.id ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+          <button key={b.id} type="button" onClick={() => update({ boxStyleId: b.id, boxOpacity: null })}
+            className={`flex-1 h-9 rounded-lg border text-xs transition-colors ${styleId === b.id ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
             {b.label}
           </button>
         ))}
+      </div>
+
+      <div className="mt-2.5">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs text-gray-500">Opacity</span>
+          <span className="text-[11px] text-gray-400 tabular-nums ml-auto">{Math.round(value * 100)}%</span>
+          {state.boxOpacity !== null && (
+            <button type="button" onClick={() => update({ boxOpacity: null })}
+              className="text-[11px] text-[#FD312E] underline">Reset</button>
+          )}
+        </div>
+        <input
+          type="range" min={0} max={100} step={1}
+          value={Math.round(value * 100)}
+          onChange={(e) => update({ boxOpacity: Number(e.target.value) / 100 })}
+          className="w-full accent-[#FD312E]"
+        />
       </div>
     </EditSection>
   );
@@ -1059,7 +1158,7 @@ function CopyField({ label, checked, value, multiline, max, onToggle, onChange }
 }
 
 // ── Step 5: Review & Download ──────────────────────────────────────────────────
-function ReviewStep({ state, zip }: { state: BannerState; zip: ReturnType<typeof useBannerZip> }) {
+function ReviewStep({ state, update, zip }: StepProps & { zip: ReturnType<typeof useBannerZip> }) {
   const picked = AD_CHANNELS.filter((c) => state.adChannelIds.includes(c.id));
   const promo = state.promotionId ? getPromotion(state.promotionId) : undefined;
   const { busy, done, total, current, error, failed } = zip.progress;
@@ -1094,6 +1193,25 @@ function ReviewStep({ state, zip }: { state: BannerState; zip: ReturnType<typeof
           ))}
           {picked.length === 0 && <li className="text-gray-400">Pick media in step 4 first.</li>}
         </ul>
+      </div>
+
+      {/*
+        의견 — 배너에는 안 들어간다. 다운로드할 때 사용 기록에 함께 실려
+        통계 화면(#stats)에서 보인다. 안 써도 다운로드에는 영향이 없다.
+      */}
+      <div className="mt-6 max-w-md">
+        <label className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-medium text-gray-600">Comment</span>
+          <span className="text-[11px] text-gray-400">optional</span>
+          <span className="text-[10px] text-gray-400 ml-auto tabular-nums">{state.comment.length}/{MAX_COMMENT}</span>
+        </label>
+        <textarea
+          value={state.comment} rows={3} maxLength={MAX_COMMENT}
+          onChange={(e) => update({ comment: e.target.value })}
+          placeholder="Anything we should know? Requests, issues, missing sizes…"
+          className="w-full px-2.5 py-2 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E] resize-none"
+        />
+        <p className="text-[11px] text-gray-400 mt-1">Sent with the download so we can see what teams need.</p>
       </div>
 
       {busy && (
