@@ -10,7 +10,7 @@ import { LOGO_WHITE, logoSrc } from '../../data/logos';
 import { BG_POS_BY_BACKGROUND } from '../../data/figmaSpec.bgpos';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
-import { BOX_MATERIALS, DESIGN_STYLES, discPad, isWideFrame, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
+import { BOX_MATERIALS, DESIGN_STYLES, discPad, isWideFrame, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, stickerRect, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
 import {
   BODY_FONT, FROST_TO_PX, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
   GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
@@ -612,8 +612,8 @@ export function SpecBannerPreview({
         )}
 
         {/* ── 할인율 스티커 ── */}
-        {spec.st && state.showSticker && (() => {
-          const [sx, sy, size] = spec.st;
+        {stickerRect(key) && state.showSticker && (() => {
+          const [sx, sy, size] = stickerRect(key)!;
           const L = STICKER_LAYOUT;
           // 디자인별 추가 축소 — Figma 와 같은 중심 기준으로 좌표까지 함께 줄인다
           const k = style.stickerTextScale;

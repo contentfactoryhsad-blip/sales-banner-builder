@@ -1,6 +1,11 @@
 import { AppHeader } from './AppHeader';
-import { MainPreview } from './StepBuilder';
-import { DESIGN_TYPES, sampleState, type DesignType } from '../types';
+import { DESIGN_TYPES, type DesignType } from '../types';
+
+/** 첫 화면 썸네일 — 라이브 렌더 대신 레퍼런스 완성본 이미지를 그대로 쓴다 */
+const HOME_THUMBS: Record<DesignType, string> = {
+  A: '/main/main-a.png',
+  B: '/main/main-b.png',
+};
 
 /**
  * 첫 화면 — 배경 디자인 방식 A / B 를 고르는 2개 박스.
@@ -44,9 +49,7 @@ export function Home({ onSelect, onBack }: { onSelect: (type: DesignType) => voi
                     className="relative rounded-lg mb-4 overflow-hidden flex justify-center"
                     style={{ background: '#F8F7F5' }}
                   >
-                    {/* Edit 화면과 같은 렌더러(Figma 실측 스펙)로 그린다 — 구 PreviewPanel 은
-                        스티커·배경 전면 적용을 못 그려서 실제 결과와 달라 보였다 */}
-                    <MainPreview state={sampleState(key)} displayWidth={344} />
+                    <img src={HOME_THUMBS[key]} alt={d.name} className="w-full h-auto block" />
                     <div className="absolute inset-0 bg-[#FD312E]/0 group-hover:bg-[#FD312E]/8 transition-all duration-200" />
                   </div>
 

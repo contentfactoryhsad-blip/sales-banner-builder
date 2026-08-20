@@ -59,7 +59,7 @@ export interface DesignStyle {
   logo: string;
   /**
    * 스티커 안 글자 배율. STICKER_LAYOUT 이 이미 Figma 의 95% 축소를 반영하고 있으므로
-   * 여기서는 그 위에 **추가로** 곱해지는 값이다. B 만 한 번 더 5% 줄인다.
+   * 여기서는 그 위에 **추가로** 곱해지는 값이다. A/B 모두 1 — 위치·크기 기준을 통일했다.
    */
   stickerTextScale: number;
   /**
@@ -177,12 +177,10 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
     discShadow: '0px 0px 30px rgba(255,255,255,0.9), 0px 0px 10px rgba(255,255,255,0.7)',
     graphics: false,
     logo: '/lg-logo.svg',
-    stickerTextScale: 0.95,
-    /*
-      원만 5% 줄인다. 안의 글자는 stickerTextScale 이 따로 정하므로 영향받지 않는다.
-      (별이었을 때는 작아 보여서 1.05 로 키웠던 자리다)
-    */
-    stickerShapeScale: 0.95,
+    // 예전엔 여기서 한 번 더 5% 줄여 썼다 (글자 크기·위치 기준을 A 하나로 통일)
+    stickerTextScale: 1,
+    // Figma 그대로 1.0 — 예전엔 도형만 5% 줄여 썼다 (위치·크기 기준을 A 하나로 통일)
+    stickerShapeScale: 1,
     // Figma 그대로 1.0 — 예전엔 0.95 로 5% 눌러 썼다 (셰이드 기준을 Figma 하나로 통일)
     shadeOpacity: 1,
     shadeRgb: '255,255,255',
@@ -412,4 +410,13 @@ export function headLines(design: DesignKind, key: string, text: string): string
  */
 export function graphicRects(key: string): Array<[number, number, number, number]> {
   return (SPECS.A[key]?.gx ?? []) as Array<[number, number, number, number]>;
+}
+
+/**
+ * 할인율 스티커 위치·크기 — **A 기준을 두 시안이 공용**으로 쓴다(graphicRects 와 같은 이유).
+ * A/B 는 Figma 상 별도 프레임이라 각자 실측했더니 사이즈별로 몇 px 씩 어긋나 있었다 —
+ * 두 시안이 같은 좌·우 분할 레이아웃을 쓰므로 어긋날 이유가 없다. A 값 하나로 통일한다.
+ */
+export function stickerRect(key: string): [number, number, number] | null {
+  return SPECS.A[key]?.st ?? null;
 }

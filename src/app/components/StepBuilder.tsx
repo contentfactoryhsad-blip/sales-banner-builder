@@ -3,7 +3,7 @@ import { AppHeader } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
-import { createInitialState, sampleState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
+import { createInitialState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
 import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
@@ -101,6 +101,12 @@ function Head({ title, desc }: { title: string; desc?: string }) {
   );
 }
 
+/** Step 1 썸네일 — 라이브 렌더 대신 레퍼런스 완성본 이미지를 그대로 쓴다 */
+const DESIGN_STEP_THUMBS: Record<DesignType, string> = {
+  A: '/main/main-a.png',
+  B: '/main/main-b.png',
+};
+
 // ── Step 1: Select Template (A/B) ──────────────────────────────────────────────
 function DesignStep({ state, update }: StepProps) {
   return (
@@ -113,7 +119,7 @@ function DesignStep({ state, update }: StepProps) {
           return (
             <button key={key} onClick={() => update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] })} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
               <div className="mb-3 flex justify-center rounded-lg overflow-hidden" style={{ background: '#F8F7F5' }}>
-                <MainPreview state={sampleState(key)} displayWidth={340} />
+                <img src={DESIGN_STEP_THUMBS[key]} alt={d.name} className="w-full h-auto block" />
               </div>
               <p className="text-[11px] font-semibold text-[#FD312E]">OPTION {key}</p>
               <p className="font-lgei font-bold text-[16px] text-gray-900">{d.name}</p>
