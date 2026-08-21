@@ -19,3 +19,18 @@ export const ENABLE_MODE_B: boolean = false;
  * 고를 일이 당장은 없어 잠시 내려둔다.
  */
 export const ENABLE_LOGO_CHANGE: boolean = false;
+
+/**
+ * Edit 의 Coloring(색 입히는 방식) 선택 노출 여부.
+ *
+ * false = 시안별로 **확정된 방식만** 쓴다 — A 는 Overlay, B 는 Gradient map
+ * (DEFAULT_COLOR_MODE). 고를 일이 없어졌으므로 화면에서 내린다.
+ *
+ * 숨기는 것으로 끝내지 않고 렌더도 state.colorMode 대신 시안 기본값을 보게 해뒀다
+ * (SpecBannerPreview 의 colorMode). 안 그러면 예전에 골라 둔 값이 남은 화면에서
+ * 숨긴 뒤에도 그 방식으로 계속 그려진다.
+ *
+ * 되살릴 때: 이 값을 true 로 되돌리고 SpecBannerPreview 의 colorMode 를
+ * state.colorMode 로 되돌리면 된다. COLOR_MODES_BY_DESIGN·상태·렌더 갈래는 그대로다.
+ */
+export const ENABLE_COLORING_OPTION: boolean = false;

@@ -9,7 +9,7 @@ import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
 import { LOGO_VARIANTS } from '../../data/logos';
-import { ENABLE_LOGO_CHANGE } from '../featureFlags';
+import { ENABLE_COLORING_OPTION, ENABLE_LOGO_CHANGE } from '../featureFlags';
 import { copyBudget, reflowCopy } from '../utils/copyFit';
 import { useFontsReady } from '../utils/textFit';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
@@ -851,23 +851,28 @@ function EditBackground({ state, update }: StepProps) {
           </button>
         ))}
       </div>
-      {/* 색 입히는 방식 — 흑백 무늬에 프로모션 색을 어떻게 얹을지 */}
-      <div className="mt-3">
-        <p className="text-[11px] text-gray-400 mb-1.5">Coloring</p>
-        <div className="flex items-center gap-1">
-          {COLOR_MODES_BY_DESIGN[state.designType].map((m) => (
-            <button
-              key={m.id} type="button" onClick={() => update({ colorMode: m.id })} title={m.desc}
-              className={`px-2.5 h-7 rounded-full text-[11px] font-medium border transition-colors ${
-                state.colorMode === m.id ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5'
-                                         : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
+      {/*
+        색 입히는 방식 — 시안별로 확정됐으므로 기본은 숨긴다(ENABLE_COLORING_OPTION).
+        A = Overlay · B = Gradient map. 되살리려면 플래그만 true 로.
+      */}
+      {ENABLE_COLORING_OPTION && (
+        <div className="mt-3">
+          <p className="text-[11px] text-gray-400 mb-1.5">Coloring</p>
+          <div className="flex items-center gap-1">
+            {COLOR_MODES_BY_DESIGN[state.designType].map((m) => (
+              <button
+                key={m.id} type="button" onClick={() => update({ colorMode: m.id })} title={m.desc}
+                className={`px-2.5 h-7 rounded-full text-[11px] font-medium border transition-colors ${
+                  state.colorMode === m.id ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5'
+                                           : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </EditSection>
   );
 }
