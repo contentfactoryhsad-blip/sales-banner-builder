@@ -116,8 +116,14 @@ function DesignStep({ state, update }: StepProps) {
         {(['A', 'B'] as DesignType[]).map((key) => {
           const d = DESIGN_TYPES[key];
           const selected = state.designType === key;
+          /*
+            시안을 바꾸면 박스 **재질도 함께 바뀐다**(A=glass / B=white). 그러면
+            투명도도 같이 되돌려야 한다 — EditBox 의 재질 버튼이 하는 것과 같은 이유다:
+            알파는 재질이 원래 갖고 있던 값(glass 0.15 · white 1) 기준이라, 글래스에서
+            잡아둔 값이 화이트로 넘어오면 흰 박스가 반투명해져 **박스가 사라져 보인다.**
+          */
           return (
-            <button key={key} onClick={() => update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] })} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
+            <button key={key} onClick={() => update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], boxOpacity: null, stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] })} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
               <div className="mb-3 flex justify-center rounded-lg overflow-hidden" style={{ background: '#F8F7F5' }}>
                 <img src={DESIGN_STEP_THUMBS[key]} alt={d.name} className="w-full h-auto block" />
               </div>
