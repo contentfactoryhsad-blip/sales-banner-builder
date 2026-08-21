@@ -2,7 +2,8 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { BannerState } from '../types';
 import { getPromotion, promoPair } from '../../data/promotions';
 import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
-import { DEFAULT_BOX_STYLE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
+import { DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
+import { ENABLE_COLORING_OPTION } from '../featureFlags';
 import { hexToHsl, hexToRgb, hslToHex, withAlpha, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
@@ -56,30 +57,31 @@ const BG_BLUR_PX = 17.5;
 const BG_BLUR_REF_W = 1541;
 
 /**
- * 배경을 프레임 밖까지 키워 그리는 사이즈.
+ * 배경을 프레임 밖까지 키워 그린다 — 블러 번짐이 프레임 안쪽을 먹는 것을 막는다.
  *
  * CSS filter: blur() 는 색만이 아니라 **알파도** 흐린다. 그래서 흐린 요소의 가장자리가
- * 반투명해지고 뒤 바탕이 비친다. 번지는 폭은 대략 블러값의 두 배(여기선 약 24px)다.
- * 300x250 은 배경이 프레임보다 좌우 3px·위 12px 밖에 안 커서, 번짐이 여백을 한참 넘어
- * 안쪽까지 먹어 세 변이 뿌옇게 떴다.
+ * 반투명해지고 뒤 바탕이 비친다. 번지는 폭은 대략 블러값의 두 배다.
+ * 배경 상자의 어떤 변이 프레임 경계에서 그 폭보다 가까우면, 그 변이 프레임 안에서
+ * 부옇게 날아간 것처럼 보인다(1024x768 은 왼쪽이 22.8px 모자랐다).
  *
- * 모자란 만큼만 키워 번짐을 프레임 밖으로 밀어낸다. 그만큼 무늬가 확대되므로
- * (300x250 은 약 1.14배) 증상이 실제로 보이는 사이즈에만 건다.
+ * ⚠ 예전에는 **손으로 고른 7개 사이즈에만** 걸었다("증상이 보이는 것만"). 그런데 전
+ * 사이즈를 재보니 배경 5종 기준으로 **16개**가 모자랐고, 목록에 없던 1024x768 ·
+ * 970x250 · 480x320 · 160x600 · 120x600 · 300x1050 · 1200x1200 등이 그대로 날아가고
+ * 있었다. 그래서 목록을 없애고 **계산이 판단하게** 한다 —
+ * 여유가 충분한 변은 need() 가 0 을 돌려주므로 나머지 25개는 값이 그대로다.
+ * 무늬가 커지는 폭은 최대 3.2%, 대부분 1.6% 이하다.
+ *
  * ⚠ 배경이 **일부러 닿지 않게** 배치된 변(여백이 음수)은 채우지 않는다 — 그건 번짐이
  * 아니라 원본 배치이고, 그 자리는 흰 셰이드가 덮는다. 채우면 디자인이 달라진다.
+ * (criteo-1200x628 의 왼쪽 78px 이 그 경우다. 네 변 모두 여유가 419px 이상이라
+ *  애초에 이 보정과 무관하다.)
  */
-const BG_INFLATE = new Set([
-  'criteo-300x250', 'dv360-300x250',
-  'dv360-320x320', 'dv360-120x600', 'dv360-120x240',
-  'criteo-320x50', 'dv360-320x50',
-]);
-
-/** 이 사이즈의 배경 사각형 [left, top, width, height]. 해당 없으면 실측값 그대로. */
+/** 이 사이즈의 배경 사각형 [left, top, width, height]. 모자란 변이 없으면 실측값 그대로. */
 function inflateBg(
-  key: string, bg: NonNullable<FigmaFrameSpec['bg']>, fw: number, fh: number, blurPx: number,
+  bg: NonNullable<FigmaFrameSpec['bg']>, fw: number, fh: number, blurPx: number,
 ): [number, number, number, number] {
   const [x, y, w, h] = bg;
-  if (!blurPx || !BG_INFLATE.has(key)) return [x, y, w, h];
+  if (!blurPx) return [x, y, w, h];
   const spread = blurPx * 2;
   // 각 변이 프레임 밖으로 나가 있는 정도. 음수면 아예 안 닿는 것이라 건드리지 않는다.
   const need = (margin: number) => (margin >= 0 ? Math.max(0, spread - margin) : 0);
@@ -213,6 +215,13 @@ export function SpecBannerPreview({
     : DESIGN_STYLES[design].logo;
   const scale = displayWidth / FW;
   const style = DESIGN_STYLES[design];
+  /*
+    색 입히는 방식 — 선택을 숨겨 둔 동안(ENABLE_COLORING_OPTION=false)은 **시안별
+    확정값**을 쓴다. A=Overlay · B=Gradient map.
+    state.colorMode 를 그대로 믿으면, 숨기기 전에 골라 둔 값이 남은 화면에서
+    계속 그 방식으로 그려진다(상태는 저장되지 않지만 새로고침 전까지는 남는다).
+  */
+  const colorMode = ENABLE_COLORING_OPTION ? state.colorMode : DEFAULT_COLOR_MODE[design];
 
   const promo = state.promotionId ? getPromotion(state.promotionId) : undefined;
   const pair = promo ? promoPair(promo, state.colorSet) : null;
@@ -369,7 +378,7 @@ export function SpecBannerPreview({
     빈 자리는 13개 전부 가로형은 왼쪽, 세로형은 아래 — 흰 셰이드가 덮는 쪽이다.
     그래서 바탕을 흰색으로 두면 새어 나와도 셰이드와 같은 색이라 보이지 않는다.
   */
-  const frameBg = state.colorMode === 'overlay'
+  const frameBg = colorMode === 'overlay'
     ? `linear-gradient(160deg, ${main} 0%, ${secondary} 100%)` : '#ffffff';
 
   const backdrop = (
@@ -398,14 +407,14 @@ export function SpecBannerPreview({
           const bgBlurPx = BG_BLUR_PX * bgType.blurScale * (bgRect[2] / BG_BLUR_REF_W);
           const blur = bgRect[4] && bgBlurPx ? `blur(${bgBlurPx.toFixed(2)}px)` : '';
           const fill = { width: '100%', height: '100%', objectFit: 'cover' } as const;
-          const box = inflateBg(key, bgRect, FW, FH, bgBlurPx);
+          const box = inflateBg(bgRect, FW, FH, bgBlurPx);
           return (
             <div style={{ position: 'absolute', left: box[0], top: box[1], width: box[2], height: box[3] }}>
               {/* 프로모션 미선택 = 입힐 색이 없다. Figma 처럼 흑백 텍스처를 그대로 두고
                   그 위에 셰이드 그라데이션만 얹는다. 무채색을 합성하면 오히려 달라진다. */}
               {!promo ? (
                 <img src={texture} alt="" style={{ ...fill, filter: blur || undefined }} draggable={false} />
-              ) : state.colorMode === 'gradient' ? (
+              ) : colorMode === 'gradient' ? (
                 // 색을 캔버스에 직접 구워 넣는 방식이라 블렌드가 없다 — 래퍼에 걸어도 안전하다
                 <div style={{ ...fill, filter: blur || undefined }}>
                   <GradientMapBackground texture={texture} main={main} secondary={secondary} />
