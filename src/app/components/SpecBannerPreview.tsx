@@ -4,7 +4,7 @@ import { getPromotion, promoPair } from '../../data/promotions';
 import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
 import { DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
 import { ENABLE_COLORING_OPTION } from '../featureFlags';
-import { hexToHsl, hexToRgb, hslToHex, withAlpha, NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { alphaOf, hexToHsl, hexToRgb, hslToHex, withAlpha, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
 import { LOGO_WHITE, logoSrc } from '../../data/logos';
@@ -327,6 +327,22 @@ export function SpecBannerPreview({
   const boxMat = BOX_MATERIALS[state.boxStyleId ?? DEFAULT_BOX_STYLE[design]] ?? BOX_MATERIALS.glass;
   // Edit 에서 투명도를 만졌으면 그 값으로, 아니면 재질이 갖고 있던 알파 그대로
   const boxFill = state.boxOpacity === null ? boxMat.fill : withAlpha(boxMat.fill, state.boxOpacity);
+  /*
+    유리의 **뒤 흐림도 투명도를 따라간다.**
+
+    예전엔 투명도가 채움 알파만 바꿔서, 0 으로 내려도 backdrop-filter 는 10.7px 그대로였다.
+    그러면 "투명해졌는데 뒤가 여전히 뭉개져 보이는" 상태가 된다 — A 는 배경 블러가 0 이라
+    바깥 세로줄은 선명한데 박스 안에서만 그 줄이 사라져 유독 이상해 보였다
+    (B 는 배경이 이미 35 로 흐려 한 번 더 흐려도 티가 안 나서 안 보이던 문제다).
+
+    기준은 **유리가 원래 갖고 있던 알파(0.15)**. 거기서 내려간 만큼만 흐림을 뺀다 —
+    0 이면 흐림 없이 뒤가 그대로 비치고, 기본값 이상이면 Figma 실측 그대로다.
+    확정본인 기본 상태(0.15)는 k=1 이라 종전과 픽셀이 같다.
+  */
+  const glassAlphaBase = alphaOf(BOX_MATERIALS.glass.fill);
+  const glassK = state.boxOpacity === null
+    ? 1
+    : Math.min(1, Math.max(0, state.boxOpacity / glassAlphaBase));
   const stickerKind = resolveStickerStyle(design, state.stickerStyle);
   /*
     레드 스티커 색. Edit 의 Hue 슬라이더가 기준 빨강을 회전시킨다.
@@ -490,7 +506,8 @@ export function SpecBannerPreview({
           const g = glassBox(key, boxKey);
           const sw = boxMat.stroke ? (g?.stroke ?? boxMat.strokeRatio * w) : 0;
           const sh = g?.shadow ?? boxMat.shadowRatio * w;
-          const blurPx = g?.blur ?? 10.7;
+          // 투명도를 내리면 흐림도 같이 빠진다 (glassK). 0 이면 아래에서 아예 안 건다.
+          const blurPx = (g?.blur ?? 10.7) * glassK;
           const blur = `blur(${blurPx.toFixed(2)}px)`;
           // 굽는 쪽만 조금 덜 흐리게 — 같은 반지름이어도 결과가 더 뿌옇다
           const blurOut = `blur(${(blurPx * EXPORT_BLUR_SCALE).toFixed(2)}px)`;
@@ -512,8 +529,13 @@ export function SpecBannerPreview({
                 boxShadow: fakeGlass
                   ? `0px ${sh}px ${sh}px 0px rgba(0,0,0,0.07)`
                   : `0px ${sh}px ${sh}px 0px rgba(0,0,0,0.07)${boxMat.glass ? `, ${glassCss.innerLight}` : ''}`,
-                backdropFilter: boxMat.glass && !fakeGlass ? blur : undefined,
-                WebkitBackdropFilter: boxMat.glass && !fakeGlass ? blur : undefined,
+                /*
+                  흐림이 0 이면 **아예 걸지 않는다.** blur(0px) 도 결과는 같지만,
+                  backdrop-filter 가 붙어 있는 것만으로 backdrop root 가 생겨
+                  주변 블렌드 합성에 영향을 준다(docs/safari.md 참고).
+                */
+                backdropFilter: boxMat.glass && !fakeGlass && blurPx > 0 ? blur : undefined,
+                WebkitBackdropFilter: boxMat.glass && !fakeGlass && blurPx > 0 ? blur : undefined,
                 overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxSizing: 'border-box',
               }}
