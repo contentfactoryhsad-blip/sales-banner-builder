@@ -44,8 +44,18 @@ const BG_BLUR_SCALE: Record<string, number> = {
   'b-bg-05': 0.7,
 };
 
+/**
+ * Edit 의 배경 팔레트에 보이는 **순서**. 번호(=파일명)는 그대로 두고 나열만 바꾼다.
+ *
+ * B 는 1번을 맨 뒤로 보낸다. 라벨은 계속 "BG 1" 이므로 파일·데이터와 어긋나지 않는다.
+ */
+const BG_ORDER: Record<'a' | 'b', number[]> = {
+  a: [1, 2, 3, 4, 5],
+  b: [2, 3, 4, 5, 1],
+};
+
 function bgSet(design: 'a' | 'b'): BackgroundType[] {
-  return [1, 2, 3, 4, 5].map((n) => {
+  return BG_ORDER[design].map((n) => {
     const id = `${design}-bg-0${n}`;
     return {
       id,
@@ -57,7 +67,7 @@ function bgSet(design: 'a' | 'b'): BackgroundType[] {
   });
 }
 
-/** 디자인 방식(A/B)별 배경 타입 5종 */
+/** 디자인 방식(A/B)별 배경 타입 5종 (BG_ORDER 순서로 보인다) */
 export const BACKGROUND_TYPES: Record<'A' | 'B', BackgroundType[]> = {
   A: bgSet('a'),
   B: bgSet('b'),
