@@ -41,16 +41,26 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
 
   const canNext = step === 4 ? state.adChannelIds.length > 0 : true;
   const zip = useBannerZip(state);
+  // 1단계 카드에 고른 테두리를 보일지. 바탕을 누르면 내려간다 (DesignStep 설명 참고)
+  const [designPicked, setDesignPicked] = useState(true);
 
   return (
     <div className="h-screen flex flex-col bg-[#f8f7f5]">
       <AppHeader title="Sales Banner Builder" onBack={onExit} right={onExit ? <span className="text-xs text-gray-500">Mode A · Step by step</span> : undefined} />
       <WizardBreadcrumb steps={STEPS} activeStep={step} onStepClick={setStep} />
 
-      {/* Body */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-10 py-8">
+      {/*
+        Body — 1단계에서는 **바탕을 누르면 고른 티를 내린다.**
+        빈자리까지 포함해야 해서 카드가 아니라 이 스크롤 영역이 클릭을 받는다.
+        (카드 쪽에서 stopPropagation 하므로 고를 때는 안 내려간다)
+      */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-10 py-8"
+        onClick={step === 1 ? () => setDesignPicked(false) : undefined}>
         <div className="max-w-5xl mx-auto">
-          {step === 1 && <DesignStep state={state} update={update} />}
+          {step === 1 && (
+            <DesignStep state={state} update={update}
+              picked={designPicked} onPick={() => setDesignPicked(true)} />
+          )}
           {step === 2 && <ProductUrlsStep state={state} update={update} setProduct={setProduct} />}
           {step === 3 && <EditStep state={state} update={update} />}
           {step === 4 && <AdMediaStep state={state} update={update} />}
@@ -108,22 +118,31 @@ const DESIGN_STEP_THUMBS: Record<DesignType, string> = {
 };
 
 // ── Step 1: Select Template (A/B) ──────────────────────────────────────────────
-function DesignStep({ state, update }: StepProps) {
+/**
+ * `picked` 는 **테두리를 보일지**만 정한다.
+ *
+ * state.designType 은 뒤 단계가 계속 필요하므로(무엇을 그릴지 정한다) 끄지 않는다.
+ * 바탕을 눌렀을 때 고른 티만 내려서, 다시 고르라는 신호로 쓴다.
+ */
+function DesignStep({ state, update, picked, onPick }: StepProps & { picked: boolean; onPick: () => void }) {
   return (
     <div>
       <Head title="Design Template Select" desc="Pick the background design approach." />
       <div className="grid grid-cols-2 gap-5">
         {(['A', 'B'] as DesignType[]).map((key) => {
           const d = DESIGN_TYPES[key];
-          const selected = state.designType === key;
+          const selected = picked && state.designType === key;
           /*
             시안을 바꾸면 박스 **재질도 함께 바뀐다**(A=glass / B=white). 그러면
             투명도도 같이 되돌려야 한다 — EditBox 의 재질 버튼이 하는 것과 같은 이유다:
             알파는 재질이 원래 갖고 있던 값(glass 0.15 · white 1) 기준이라, 글래스에서
             잡아둔 값이 화이트로 넘어오면 흰 박스가 반투명해져 **박스가 사라져 보인다.**
+
+            카드 클릭이 바탕까지 올라가면 고르자마자 테두리가 도로 내려가므로,
+            여기서 stopPropagation 으로 끊는다.
           */
           return (
-            <button key={key} onClick={() => update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], boxOpacity: null, stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] })} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
+            <button key={key} onClick={(e) => { e.stopPropagation(); onPick(); update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], boxOpacity: null, stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] }); }} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
               <div className="mb-3 flex justify-center rounded-lg overflow-hidden" style={{ background: '#F8F7F5' }}>
                 <img src={DESIGN_STEP_THUMBS[key]} alt={d.name} className="w-full h-auto block" />
               </div>
