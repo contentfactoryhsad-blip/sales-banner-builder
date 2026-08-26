@@ -144,22 +144,21 @@ export const GRAPHIC_OPACITY_BY_KIND: Record<'line' | 'full', number> = {
  *   1    현재값 — A·B 스티커를 같은 색으로 맞추려고 불투명으로 뒀다.
  *        반투명이면 뒤 배경이 섞여 시안마다·사이즈마다 색이 달라 보인다.
  */
-export const STICKER_FILL = 'rgba(234,68,65,1)';
+export const STICKER_FILL = 'rgba(243,59,56,1)';
 
 /**
  * 레드 스티커의 기준 색. Edit 의 Hue 슬라이더가 이 색을 회전시킨다.
  * (원형 스티커는 반투명 STICKER_FILL, 별은 불투명 — 둘 다 이 Hue 를 따른다)
  *
- * **채도를 두 번에 걸쳐 낮춘 값이다.** 색상·명도는 한 번도 안 건드렸다.
- *   #FD312E  Figma 원본 — HSL(0.9, 98.1%, 58.6%). 형광에 가까워 배너에서 눈이 아팠다.
- *   #F33B38  1차 — 채도 98.1 → 88.6 (×0.9). 형광기는 빠졌지만 아직 셌다.
- *   #EA4441  현재값 — 2차로 한 번 더 ×0.9 해서 79.8. 원본 대비 81% 수준이다.
+ * **채도를 기존값에서 10% 낮춘 값이다.**
+ *   #FD312E  종전값 — HSL(0.87, 98.1%, 58.6%). 형광에 가까워 배너에서 눈이 아팠다.
+ *   #F33B38  현재값 — 채도만 98.1 → 88.3(×0.9)으로 내리고 색상·명도는 그대로 뒀다.
  * 슬라이더로 Hue 를 돌려도 이 채도를 그대로 물려받는다 — 회전은 채도·명도를
  * 건드리지 않고 색상만 바꾸기 때문이다(SpecBannerPreview 의 redHex/circleFill).
  * 더 낮추려면 이 두 상수만 같은 비율로 다시 계산하면 된다. STICKER_FILL 은
  * 같은 색의 rgba 표기라 **둘을 항상 함께** 바꿔야 한다.
  */
-export const STICKER_RED = '#EA4441';
+export const STICKER_RED = '#F33B38';
 
 /** 스티커 배경 스타일 — 레드 원 / 별 / 글래스(제품 박스와 같은 재질) */
 export type StickerStyle = 'red' | 'star' | 'glass';
