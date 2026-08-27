@@ -44,9 +44,26 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
   // 1단계 카드에 고른 테두리를 보일지. 바탕을 누르면 내려간다 (DesignStep 설명 참고)
   const [designPicked, setDesignPicked] = useState(true);
 
+  /*
+    헤더의 "Sales Banner Builder" 를 누르면 어느 단계에 있든 첫 화면(1단계)으로.
+
+    **고른 값은 지우지 않는다.** 홈으로 간다고 입력을 날리면 5단계까지 채워 둔
+    제품 주소·카피를 한 번의 오발로 잃는다. 자리만 1단계로 옮기므로 브레드크럼으로
+    바로 돌아올 수 있다. (처음부터 다시 하려면 새로고침이 여전히 그 역할을 한다)
+
+    스크롤도 같이 올린다 — 안 그러면 아래로 내려간 자리 그대로 1단계가 열려
+    화면이 깨진 것처럼 보인다.
+  */
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const goHome = () => {
+    setStep(1);
+    setDesignPicked(true);
+    bodyRef.current?.scrollTo({ top: 0 });
+  };
+
   return (
     <div className="h-screen flex flex-col bg-[#f8f7f5]">
-      <AppHeader title="Sales Banner Builder" onBack={onExit} right={onExit ? <span className="text-xs text-gray-500">Mode A · Step by step</span> : undefined} />
+      <AppHeader title="Sales Banner Builder" onBack={onExit} onHome={goHome} right={onExit ? <span className="text-xs text-gray-500">Mode A · Step by step</span> : undefined} />
       <WizardBreadcrumb steps={STEPS} activeStep={step} onStepClick={setStep} />
 
       {/*
@@ -54,7 +71,7 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
         빈자리까지 포함해야 해서 카드가 아니라 이 스크롤 영역이 클릭을 받는다.
         (카드 쪽에서 stopPropagation 하므로 고를 때는 안 내려간다)
       */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-10 py-8"
+      <div ref={bodyRef} className="flex-1 min-h-0 overflow-y-auto px-10 py-8"
         onClick={step === 1 ? () => setDesignPicked(false) : undefined}>
         <div className="max-w-5xl mx-auto">
           {step === 1 && (
