@@ -76,7 +76,8 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
         <div className="max-w-5xl mx-auto">
           {step === 1 && (
             <DesignStep state={state} update={update}
-              picked={designPicked} onPick={() => setDesignPicked(true)} />
+              picked={designPicked} onPick={() => setDesignPicked(true)}
+              onChosen={() => setStep(2)} />
           )}
           {step === 2 && <ProductUrlsStep state={state} update={update} setProduct={setProduct} />}
           {step === 3 && <EditStep state={state} update={update} />}
@@ -95,7 +96,14 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
           </button>
         )}
         <span className="text-xs text-gray-400">{step} / {STEPS.length}</span>
-        {step < STEPS.length ? (
+        {/*
+          1단계에는 Next 가 없다 — 시안을 고르는 순간 넘어가므로(DesignStep 참고)
+          버튼이 남아 있으면 "골랐는데 또 눌러야 하나" 싶은 군더더기가 된다.
+          자리만 지켜 가운데 단계 표시가 안 흔들리게 한다.
+        */}
+        {step === 1 ? (
+          <span />
+        ) : step < STEPS.length ? (
           <button type="button" disabled={!canNext} onClick={() => setStep(step + 1)} className="h-10 px-6 rounded-lg bg-[#FD312E] text-white text-sm font-medium hover:bg-[#E22825] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             Next
           </button>
@@ -141,7 +149,14 @@ const DESIGN_STEP_THUMBS: Record<DesignType, string> = {
  * state.designType 은 뒤 단계가 계속 필요하므로(무엇을 그릴지 정한다) 끄지 않는다.
  * 바탕을 눌렀을 때 고른 티만 내려서, 다시 고르라는 신호로 쓴다.
  */
-function DesignStep({ state, update, picked, onPick }: StepProps & { picked: boolean; onPick: () => void }) {
+/**
+ * 1단계 — 시안(A/B) 고르기.
+ *
+ * **고르는 순간 2단계로 넘어간다.** 둘 중 하나를 고르는 것 말고는 할 일이 없는
+ * 화면이라, 고른 뒤 오른쪽 아래 Next 를 또 찾아 눌러야 하는 게 군더더기였다.
+ * 그래서 이 단계에는 Next 버튼 자체가 없다(아래 bottom nav 참고).
+ */
+function DesignStep({ state, update, picked, onPick, onChosen }: StepProps & { picked: boolean; onPick: () => void; onChosen: () => void }) {
   return (
     <div>
       <Head title="Design Template Select" desc="Pick the background design approach." />
@@ -159,7 +174,7 @@ function DesignStep({ state, update, picked, onPick }: StepProps & { picked: boo
             여기서 stopPropagation 으로 끊는다.
           */
           return (
-            <button key={key} onClick={(e) => { e.stopPropagation(); onPick(); update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], boxOpacity: null, stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] }); }} className={`text-left rounded-2xl border p-4 transition-all ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300'}`}>
+            <button key={key} onClick={(e) => { e.stopPropagation(); onPick(); update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], boxOpacity: null, stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] }); onChosen(); }} className={`text-left rounded-2xl border p-4 transition-all cursor-pointer ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'}`}>
               <div className="mb-3 flex justify-center rounded-lg overflow-hidden" style={{ background: '#F8F7F5' }}>
                 <img src={DESIGN_STEP_THUMBS[key]} alt={d.name} className="w-full h-auto block" />
               </div>
