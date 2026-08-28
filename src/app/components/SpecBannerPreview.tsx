@@ -14,7 +14,7 @@ import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, isWideFrame, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, stickerRect, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
 import {
   BODY_FONT, FROST_TO_PX, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
-  GLASS_DEFAULT, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
+  GLASS_DEFAULT, STICKER_COLORS, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
 } from '../../data/sizeLayouts';
 
 /**
@@ -345,24 +345,21 @@ export function SpecBannerPreview({
     : Math.min(1, Math.max(0, state.boxOpacity / glassAlphaBase));
   const stickerKind = resolveStickerStyle(design, state.stickerStyle);
   /*
-    레드 스티커 색. Edit 의 Hue 슬라이더가 기준 빨강을 회전시킨다.
-    채도·명도는 그대로 두고 색상만 돌려, 어떤 각도에서도 원래 톤을 유지한다.
-    (원형은 반투명 STICKER_FILL 이라 알파를 살려 다시 조립한다)
+    스티커의 칠 색과 글자 색. Edit 에서 고른 색이 곧 이 한 쌍이다.
+
+    글자 색까지 같이 오는 게 핵심 — 웜그레이처럼 밝은 바탕에 흰 글자를 얹으면
+    할인율이 안 보인다. 글래스는 배경을 비추는 재질이라 칠할 색이 없고 글자만
+    흰색으로 둔다(아래 isGlass 갈래에서 칠을 안 쓴다).
   */
-  const redHex = (() => {
-    if (state.stickerHue === null) return STICKER_RED;
-    const { s: sat, l } = hexToHsl(STICKER_RED);
-    return hslToHex(state.stickerHue, sat, l);
-  })();
-  const circleFill = (() => {
-    if (state.stickerHue === null) return STICKER_FILL;
-    const m = STICKER_FILL.match(/rgba?\(([^)]+)\)/);
-    const alpha = m ? Number(m[1].split(',')[3] ?? 1) : 1;
-    const base = hexToHsl(STICKER_FILL.startsWith('rgba') ? STICKER_RED : STICKER_FILL);
-    const hex = hslToHex(state.stickerHue, base.s, base.l);
-    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${alpha})`;
-  })();
+  const stickerPaint = STICKER_COLORS[stickerKind as keyof typeof STICKER_COLORS]
+    ?? { fill: STICKER_RED, ink: '#ffffff' };
+  const stickerInk = stickerKind === 'glass' ? '#ffffff' : stickerPaint.ink;
+  /*
+    A 는 Figma 대로 반투명 원(STICKER_FILL), B 는 불투명(stickerCircleOpaque).
+    현재 STICKER_FILL 은 알파 1 이라 레드에서는 둘이 같은 색이고, 웜그레이·블랙은
+    애초에 불투명 hex 라 갈래와 무관하게 그 색 그대로 칠해진다.
+  */
+  const circleFill = stickerKind === 'red' ? STICKER_FILL : stickerPaint.fill;
 
   /*
     배경 묶음 — 배경 이미지 + 셰이드 + 장식 도형.
@@ -713,7 +710,7 @@ export function SpecBannerPreview({
                 return isStar ? (
                   <svg viewBox="0 0 100 100" width={ss} height={ss}
                     style={{ position: 'absolute', left: off, top: off }}>
-                    <path d={starPath(12, 50, 50, 50, 50 * 0.782, 50 * 0.545, STAR_ROT)} fill={redHex} />
+                    <path d={starPath(12, 50, 50, 50, 50 * 0.782, 50 * 0.545, STAR_ROT)} fill={stickerPaint.fill} />
                   </svg>
                 ) : (
                   <div style={{
@@ -721,7 +718,7 @@ export function SpecBannerPreview({
                     background: isGlass && emulateGlass ? undefined
                       : isGlass ? BOX_MATERIALS.glass.fill
                       // B 는 흰 셰이드 위라 반투명이면 묻힌다 — 꽉 채운다
-                      : style.stickerCircleOpaque ? redHex : circleFill,
+                      : style.stickerCircleOpaque ? stickerPaint.fill : circleFill,
                     border: isGlass && !emulateGlass
                       ? `${ss * BOX_MATERIALS.glass.strokeRatio}px solid ${BOX_MATERIALS.glass.stroke}` : undefined,
                     backdropFilter: isGlass && !emulateGlass ? gBackdrop : undefined,
@@ -745,13 +742,13 @@ export function SpecBannerPreview({
               })()}
               <svg viewBox={`0 0 ${S.circle} ${S.circle}`} width={size} height={size}
                 style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
-                <text x={S.label.cx} y={S.label.baseline} textAnchor="middle" fill="#fff"
+                <text x={S.label.cx} y={S.label.baseline} textAnchor="middle" fill={stickerInk}
                   style={{ fontFamily: HEADLINE_FONT, fontWeight: HEADLINE_WEIGHT, fontSize: S.label.size }}>UP TO</text>
-                <text x={S.number.cx} y={S.number.baseline} textAnchor="middle" fill="#fff"
+                <text x={S.number.cx} y={S.number.baseline} textAnchor="middle" fill={stickerInk}
                   style={{ fontFamily: STICKER_FONT, fontSize: S.number.size, letterSpacing: S.number.tracking }}>{discount}</text>
-                <text x={S.percent.cx} y={S.percent.baseline} textAnchor="middle" fill="#fff"
+                <text x={S.percent.cx} y={S.percent.baseline} textAnchor="middle" fill={stickerInk}
                   style={{ fontFamily: STICKER_FONT, fontSize: S.percent.size }}>%</text>
-                <text x={S.off.cx} y={S.off.baseline} textAnchor="middle" fill="#fff"
+                <text x={S.off.cx} y={S.off.baseline} textAnchor="middle" fill={stickerInk}
                   style={{ fontFamily: STICKER_FONT, fontSize: S.off.size }}>off</text>
               </svg>
             </div>

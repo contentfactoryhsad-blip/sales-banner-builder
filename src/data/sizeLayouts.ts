@@ -160,13 +160,31 @@ export const STICKER_FILL = 'rgba(243,59,56,1)';
  */
 export const STICKER_RED = '#F33B38';
 
-/** 스티커 배경 스타일 — 레드 원 / 별 / 글래스(제품 박스와 같은 재질) */
-export type StickerStyle = 'red' | 'star' | 'glass';
+/** 스티커 배경 스타일 — 색 3종(레드·웜그레이·블랙) + 글래스(제품 박스와 같은 재질) + 별(미사용) */
+export type StickerStyle = 'red' | 'warmgray' | 'black' | 'glass' | 'star';
 export const STICKER_STYLES: { id: StickerStyle; label: string }[] = [
-  { id: 'red', label: 'Red circle' },
-  { id: 'star', label: 'Star' },
+  { id: 'red', label: 'Red' },
   { id: 'glass', label: 'Glass' },
+  { id: 'warmgray', label: 'Warm gray' },
+  { id: 'black', label: 'Black' },
 ];
+
+/**
+ * 색으로 칠하는 스티커의 **칠 색과 글자 색**.
+ *
+ * 글자 색을 같이 묶는 이유: 스티커 글자("UP TO 20% off")는 종전에 흰색으로 못박혀
+ * 있었는데, 웜그레이(#E6E1D6)처럼 밝은 바탕에서는 흰 글자가 **아예 안 보인다.**
+ * 색을 고르는 순간 글자까지 같이 정해져야 한다.
+ *
+ * 웜그레이의 글자는 순검정이 아니라 따뜻한 진회색이다 — 바탕이 따뜻한 색이라
+ * 순검정을 얹으면 그 자리만 차갑게 뜬다.
+ * 글래스는 배경을 비추는 재질이라 여기 없다(칠할 색이 없고 글자는 흰색 그대로).
+ */
+export const STICKER_COLORS: Record<'red' | 'warmgray' | 'black', { fill: string; ink: string }> = {
+  red:      { fill: STICKER_RED, ink: '#ffffff' },
+  warmgray: { fill: '#E6E1D6',   ink: '#1A1714' },
+  black:    { fill: '#000000',   ink: '#ffffff' },
+};
 
 export const STICKER_FONT = '"Cal Sans", sans-serif';
 export const HEADLINE_FONT = '"LGEI Headline", "Apple SD Gothic Neo", sans-serif';

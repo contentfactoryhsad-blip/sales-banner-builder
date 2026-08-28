@@ -67,10 +67,8 @@ export interface BannerState {
 
   /** 할인율 스티커의 숫자 (10~90). "UP TO {discount}% off" */
   discount: number;
-  /** 스티커 배경 스타일 */
+  /** 스티커 배경 스타일 — 색 3종(레드·웜그레이·블랙) 또는 글래스 */
   stickerStyle: StickerStyle;
-  /** 레드 스티커 Hue 회전. null = 기본 빨강 그대로 */
-  stickerHue: number | null;
   /** 스티커 표시 여부 (Copy 처럼 체크박스로 끄고 켠다) */
   showSticker: boolean;
 
@@ -112,7 +110,6 @@ export function createInitialState(designType: DesignType): BannerState {
     comment: '',
     discount: 20,
     stickerStyle: DEFAULT_STICKER_STYLE[designType],
-    stickerHue: null,
     showSticker: true,
     headline: 'Save on LG favorites',
     subcopy: 'Limited-time offers, only on LG.com',

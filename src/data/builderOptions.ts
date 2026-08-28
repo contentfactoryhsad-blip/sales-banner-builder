@@ -3,7 +3,7 @@
  * 실제 디자인/에셋은 Figma 정리 후 채워넣을 예정 — 지금은 탭(선택지)만 세운다.
  */
 
-import type { StickerStyle } from './sizeLayouts';
+import { STICKER_STYLES, type StickerStyle } from './sizeLayouts';
 
 /** Ad Channel Select — 광고 매체 (Figma Banner Template 섹션) */
 export interface AdChannel {
@@ -120,13 +120,17 @@ export const BOX_STYLES_BY_DESIGN: Record<'A' | 'B', BoxStyle[]> = {
 };
 
 /**
- * 스티커 선택지 — A·B 동일하게 원형/글래스 두 가지.
- * 별(Star)은 뺐다. 모양은 같고 **채움만 다르다** — A 는 반투명, B 는 불투명
- * (figmaStyle 의 stickerCircleOpaque). 색상은 둘 다 Edit 의 Hue 를 따른다.
+ * 스티커 선택지 — A·B 동일하게 네 가지. 모양은 같고 **채움만 다르다**
+ * (A 는 반투명, B 는 불투명 — figmaStyle 의 stickerCircleOpaque).
+ * 색 세 가지는 STICKER_COLORS 가 칠 색과 글자 색을 함께 정하고, 글래스는
+ * 제품 박스와 같은 재질이라 색이 없다. 별(Star)은 뺀 채로 둔다.
+ *
+ * 순서는 A·B 가 같다 — 시안을 바꿔도 버튼 자리가 안 흔들려야 고르기 쉽다.
+ * 무엇이 골라져 있는지는 자리가 아니라 강조 표시가 알려준다.
  */
 export const STICKER_STYLES_BY_DESIGN: Record<'A' | 'B', { id: StickerStyle; label: string }[]> = {
-  A: [{ id: 'red', label: 'Red circle' }, { id: 'glass', label: 'Glass' }],
-  B: [{ id: 'red', label: 'Red circle' }, { id: 'glass', label: 'Glass' }],
+  A: STICKER_STYLES.filter((o) => o.id !== 'star'),
+  B: STICKER_STYLES.filter((o) => o.id !== 'star'),
 };
 
 /**
@@ -158,11 +162,16 @@ export const COLOR_MODES_BY_DESIGN: Record<'A' | 'B', { id: ColorMode; label: st
 };
 
 export const DEFAULT_BOX_STYLE: Record<'A' | 'B', string> = { A: 'glass', B: 'white' };
-export const DEFAULT_STICKER_STYLE: Record<'A' | 'B', StickerStyle> = { A: 'red', B: 'red' };
+/**
+ * 시안별 스티커 기본 색 — A 는 레드, B 는 블랙.
+ * B 는 배경이 밝은 라벤더/웜톤이라 레드가 배경과 부딪힌다. 블랙이 바탕과
+ * 안 싸우면서 할인율을 가장 또렷하게 세운다.
+ */
+export const DEFAULT_STICKER_STYLE: Record<'A' | 'B', StickerStyle> = { A: 'red', B: 'black' };
 
 /**
  * 저장된 선택값이 그 시안의 목록에 없으면 기본값으로 되돌린다.
- * (별을 뺐으므로, 예전에 'star' 를 골라둔 상태가 남아 있어도 원형으로 나온다)
+ * (별을 뺐으므로, 예전에 'star' 를 골라둔 상태가 남아 있어도 기본 색으로 나온다)
  */
 export function resolveStickerStyle(design: 'A' | 'B', id: StickerStyle | null): StickerStyle {
   return STICKER_STYLES_BY_DESIGN[design].some((o) => o.id === id)

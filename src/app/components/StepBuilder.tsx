@@ -12,19 +12,16 @@ import { LOGO_VARIANTS } from '../../data/logos';
 import { ENABLE_COLORING_OPTION, ENABLE_LOGO_CHANGE } from '../featureFlags';
 import { copyBudget, reflowCopy } from '../utils/copyFit';
 import { useFontsReady } from '../utils/textFit';
-import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_STYLES, STICKER_RED } from '../../data/sizeLayouts';
+import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_COLORS } from '../../data/sizeLayouts';
 import { SpecBannerPreview } from './SpecBannerPreview';
 import { BOX_MATERIALS, getSpec, isWideFrame, specKey } from '../../data/figmaStyle';
 import { useBannerZip } from './useBannerZip';
-import { alphaOf, hexToHsl, hslToHex, NEUTRAL_BANNER_COLORS } from '../utils/color';
+import { alphaOf, NEUTRAL_BANNER_COLORS } from '../utils/color';
 
 /** 의견 입력 상한 — 기록 CSV 한 칸에 들어갈 만한 길이 */
 const MAX_COMMENT = 300;
 
 const STEPS = ['1. Design Template', '2. Promotion & Product', '3. Edit', '4. AD Media', '5. Review & Download'];
-
-const HUE_GRADIENT =
-  'linear-gradient(to right, hsl(0,70%,55%), hsl(60,70%,55%), hsl(120,70%,55%), hsl(180,70%,55%), hsl(240,70%,55%), hsl(300,70%,55%), hsl(360,70%,55%))';
 
 type StepProps = { state: BannerState; update: (patch: Partial<BannerState>) => void };
 
@@ -824,20 +821,6 @@ function EditSection({ label, checked, onToggle, children }: {
 }
 
 /** Hue 슬라이더 한 줄 — 스와치 + 무지개 트랙 + 각도 */
-function HueRow({ swatch, hue, onChange }: { swatch: string; hue: number; onChange: (h: number) => void }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="w-8 h-8 rounded-lg border border-black/10 shrink-0" style={{ background: swatch }} />
-      <input
-        type="range" min={0} max={360} value={hue}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1 h-2.5 rounded-full appearance-none cursor-pointer outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gray-400 [&::-webkit-slider-thumb]:shadow"
-        style={{ background: HUE_GRADIENT }}
-      />
-      <span className="text-xs text-gray-500 tabular-nums shrink-0 w-9 text-right">{Math.round(hue)}°</span>
-    </div>
-  );
-}
 
 /** Color · Hue — Main / Combo 두 색을 각각 독립적으로 회전 */
 function EditPromotion({ state, update }: StepProps) {
@@ -1087,43 +1070,34 @@ function EditSticker({ state, update }: StepProps) {
         A 의 버튼보다 두 배로 커진다. 그리드면 옵션 수와 무관하게 한 칸 폭을 유지한다.
       */}
       <div className="grid grid-cols-2 gap-1.5">
-        {STICKER_STYLES_BY_DESIGN[state.designType].map((o) => (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => update({ stickerStyle: o.id })}
-            className={`h-9 rounded-lg border text-xs transition-colors ${
-              (state.stickerStyle ?? DEFAULT_STICKER_STYLE[state.designType]) === o.id ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
+        {STICKER_STYLES_BY_DESIGN[state.designType].map((o) => {
+          const on = resolveStickerStyle(state.designType, state.stickerStyle) === o.id;
+          const paint = STICKER_COLORS[o.id as keyof typeof STICKER_COLORS];
+          return (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => update({ stickerStyle: o.id })}
+              className={`h-9 px-2.5 rounded-lg border text-xs transition-colors flex items-center gap-2 ${
+                on ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}
+            >
+              {/*
+                색 견본. 글자만으로는 웜그레이가 어떤 회색인지 알 수 없다.
+                글래스는 칠할 색이 없어 체크무늬 대신 흐린 회색 원으로 둔다.
+              */}
+              <span
+                className="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                style={paint
+                  ? { background: paint.fill }
+                  : { background: 'linear-gradient(135deg,#e9e9e9,#ffffff)' }}
+              />
+              {o.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/*
-        색이 칠해지는 스티커에만 색상 조절을 붙인다 — A 의 레드 원, B 의 별.
-        둘 다 렌더에서 같은 기준색(STICKER_RED)을 Hue 로 돌려 쓴다.
-        글래스는 배경을 그대로 비추는 재질이라 돌릴 색 자체가 없다.
-      */}
-      {resolveStickerStyle(state.designType, state.stickerStyle) !== 'glass' && (
-        <div className="mt-2.5">
-          <HueRow
-            swatch={state.stickerHue === null ? STICKER_RED : hslToHex(state.stickerHue, hexToHsl(STICKER_RED).s, hexToHsl(STICKER_RED).l)}
-            hue={state.stickerHue ?? Math.round(hexToHsl(STICKER_RED).h)}
-            onChange={(h) => update({ stickerHue: h })}
-          />
-          {state.stickerHue !== null && (
-            <button
-              type="button"
-              onClick={() => update({ stickerHue: null })}
-              className="mt-1.5 text-[11px] text-gray-400 hover:text-[#FD312E] transition-colors"
-            >
-              Reset to original
-            </button>
-          )}
-        </div>
-      )}
     </EditSection>
   );
 }
