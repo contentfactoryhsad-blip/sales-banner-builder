@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookOpen } from 'lucide-react';
 import { BackButton } from './BackButton';
 
 interface Props {
@@ -48,7 +49,18 @@ export function AppHeader({ title, onBack, onHome, right }: Props) {
         )}
       </div>
 
-      <div className="flex items-center gap-3 shrink-0">{right}</div>
+      <div className="flex items-center gap-3 shrink-0">
+        {right}
+        <a
+          href="https://f.io/jad4fAwp"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 h-8 px-3.5 rounded-full border border-gray-300 bg-white text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD312E]/40"
+        >
+          <BookOpen size={14} strokeWidth={2} />
+          README &amp; TUTORIAL
+        </a>
+      </div>
     </header>
   );
 }
