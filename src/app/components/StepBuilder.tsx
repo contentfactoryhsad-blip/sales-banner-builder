@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { AppHeader } from './AppHeader';
+import { AppHeader, ReadmeTutorialLink } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
@@ -124,11 +124,14 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
   );
 }
 
-function Head({ title, desc }: { title: string; desc?: string }) {
+function Head({ title, desc, right }: { title: string; desc?: string; right?: React.ReactNode }) {
   return (
-    <div className="mb-6">
-      <h2 className="font-lgei font-bold text-[24px] text-gray-900" style={{ lineHeight: '30px' }}>{title}</h2>
-      {desc && <p className="text-gray-500 text-sm mt-1">{desc}</p>}
+    <div className="mb-6 flex items-start justify-between gap-4">
+      <div>
+        <h2 className="font-lgei font-bold text-[24px] text-gray-900" style={{ lineHeight: '30px' }}>{title}</h2>
+        {desc && <p className="text-gray-500 text-sm mt-1">{desc}</p>}
+      </div>
+      {right}
     </div>
   );
 }
@@ -156,7 +159,7 @@ const DESIGN_STEP_THUMBS: Record<DesignType, string> = {
 function DesignStep({ state, update, picked, onPick, onChosen }: StepProps & { picked: boolean; onPick: () => void; onChosen: () => void }) {
   return (
     <div>
-      <Head title="Design Template Select" desc="Pick the background design approach." />
+      <Head title="Design Template Select" desc="Pick the background design approach." right={<ReadmeTutorialLink />} />
       <div className="grid grid-cols-2 gap-5">
         {(['A', 'B'] as DesignType[]).map((key) => {
           const d = DESIGN_TYPES[key];

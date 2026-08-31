@@ -2,6 +2,21 @@ import React from 'react';
 import { BookOpen } from 'lucide-react';
 import { BackButton } from './BackButton';
 
+/** 알약형 README & TUTORIAL 링크 — 단계 제목줄 오른쪽에 놓는다. */
+export function ReadmeTutorialLink() {
+  return (
+    <a
+      href="https://f.io/IWxBt1Gc"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-gray-300 bg-transparent text-[13px] font-medium text-gray-700 transition-colors hover:bg-black/[0.04] hover:border-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD312E]/40 shrink-0"
+    >
+      <BookOpen size={14} strokeWidth={2} />
+      README &amp; TUTORIAL
+    </a>
+  );
+}
+
 interface Props {
   title: string;
   /** 좌상단 뒤로 버튼. Home 등 뒤로가 없는 화면에서는 생략. */
@@ -49,18 +64,7 @@ export function AppHeader({ title, onBack, onHome, right }: Props) {
         )}
       </div>
 
-      <div className="flex items-center gap-3 shrink-0">
-        {right}
-        <a
-          href="https://f.io/jad4fAwp"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 h-8 px-3.5 rounded-full border border-gray-300 bg-white text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD312E]/40"
-        >
-          <BookOpen size={14} strokeWidth={2} />
-          README &amp; TUTORIAL
-        </a>
-      </div>
+      <div className="flex items-center gap-3 shrink-0">{right}</div>
     </header>
   );
 }
