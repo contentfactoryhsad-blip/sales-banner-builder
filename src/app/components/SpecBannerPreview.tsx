@@ -626,11 +626,15 @@ export function SpecBannerPreview({
                 // CTA 버튼도 Figma 에선 HUG(글자 폭 + 좌우 패딩)다. 실측 폭을 최소값으로
                 // 두되 글자가 넓어지면 늘어나게 해서 빨간 알약 밖으로 새지 않게 한다.
                 // 좌우 패딩은 실측상 글자 크기의 약 1.2배로 일정하다.
-                // 카피가 가운데정렬인 사이즈(160x600 등 세로형)는 버튼도 **중심을 고정**하고
-                // 양옆으로 늘어나야 한다 — 왼쪽 모서리를 고정하면 길어질수록 오른쪽으로 쏠린다.
+                // **중심을 고정**하고 양옆으로 늘어나는 사이즈 — 왼쪽 모서리를 고정하면
+                // 길어질수록 오른쪽으로 쏠린다. 두 부류가 해당된다:
+                //   · 카피가 가운데정렬인 세로형 (160x600 등, hAlign=center)
+                //   · CTA 가 카피 **옆에** 붙는 가로형 (728x90 등, cta x>0) — 카피 침범은
+                //     글자수 뚜껑(MAX_CTA)이 막는다
+                // 카피 아래 왼쪽정렬로 놓이는 사이즈(cta x=0)만 왼쪽 고정으로 남는다.
                 position: 'absolute', top: ctaTop,
-                left: hAlign === 'center' ? inn.cta[0] + inn.cta[2] / 2 : inn.cta[0],
-                transform: hAlign === 'center' ? 'translateX(-50%)' : undefined,
+                left: hAlign === 'center' || inn.cta[0] > 0 ? inn.cta[0] + inn.cta[2] / 2 : inn.cta[0],
+                transform: hAlign === 'center' || inn.cta[0] > 0 ? 'translateX(-50%)' : undefined,
                 minWidth: inn.cta[2], width: 'max-content',
                 paddingLeft: inn.cta[5] * 1.2, paddingRight: inn.cta[5] * 1.2,
                 boxSizing: 'border-box', height: inn.cta[3],
