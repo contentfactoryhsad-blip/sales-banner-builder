@@ -79,7 +79,13 @@ export interface BannerState {
   /** 카피 요소 표시 여부 (체크 해제 시 auto-layout에서 빠지며 줄어듦) */
   showHeadline: boolean;
   showSubcopy: boolean;
+
+  /** CTA 버튼 글귀 — 법인이 자기 언어로 바꿔 쓴다. 버튼 폭은 글자에 맞춰 늘어난다. */
+  ctaText: string;
 }
+
+/** CTA 버튼 글자수 뚜껑 — 이보다 길면 짧은 사이즈에서 버튼이 카피를 밀어낸다. */
+export const MAX_CTA = 12;
 
 export const MAX_BOXES = 6;
 
@@ -115,6 +121,7 @@ export function createInitialState(designType: DesignType): BannerState {
     subcopy: 'Limited-time offers, only on LG.com',
     showHeadline: true,
     showSubcopy: true,
+    ctaText: 'Shop now',
   };
 }
 

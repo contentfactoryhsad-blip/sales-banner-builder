@@ -3,7 +3,7 @@ import { AppHeader, ReadmeTutorialLink } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
-import { createInitialState, DESIGN_TYPES, type BannerState, type DesignType } from '../types';
+import { createInitialState, DESIGN_TYPES, MAX_CTA, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
 import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
@@ -1163,6 +1163,8 @@ function EditCopy({ state, update }: StepProps) {
             className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E] resize-none" />
         </div>
         <CopyField label="Sub copy" max={MAX_SUBCOPY} multiline value={state.subcopy} onChange={(v) => update({ subcopy: v })} />
+        {/* CTA 버튼 글귀 — 법인이 자기 언어로 바꾼다. 버튼 폭은 글자에 맞춰 늘어난다. */}
+        <CopyField label="CTA button" max={MAX_CTA} value={state.ctaText} onChange={(v) => update({ ctaText: v })} />
       </div>
     </EditSection>
   );

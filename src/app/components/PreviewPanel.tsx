@@ -98,7 +98,7 @@ export function PreviewPanel({ state, displayWidth = 520 }: { state: BannerState
               )}
             </div>
             <div style={{ background: '#fd312e', borderRadius: 16, padding: '14px 25px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'flex-start' }}>
-              <span style={{ fontFamily: '"LGEI Text", sans-serif', fontSize: 20.79, color: '#fff' }}>Shop now</span>
+              <span style={{ fontFamily: '"LGEI Text", sans-serif', fontSize: 20.79, color: '#fff', whiteSpace: 'nowrap' }}>{state.ctaText.trim() || 'Shop now'}</span>
             </div>
           </div>
 

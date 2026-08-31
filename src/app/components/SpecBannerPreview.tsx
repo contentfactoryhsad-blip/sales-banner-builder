@@ -633,7 +633,7 @@ export function SpecBannerPreview({
                 borderRadius: inn.cta[4], background: '#fd312e',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontFamily: BODY_FONT, fontSize: inn.cta[5], color: '#fff', whiteSpace: 'nowrap' }}>Shop now</span>
+                <span style={{ fontFamily: BODY_FONT, fontSize: inn.cta[5], color: '#fff', whiteSpace: 'nowrap' }}>{state.ctaText.trim() || 'Shop now'}</span>
               </div>
             )}
           </div>

@@ -232,7 +232,7 @@ export function SizedBannerPreview({
             }}
           >
             <span style={{ fontFamily: BODY_FONT, fontSize: layout.cta.fontSize, color: '#fff', whiteSpace: 'nowrap' }}>
-              Shop now
+              {state.ctaText.trim() || 'Shop now'}
             </span>
           </div>
         </div>
