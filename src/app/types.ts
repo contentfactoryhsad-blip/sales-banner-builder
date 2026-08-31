@@ -85,7 +85,7 @@ export interface BannerState {
 }
 
 /** CTA 버튼 글자수 뚜껑 — 이보다 길면 짧은 사이즈에서 버튼이 카피를 밀어낸다. */
-export const MAX_CTA = 12;
+export const MAX_CTA = 10;
 
 export const MAX_BOXES = 6;
 
