@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsageIn, readUsageRows } from './api-handlers';
+import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsageIn, readUsageRows, resetUsage } from './api-handlers';
 
 /**
  * 개발 서버용 API — 운영(server.ts)과 **같은 핸들러**를 쓴다.
@@ -51,6 +51,13 @@ export function apiPlugin(): Plugin {
       server.middlewares.use('/api/usage.json', async (_req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ rows: await readUsageRows() }));
+      });
+
+      server.middlewares.use('/api/usage/reset', async (_req, res) => {
+        // 개발에서는 열쇠 없이 — 로컬 logs/usage.csv 만 건드린다
+        const backup = await resetUsage();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, backup }));
       });
 
       server.middlewares.use('/api/usage.csv', async (req, res) => {

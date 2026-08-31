@@ -747,6 +747,24 @@ export async function appendUsage(rec: UsageRecord, ip: string): Promise<void> {
   await fs.appendFile(USAGE_CSV, row, 'utf8');
 }
 
+/**
+ * 기록을 처음부터 다시 센다 — 지금까지의 CSV 는 지우지 않고 같은 폴더에
+ * `usage-until-<시각>.csv` 로 옮겨 둔다. 테스트 기간 기록을 털고 실사용
+ * 통계를 새로 시작할 때 쓴다. 옮긴 파일 이름을 돌려준다 (기록이 없었으면 null).
+ */
+export async function resetUsage(): Promise<string | null> {
+  try {
+    await fs.access(USAGE_CSV);
+  } catch {
+    return null;   // 애초에 쌓인 게 없다
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const backup = path.join(path.dirname(USAGE_CSV), `usage-until-${stamp}.csv`);
+  await fs.rename(USAGE_CSV, backup);
+  await fs.writeFile(USAGE_CSV, USAGE_HEADER, 'utf8');
+  return path.basename(backup);
+}
+
 /** 모인 CSV 를 통째로 준다 (없으면 헤더만) */
 export async function readUsage(): Promise<string> {
   try { return await fs.readFile(USAGE_CSV, 'utf8'); } catch { return USAGE_HEADER; }

@@ -171,6 +171,24 @@ export function UsageStats() {
   // 저장된 열쇠가 있으면 바로 불러온다
   useEffect(() => { if (key) void load(key); /* eslint-disable-next-line */ }, []);
 
+  /**
+   * 기록 리셋 — 서버가 기존 CSV 를 백업으로 옮기고 0 부터 다시 센다.
+   * 실수로 누르면 안 되는 버튼이라 확인을 한 번 거친다.
+   */
+  const reset = async () => {
+    if (!window.confirm('지금까지의 기록을 백업으로 옮기고 0부터 다시 셉니다.\n계속할까요?')) return;
+    try {
+      const res = await fetch(`/api/usage/reset?key=${encodeURIComponent(key)}`, { method: 'POST' });
+      if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
+      const j = (await res.json()) as { backup: string | null };
+      window.alert(j.backup ? `백업 완료: ${j.backup}\n오늘부터 새로 집계합니다.` : '쌓인 기록이 없어 그대로 시작합니다.');
+      await load(key);
+      setPeriod({ kind: 'all' });
+    } catch (e) {
+      window.alert(`리셋 실패: ${(e as Error).message}`);
+    }
+  };
+
   /** 월별 집계는 **전체 기간** 기준 — 기간을 좁혀도 흐름은 계속 보여야 한다 */
   const months = useMemo(() => {
     const m = new Map<string, { count: number; banners: number }>();
@@ -242,8 +260,12 @@ export function UsageStats() {
       <AppHeader
         title="Usage Stats"
         right={
-          <a href={`/api/usage.csv?key=${encodeURIComponent(key)}&tz=${encodeURIComponent(TZ)}`}
-            className="text-xs text-gray-500 hover:text-[#FD312E]">CSV 내려받기</a>
+          <>
+            <a href={`/api/usage.csv?key=${encodeURIComponent(key)}&tz=${encodeURIComponent(TZ)}`}
+              className="text-xs text-gray-500 hover:text-[#FD312E]">CSV 내려받기</a>
+            <button type="button" onClick={() => void reset()}
+              className="text-xs text-gray-400 hover:text-[#FD312E]">기록 리셋</button>
+          </>
         }
       />
       <div className="flex-1 overflow-y-auto px-10 py-8">

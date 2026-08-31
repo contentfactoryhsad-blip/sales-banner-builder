@@ -11,7 +11,7 @@ import express from 'express';
 import compression from 'compression';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsageIn, readUsageRows, checkUsageKey } from './api-handlers';
+import { appendUsage, clientIp, crawlPage, fetchProxyImage, isImageDomainAllowed, readUsageIn, readUsageRows, resetUsage, checkUsageKey } from './api-handlers';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -100,6 +100,18 @@ app.get('/api/usage.json', async (req, res) => {
   if (k === 'no-key') return res.status(503).json({ error: 'USAGE_KEY not set on server' });
   if (k !== 'ok') return res.status(403).json({ error: 'Forbidden' });
   return res.json({ rows: await readUsageRows() });
+});
+
+/*
+  기록 리셋 — 지금까지의 CSV 를 백업 파일로 옮기고 0 부터 다시 센다.
+  통계 화면의 리셋 버튼이 부른다. 지우는 게 아니라 옮겨 두므로 되돌릴 수 있다.
+*/
+app.post('/api/usage/reset', async (req, res) => {
+  const k = checkUsageKey(req.query.key);
+  if (k === 'no-key') return res.status(503).json({ error: 'USAGE_KEY not set on server' });
+  if (k !== 'ok') return res.status(403).json({ error: 'Forbidden' });
+  const backup = await resetUsage();
+  return res.json({ ok: true, backup });
 });
 
 app.get('/api/usage.csv', async (req, res) => {
