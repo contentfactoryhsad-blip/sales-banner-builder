@@ -55,8 +55,17 @@ export const GLASS_BOX: Record<string, Record<string, [number, number, number]>>
 "meta-1080x1920":{"3":[18.87,1.067,4.268],"4":[18.87,1.59,6.359],"5":[18.87,2.472,9.888],"6":[18.87,2.472,9.888]},
 };
 
-/** 이 사이즈·박스개수의 유리값. 없으면 null — 부르는 쪽에서 종전 비율로 넘어간다. */
+/**
+ * 이 사이즈·박스개수의 유리값. 사이즈 자체가 없으면 null — 부르는 쪽에서 종전 비율로 넘어간다.
+ *
+ * 개수만 없는 경우(1·2개 버전은 Figma 유리 실측이 없다)는 같은 사이즈에서 **가장 적은
+ * 개수의 값**을 그대로 쓴다. 폴백 비율은 박스 폭에 비례하는데 1·2개 박스는 3~6개보다
+ * 몇 배 넓어서, 비율로 가면 테두리·그림자가 통째로 부풀어 보인다.
+ * metasaudi 는 meta 의 미러 판이라 meta 실측을 같이 쓴다.
+ */
 export function glassBox(key: string, boxKey: string) {
-  const v = GLASS_BOX[key]?.[boxKey];
+  const bySize = GLASS_BOX[key.startsWith('metasaudi-') ? key.replace('metasaudi-', 'meta-') : key];
+  if (!bySize) return null;
+  const v = bySize[boxKey] ?? bySize[Object.keys(bySize).sort((a, b) => +a - +b)[0]];
   return v ? { blur: v[0] * FROST_TO_PX, stroke: v[1], shadow: v[2] } : null;
 }

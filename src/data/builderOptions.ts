@@ -264,7 +264,7 @@ export function getGraphic(id: string): GraphicType {
 }
 
 /** 박스 개수: 3~6개 (최소 3개부터 — 그 미만은 레이아웃이 성립하지 않음) */
-export const BOX_COUNTS = [3, 4, 5, 6] as const;
+export const BOX_COUNTS = [1, 2, 3, 4, 5, 6] as const;
 export const MIN_BOX_COUNT = 3;
 
 /** 할인율 스티커 입력 범위 */
