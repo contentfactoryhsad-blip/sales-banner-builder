@@ -593,9 +593,11 @@ export function SpecBannerPreview({
                   줄바꿈 없는 사이즈는 폭을 글자에 맡기고, 어느 쪽이든 잘라내지 않는다.
                 */
                 width: noWrap ? 'max-content' : inn.head[2] * HEAD_WRAP_TOLERANCE,
-                // 폭을 넓힌 만큼 가운데정렬이 틀어지지 않게 절반만 왼쪽으로 당긴다
-                marginLeft: noWrap || hAlign !== 'center'
-                  ? undefined : -(inn.head[2] * (HEAD_WRAP_TOLERANCE - 1)) / 2,
+                // 폭을 넓힌 만큼 정렬이 틀어지지 않게 당긴다 — 가운데는 절반,
+                // 오른쪽 정렬(metasaudi)은 전부 왼쪽으로 당겨 오른쪽 끝을 지킨다.
+                marginLeft: noWrap || hAlign === 'left'
+                  ? undefined
+                  : -(inn.head[2] * (HEAD_WRAP_TOLERANCE - 1)) / (hAlign === 'center' ? 2 : 1),
                 fontFamily: HEADLINE_FONT, fontWeight: HEADLINE_WEIGHT,
                 fontSize: inn.head[4], letterSpacing: headLs,
                 lineHeight: COPY_LINE_HEIGHT, textAlign: hAlign,
@@ -609,7 +611,12 @@ export function SpecBannerPreview({
             )}
             {showSub && inn.sub && (
               <p ref={subRef} style={{
-                position: 'absolute', left: inn.sub[0], top: inn.sub[1],
+                // 오른쪽 정렬 사이즈는 **오른쪽 끝을 고정**한다 — max-content 폭이라
+                // 왼쪽 고정이면 글자가 길어질수록 오른쪽으로 삐져나간다.
+                position: 'absolute', top: inn.sub[1],
+                ...(hAlign === 'right'
+                  ? { right: inn.copy[2] - (inn.sub[0] + inn.sub[2]) }
+                  : { left: inn.sub[0] }),
                 /*
                   서브카피는 접지 않는다. Figma 의 서브카피 상자 높이를 전 사이즈에서
                   글자크기로 나눠 보면 10개 모두 정확히 1줄이다(0.99~1.01).
@@ -632,9 +639,14 @@ export function SpecBannerPreview({
                 //   · CTA 가 카피 **옆에** 붙는 가로형 (728x90 등, cta x>0) — 카피 침범은
                 //     글자수 뚜껑(MAX_CTA)이 막는다
                 // 카피 아래 왼쪽정렬로 놓이는 사이즈(cta x=0)만 왼쪽 고정으로 남는다.
+                // 오른쪽 정렬 사이즈(metasaudi)는 **오른쪽 끝 고정**으로 왼쪽으로 늘어난다.
                 position: 'absolute', top: ctaTop,
-                left: hAlign === 'center' || inn.cta[0] > 0 ? inn.cta[0] + inn.cta[2] / 2 : inn.cta[0],
-                transform: hAlign === 'center' || inn.cta[0] > 0 ? 'translateX(-50%)' : undefined,
+                ...(hAlign === 'right'
+                  ? { right: inn.copy[2] - (inn.cta[0] + inn.cta[2]) }
+                  : {
+                      left: hAlign === 'center' || inn.cta[0] > 0 ? inn.cta[0] + inn.cta[2] / 2 : inn.cta[0],
+                      transform: hAlign === 'center' || inn.cta[0] > 0 ? 'translateX(-50%)' : undefined,
+                    }),
                 minWidth: inn.cta[2], width: 'max-content',
                 paddingLeft: inn.cta[5] * 1.2, paddingRight: inn.cta[5] * 1.2,
                 boxSizing: 'border-box', height: inn.cta[3],
@@ -771,7 +783,8 @@ export function SpecBannerPreview({
             bottom: spec.f[1] - (inn.disc[1] + inn.disc[3]) + dpad[2],
             margin: 0, fontFamily: BODY_FONT, fontSize: inn.disc[4], color: style.discColor,
             textShadow: style.discShadow,
-          }}>*T&amp;C&rsquo;s apply</p>
+            textAlign: hAlign === 'right' ? 'right' : undefined,
+          }}>{state.discText.trim() || '*T&C’s apply'}</p>
         )}
       </div>
     </div>

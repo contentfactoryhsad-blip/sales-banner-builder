@@ -104,7 +104,7 @@ export function PreviewPanel({ state, displayWidth = 520 }: { state: BannerState
 
           {/* Disclaimer */}
           <p style={{ position: 'absolute', left: 40, bottom: 20, fontFamily: '"LGEI Text", sans-serif', fontSize: 20, color: discCol, textShadow: discShadow }}>
-            *T&C's apply
+            {state.discText.trim() || '*T&C’s apply'}
           </p>
         </div>
       </div>

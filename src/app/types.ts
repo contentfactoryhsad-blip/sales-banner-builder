@@ -82,10 +82,15 @@ export interface BannerState {
 
   /** CTA 버튼 글귀 — 법인이 자기 언어로 바꿔 쓴다. 버튼 폭은 글자에 맞춰 늘어난다. */
   ctaText: string;
+  /** 디스클레이머 글귀 ("*T&C's apply") — 법인이 자기 언어/문구로 바꿔 쓴다. */
+  discText: string;
 }
 
 /** CTA 버튼 글자수 뚜껑 — 이보다 길면 짧은 사이즈에서 버튼이 카피를 밀어낸다. */
 export const MAX_CTA = 15;
+
+/** 디스클레이머 글자수 뚜껑 — 작은 사이즈에서 고지문 한 줄을 지키는 한계. */
+export const MAX_DISC = 24;
 
 export const MAX_BOXES = 6;
 
@@ -122,6 +127,7 @@ export function createInitialState(designType: DesignType): BannerState {
     showHeadline: true,
     showSubcopy: true,
     ctaText: 'Shop now',
+    discText: "*T&C’s apply",
   };
 }
 

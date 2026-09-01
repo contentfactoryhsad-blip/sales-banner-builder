@@ -3,7 +3,7 @@ import { AppHeader, ReadmeTutorialLink } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
-import { createInitialState, DESIGN_TYPES, MAX_CTA, type BannerState, type DesignType } from '../types';
+import { createInitialState, DESIGN_TYPES, MAX_CTA, MAX_DISC, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
 import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { resolveBackground } from '../../data/builderOptions';
@@ -447,19 +447,28 @@ function AdMediaStep({ state, update }: StepProps) {
       <Head title="AD Media" desc="Select media — the 1200×628 design applies to all its sizes." />
 
       <p className="font-lgei font-bold text-[15px] text-gray-900 mb-2">Media Select</p>
-      <div className="grid grid-cols-2 gap-3">
-        {AD_CHANNELS.map((c) => {
+      {(() => {
+        const chanBtn = (c: (typeof AD_CHANNELS)[number]) => {
           const selected = state.adChannelIds.includes(c.id);
           return (
-            <button key={c.id} onClick={() => toggle(c.id)} className={`h-20 rounded-xl border transition-colors flex items-center gap-3 pl-6 ${selected ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+            <button key={c.id} onClick={() => toggle(c.id)} className={`h-20 rounded-xl border transition-colors flex items-center gap-3 pl-6 min-w-0 ${selected ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
               <span className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-[#FD312E] border-[#FD312E]' : 'border-gray-300 bg-white'}`}>
                 {selected && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
               </span>
-              <span className={`text-[16px] ${selected ? 'text-[#FD312E] font-medium' : 'text-gray-800'}`}>{c.label}</span>
+              <span className={`text-[16px] truncate ${selected ? 'text-[#FD312E] font-medium' : 'text-gray-800'}`}>{c.label}</span>
             </button>
           );
-        })}
-      </div>
+        };
+        // META 계열(meta·metasaudi)은 한 칸을 반씩 나눠 쓴다 — 같은 매체의 두 판이라 묶어 보여준다.
+        const metas = AD_CHANNELS.filter((c) => c.id.startsWith('meta'));
+        const rest = AD_CHANNELS.filter((c) => !c.id.startsWith('meta'));
+        return (
+          <div className="grid grid-cols-2 gap-3">
+            {rest.map(chanBtn)}
+            <div className="grid grid-cols-2 gap-3">{metas.map(chanBtn)}</div>
+          </div>
+        );
+      })()}
 
       {/* 로고 갈아끼우기 — 확인창에서 고른 사이즈 하나만 대상으로 한다 */}
       {ENABLE_LOGO_CHANGE && channels.length > 0 && (
@@ -554,7 +563,7 @@ function AdMediaStep({ state, update }: StepProps) {
                         작은 398x208 을 그 빈자리에 올린다. 사이즈가 많은 매체는
                         묶으면 순서가 뒤섞여 찾기 어려워지므로 그대로 둔다.
                       */
-                      const columns = c.id === 'meta' ? packSizes(ready) : null;
+                      const columns = c.id === 'meta' || c.id === 'metasaudi' ? packSizes(ready) : null;
                       const rows = columns ? null : [ready.filter(isWide), ready.filter((s) => !isWide(s))].filter((r) => r.length > 0);
                       return (
                         <>
@@ -1163,6 +1172,8 @@ function EditCopy({ state, update }: StepProps) {
             className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E] resize-none" />
         </div>
         <CopyField label="Sub copy" max={MAX_SUBCOPY} multiline value={state.subcopy} onChange={(v) => update({ subcopy: v })} />
+        {/* 디스클레이머 — "*T&C's apply" 를 법인 문구로 바꾼다. */}
+        <CopyField label="Disclaimer" max={MAX_DISC} value={state.discText} onChange={(v) => update({ discText: v })} />
         {/* CTA 버튼 글귀 — 법인이 자기 언어로 바꾼다. 버튼 폭은 글자에 맞춰 늘어난다. */}
         <CopyField label="CTA button" max={MAX_CTA} value={state.ctaText} onChange={(v) => update({ ctaText: v })} />
       </div>

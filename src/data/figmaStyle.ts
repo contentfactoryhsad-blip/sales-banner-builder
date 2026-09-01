@@ -5,6 +5,7 @@ import { SPEC_A_DV360 } from './figmaSpec.dv360.A';
 import { SPEC_B_DV360 } from './figmaSpec.dv360.B';
 import { SPEC_A_PMAXMETA } from './figmaSpec.pmaxmeta.A';
 import { SPEC_B_PMAXMETA } from './figmaSpec.pmaxmeta.B';
+import { METASAUDI_DISC_PAD, SPEC_A_METASAUDI, SPEC_B_METASAUDI } from './figmaSpec.metasaudi';
 import { SHADE } from './figmaSpec.shade';
 import {
   PMAXMETA_DISC_PAD, PMAXMETA_HEAD_CENTER, PMAXMETA_HEAD_NOWRAP, PMAXMETA_PRODUCT,
@@ -196,9 +197,16 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
  * (Pmax · META 는 Figma 확정 후 같은 방식으로 추가)
  */
 const SPECS: Record<DesignKind, Record<string, FigmaFrameSpec>> = {
-  A: { ...SPEC_A_CRITEO, ...SPEC_A_DV360, ...SPEC_A_PMAXMETA },
-  B: { ...SPEC_B_CRITEO, ...SPEC_B_DV360, ...SPEC_B_PMAXMETA },
+  A: { ...SPEC_A_CRITEO, ...SPEC_A_DV360, ...SPEC_A_PMAXMETA, ...SPEC_A_METASAUDI },
+  B: { ...SPEC_B_CRITEO, ...SPEC_B_DV360, ...SPEC_B_PMAXMETA, ...SPEC_B_METASAUDI },
 };
+
+/**
+ * META-Saudi 는 META 의 좌우 미러 판이라 **기하가 아닌 부가 데이터**(제품 사각형·
+ * 고지문 패딩·셰이드 각도·줄바꿈 목록)는 META 것을 그대로 물려받는다.
+ * 키 기반 조회 앞에서 metasaudi-* → meta-* 로 바꿔 조회한다.
+ */
+const sharedKey = (key: string) => key.startsWith('metasaudi-') ? key.replace('metasaudi-', 'meta-') : key;
 
 /** A 의 셰이드 각도 — 종전 그대로. B 는 여기 쓰지 않는다(SHADE.B 사용). */
 const ANGLES_A: Record<string, number> = {
@@ -206,7 +214,7 @@ const ANGLES_A: Record<string, number> = {
 };
 
 const PRODUCTS = { ...PRODUCT, ...DV360_PRODUCT, ...PMAXMETA_PRODUCT };
-const PADS = { ...DISC_PAD, ...DV360_DISC_PAD, ...PMAXMETA_DISC_PAD };
+const PADS = { ...DISC_PAD, ...DV360_DISC_PAD, ...PMAXMETA_DISC_PAD, ...METASAUDI_DISC_PAD };
 const NOWRAP: Record<DesignKind, string[]> = {
   A: [...HEAD_NOWRAP.A, ...DV360_HEAD_NOWRAP.A, ...PMAXMETA_HEAD_NOWRAP.A],
   B: [...HEAD_NOWRAP.B, ...DV360_HEAD_NOWRAP.B, ...PMAXMETA_HEAD_NOWRAP.B],
@@ -311,7 +319,7 @@ export function shadeCss(
   gr: FigmaFrameSpec['gr'], design: DesignKind, key: string, boost = 1, tint?: ShadeTint | null,
 ) {
   if (design === 'B') {
-    const s = SHADE.B[key];
+    const s = SHADE.B[sharedKey(key)];
     if (!s) return 'none';
     const [deg, stops] = s;
     const rgb = DESIGN_STYLES.B.shadeRgb;
@@ -339,7 +347,7 @@ export function shadeCss(
   }
   if (!gr) return 'none';
   const [, stops] = gr;
-  const angle = ANGLES_A[key] ?? 0;
+  const angle = ANGLES_A[sharedKey(key)] ?? 0;
   const last = stops.length - 1;
   /*
     램프 위 위치 u(0~1) 에서의 색.
@@ -370,25 +378,26 @@ export function shadeCss(
 
 /** 이 사이즈·박스개수의 제품 사각형 목록 (박스 기준). 없으면 빈 배열 */
 export function productRects(key: string, boxKey: string): ProdRect[] {
-  return PRODUCTS[key]?.[boxKey] ?? [];
+  return PRODUCTS[sharedKey(key)]?.[boxKey] ?? [];
 }
 
 /** 이 사이즈의 헤드라인이 줄바꿈하지 않는가 (Figma WIDTH_AND_HEIGHT) */
 export function headNoWrap(design: DesignKind, key: string) {
-  return NOWRAP[design].includes(key);
+  return NOWRAP[design].includes(sharedKey(key));
 }
 /** 이 사이즈는 프로모션 명칭의 뒷단어를 다음 줄로 내리는가 */
 export function promoBreak(key: string) {
   return PROMO_BREAK.includes(key);
 }
-/** 헤드라인 자체의 정렬 (블록 정렬과 다를 수 있다) */
-export function headAlign(key: string): 'left' | 'center' {
+/** 헤드라인 자체의 정렬 (블록 정렬과 다를 수 있다). metasaudi 는 RTL 미러라 오른쪽. */
+export function headAlign(key: string): 'left' | 'center' | 'right' {
+  if (key.startsWith('metasaudi-')) return 'right';
   return CENTERED.includes(key) ? 'center' : 'left';
 }
 
-/** 고지문 프레임 안쪽 패딩 [좌, 우, 아래] */
+/** 고지문 프레임 안쪽 패딩 [좌, 우, 아래]. 자기 키가 우선, 없으면 공유 키(meta)로. */
 export function discPad(key: string): [number, number, number] {
-  return PADS[key] ?? [0, 0, 0];
+  return PADS[key] ?? PADS[sharedKey(key)] ?? [0, 0, 0];
 }
 
 /**
@@ -396,7 +405,7 @@ export function discPad(key: string): [number, number, number] {
  * 줄바꿈이 지정되지 않은 사이즈는 한 줄 그대로 반환한다.
  */
 export function headLines(design: DesignKind, key: string, text: string): string[] {
-  const at = HEAD_BREAK[design][key];
+  const at = HEAD_BREAK[design][sharedKey(key)];
   if (!at) return [text];
   const w = text.trim().split(/\s+/);
   if (w.length <= at) return [text];
