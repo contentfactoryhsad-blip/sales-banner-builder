@@ -46,6 +46,13 @@ export const METASAUDI_DISC_PAD: Record<string, [number, number, number]> = {
   'metasaudi-398x208': [20, 21, 10],
 };
 
+/**
+ * 사우디 전용 제품 사각형 — 지금은 비어 있고 전부 META 표를 공유한다
+ * (productRects 가 자기 키 → 공유 키 순으로 본다). 사우디만 달라지는 값이
+ * 생기면 여기 사이즈·개수 단위로 넣으면 그 항목만 갈라진다.
+ */
+export const METASAUDI_PRODUCT: Record<string, Record<string, [number, number, number, number][]>> = {};
+
 /** B — A 배치 그대로, bg·gr(셰이드) 만 기존 meta B 값 (Figma 에 B 판이 없어 파생) */
 export const SPEC_B_METASAUDI: Record<string, FigmaFrameSpec> = {
 "metasaudi-1080x1920":{ ...SPEC_A_METASAUDI['metasaudi-1080x1920'], bg:[-453,-301,1995,1995,35], gr:[0,[[0,1,1],[1,0,1]]] },

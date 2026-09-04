@@ -5,7 +5,7 @@ import { SPEC_A_DV360 } from './figmaSpec.dv360.A';
 import { SPEC_B_DV360 } from './figmaSpec.dv360.B';
 import { SPEC_A_PMAXMETA } from './figmaSpec.pmaxmeta.A';
 import { SPEC_B_PMAXMETA } from './figmaSpec.pmaxmeta.B';
-import { METASAUDI_DISC_PAD, SPEC_A_METASAUDI, SPEC_B_METASAUDI } from './figmaSpec.metasaudi';
+import { METASAUDI_DISC_PAD, METASAUDI_PRODUCT, SPEC_A_METASAUDI, SPEC_B_METASAUDI } from './figmaSpec.metasaudi';
 import { SHADE } from './figmaSpec.shade';
 import {
   PMAXMETA_DISC_PAD, PMAXMETA_HEAD_CENTER, PMAXMETA_HEAD_NOWRAP, PMAXMETA_PRODUCT,
@@ -213,7 +213,7 @@ const ANGLES_A: Record<string, number> = {
   ...SHADE_ANGLE, ...DV360_SHADE_ANGLE, ...PMAXMETA_SHADE_ANGLE.A,
 };
 
-const PRODUCTS = { ...PRODUCT, ...DV360_PRODUCT, ...PMAXMETA_PRODUCT };
+const PRODUCTS: Record<string, Record<string, ProdRect[]>> = { ...PRODUCT, ...DV360_PRODUCT, ...PMAXMETA_PRODUCT, ...METASAUDI_PRODUCT };
 const PADS = { ...DISC_PAD, ...DV360_DISC_PAD, ...PMAXMETA_DISC_PAD, ...METASAUDI_DISC_PAD };
 const NOWRAP: Record<DesignKind, string[]> = {
   A: [...HEAD_NOWRAP.A, ...DV360_HEAD_NOWRAP.A, ...PMAXMETA_HEAD_NOWRAP.A],
@@ -378,7 +378,8 @@ export function shadeCss(
 
 /** 이 사이즈·박스개수의 제품 사각형 목록 (박스 기준). 없으면 빈 배열 */
 export function productRects(key: string, boxKey: string): ProdRect[] {
-  return PRODUCTS[sharedKey(key)]?.[boxKey] ?? [];
+  // 자기 키가 우선(사우디 전용 값), 없으면 공유 키(meta)로 폴백 — 개수 단위로 갈린다
+  return PRODUCTS[key]?.[boxKey] ?? PRODUCTS[sharedKey(key)]?.[boxKey] ?? [];
 }
 
 /** 이 사이즈의 헤드라인이 줄바꿈하지 않는가 (Figma WIDTH_AND_HEIGHT) */
