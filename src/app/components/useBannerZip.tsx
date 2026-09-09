@@ -39,16 +39,19 @@ export function useBannerZip(state: BannerState) {
     그러면 굽기가 두 벌 돌아 ZIP 이 두 개 떨어진다. ref 는 즉시 바뀐다.
   */
   const running = useRef(false);
-  const [job, setJob] = useState<{ channel: string; size: string; w: number; h: number } | null>(null);
+  const [job, setJob] = useState<{ channel: string; size: string; w: number; h: number; noLogo?: boolean } | null>(null);
   const [p, setP] = useState<ZipProgress>({ busy: false, done: 0, total: 0, current: null, error: null, failed: [] });
 
   /** 고른 매체 × Figma 스펙이 있는 사이즈 (숨김 프레임은 스펙이 없어 자연히 빠진다) */
   const targets = useMemo(() => {
-    const out: { channel: string; name: string; w: number; h: number }[] = [];
+    const out: { channel: string; name: string; w: number; h: number; noLogo?: boolean }[] = [];
     for (const c of AD_CHANNELS) {
       if (!state.adChannelIds.includes(c.id)) continue;
       for (const s of MEDIA_SIZES[c.id] ?? []) {
-        if (getSpec(state.designType, c.id, s.name)) out.push({ channel: c.id, name: s.name, w: s.w, h: s.h });
+        if (!getSpec(state.designType, c.id, s.name)) continue;
+        out.push({ channel: c.id, name: s.name, w: s.w, h: s.h });
+        // META 계열은 로고 없는 버전을 한 장씩 더 담는다 (매체 정책상 로고 없는 판이 필요)
+        if (c.id.startsWith('meta')) out.push({ channel: c.id, name: s.name, w: s.w, h: s.h, noLogo: true });
       }
     }
     return out;
@@ -68,9 +71,9 @@ export function useBannerZip(state: BannerState) {
     try {
       for (let i = 0; i < targets.length; i++) {
         const t = targets[i];
-        const label = `${t.channel} ${t.name}`;
+        const label = `${t.channel} ${t.name}${t.noLogo ? ' (no logo)' : ''}`;
         setP((s) => ({ ...s, current: label }));
-        setJob({ channel: t.channel, size: t.name, w: t.w, h: t.h });
+        setJob({ channel: t.channel, size: t.name, w: t.w, h: t.h, noLogo: t.noLogo });
         await settle();
         const host = hostRef.current;
         if (!host) throw new Error('렌더 자리를 찾지 못했습니다');
@@ -78,7 +81,7 @@ export function useBannerZip(state: BannerState) {
         try {
           // 폰트 CSS 는 첫 장에서 한 번만 만들어 모든 장에 같은 것을 넘긴다
           if (fontCss === null) fontCss = await buildFontCss();
-          zip.folder(t.channel)!.file(`${t.channel}-${t.name}.png`, await capturePng(host, t.w, t.h, fontCss));
+          zip.folder(t.channel)!.file(`${t.channel}-${t.name}${t.noLogo ? '-no-logo' : ''}.png`, await capturePng(host, t.w, t.h, fontCss));
           ok++;
         } catch {
           failed.push(label);
@@ -136,6 +139,7 @@ export function useBannerZip(state: BannerState) {
               channel={job.channel} size={job.size} displayWidth={job.w}
               // 굽는 동안만 유리 박스를 직접 흉내낸다 (SVG 안에서는 backdrop-filter 가 안 먹는다)
               emulateGlass
+              hideLogo={job.noLogo}
             />
           ) : null;
         })()}

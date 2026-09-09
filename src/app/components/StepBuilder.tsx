@@ -465,7 +465,12 @@ function AdMediaStep({ state, update }: StepProps) {
         return (
           <div className="grid grid-cols-2 gap-3">
             {rest.map(chanBtn)}
-            <div className="grid grid-cols-2 gap-3">{metas.map(chanBtn)}</div>
+            <div>
+              <div className="grid grid-cols-2 gap-3">{metas.map(chanBtn)}</div>
+              <p className="text-[10px] text-[#FD312E] mt-1.5 whitespace-nowrap">
+                * When downloading from the META Media channel, a version without the LG logo is also downloaded.
+              </p>
+            </div>
           </div>
         );
       })()}

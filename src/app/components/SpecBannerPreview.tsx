@@ -180,7 +180,7 @@ function promoNameNodes(name: string, br: boolean, k: number) {
 }
 
 export function SpecBannerPreview({
-  state, spec, design, channel, size, displayWidth, emulateGlass = false,
+  state, spec, design, channel, size, displayWidth, emulateGlass = false, hideLogo = false,
 }: {
   state: BannerState;
   spec: FigmaFrameSpec;
@@ -188,6 +188,8 @@ export function SpecBannerPreview({
   channel: string;
   size: string;
   displayWidth: number;
+  /** LG 로고를 뺀다 — META 매체의 로고 없는 다운로드 버전용. */
+  hideLogo?: boolean;
   /**
    * 유리 박스의 backdrop-filter 를 **직접 흉내낸다** (PNG 로 구울 때만 켠다).
    *
@@ -493,7 +495,7 @@ export function SpecBannerPreview({
         {backdrop}
 
         {/* LG 로고 */}
-        {inn.logo && (
+        {inn.logo && !hideLogo && (
           <img src={logoSrc(state.logoBySize[key], baseLogo)} alt="LG" draggable={false}
             style={{ position: 'absolute', left: inn.logo[0], top: inn.logo[1], width: inn.logo[2], height: inn.logo[3] }} />
         )}
