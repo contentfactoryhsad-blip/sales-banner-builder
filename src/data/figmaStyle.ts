@@ -6,6 +6,7 @@ import { SPEC_B_DV360 } from './figmaSpec.dv360.B';
 import { SPEC_A_PMAXMETA } from './figmaSpec.pmaxmeta.A';
 import { SPEC_B_PMAXMETA } from './figmaSpec.pmaxmeta.B';
 import { METASAUDI_DISC_PAD, METASAUDI_PRODUCT, SPEC_A_METASAUDI, SPEC_B_METASAUDI } from './figmaSpec.metasaudi';
+import { LGCOM_PRODUCT, LGCOM_SHADE_ANGLE, SPEC_B_LGCOM, SPEC_LGCOM } from './figmaSpec.lgcom';
 import { SHADE } from './figmaSpec.shade';
 import {
   PMAXMETA_DISC_PAD, PMAXMETA_HEAD_CENTER, PMAXMETA_HEAD_NOWRAP, PMAXMETA_PRODUCT,
@@ -197,8 +198,8 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
  * (Pmax · META 는 Figma 확정 후 같은 방식으로 추가)
  */
 const SPECS: Record<DesignKind, Record<string, FigmaFrameSpec>> = {
-  A: { ...SPEC_A_CRITEO, ...SPEC_A_DV360, ...SPEC_A_PMAXMETA, ...SPEC_A_METASAUDI },
-  B: { ...SPEC_B_CRITEO, ...SPEC_B_DV360, ...SPEC_B_PMAXMETA, ...SPEC_B_METASAUDI },
+  A: { ...SPEC_A_CRITEO, ...SPEC_A_DV360, ...SPEC_A_PMAXMETA, ...SPEC_A_METASAUDI, ...SPEC_LGCOM },
+  B: { ...SPEC_B_CRITEO, ...SPEC_B_DV360, ...SPEC_B_PMAXMETA, ...SPEC_B_METASAUDI, ...SPEC_B_LGCOM },
 };
 
 /**
@@ -210,10 +211,10 @@ const sharedKey = (key: string) => key.startsWith('metasaudi-') ? key.replace('m
 
 /** A 의 셰이드 각도 — 종전 그대로. B 는 여기 쓰지 않는다(SHADE.B 사용). */
 const ANGLES_A: Record<string, number> = {
-  ...SHADE_ANGLE, ...DV360_SHADE_ANGLE, ...PMAXMETA_SHADE_ANGLE.A,
+  ...SHADE_ANGLE, ...DV360_SHADE_ANGLE, ...PMAXMETA_SHADE_ANGLE.A, ...LGCOM_SHADE_ANGLE,
 };
 
-const PRODUCTS: Record<string, Record<string, ProdRect[]>> = { ...PRODUCT, ...DV360_PRODUCT, ...PMAXMETA_PRODUCT, ...METASAUDI_PRODUCT };
+const PRODUCTS: Record<string, Record<string, ProdRect[]>> = { ...PRODUCT, ...DV360_PRODUCT, ...PMAXMETA_PRODUCT, ...METASAUDI_PRODUCT, ...LGCOM_PRODUCT };
 const PADS = { ...DISC_PAD, ...DV360_DISC_PAD, ...PMAXMETA_DISC_PAD, ...METASAUDI_DISC_PAD };
 const NOWRAP: Record<DesignKind, string[]> = {
   A: [...HEAD_NOWRAP.A, ...DV360_HEAD_NOWRAP.A, ...PMAXMETA_HEAD_NOWRAP.A],

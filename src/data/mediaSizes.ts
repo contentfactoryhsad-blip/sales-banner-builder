@@ -31,4 +31,6 @@ export const MEDIA_SIZES: Record<string, MediaSize[]> = {
   meta: sizes('1080x1080,1080x1920,398x208'),
   /** META 의 좌우 미러(RTL) 판 — 사우디 법인용. 사이즈 구성은 META 와 같다. */
   metasaudi: sizes('1080x1080,1080x1920,398x208'),
+  /** LG.com 배너 — ST0001 두 판은 카피만, 960x600(PR0001)은 글래스 박스만 있다 */
+  lgcom: sizes('1920x720,720x960,960x600'),
 };

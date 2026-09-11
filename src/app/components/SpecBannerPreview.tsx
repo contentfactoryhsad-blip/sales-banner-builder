@@ -259,7 +259,8 @@ export function SpecBannerPreview({
   // 개수를 고르기 전엔 박스를 아예 그리지 않는다. 자리 계산만 기본값으로 해둔다.
   const showBoxes = state.boxCount != null;
   const boxKey = resolveBoxCount(spec, state.boxCount ?? MIN_BOX_COUNT);
-  const [bx, by, rects] = spec.box[boxKey];
+  // 박스가 아예 없는 사이즈(LG.com ST0001)는 빈 목록으로 — 카피만 그린다
+  const [bx, by, rects] = spec.box[boxKey] ?? [0, 0, []];
   const prods = productRects(key, boxKey);
 
   const inn = spec.in;
@@ -584,7 +585,11 @@ export function SpecBannerPreview({
 
         {/* ── 카피 + CTA ── (copy 블록은 프레임 기준, 내부는 블록 기준) */}
         {inn.copy && (
-          <div style={{ position: 'absolute', left: inn.copy[0], top: inn.copy[1], width: inn.copy[2], color: style.text }}>
+          <div style={{
+            position: 'absolute', left: inn.copy[0], top: inn.copy[1], width: inn.copy[2],
+            // LG.com 은 B 여도 피그마가 Mode=Dark(흰 글씨)다 — 셰이드 없는 컬러 KV 위라 흰색 고정
+            color: channel === 'lgcom' ? '#fff' : style.text,
+          }}>
             {inn.head && (
               <div ref={headRef} style={{
                 position: 'absolute', left: inn.head[0], top: inn.head[1],
@@ -783,10 +788,11 @@ export function SpecBannerPreview({
             position: 'absolute', left: inn.disc[0] + dpad[0],
             width: inn.disc[2] - dpad[0] - dpad[1],
             bottom: spec.f[1] - (inn.disc[1] + inn.disc[3]) + dpad[2],
-            margin: 0, fontFamily: BODY_FONT, fontSize: inn.disc[4], color: style.discColor,
-            textShadow: style.discShadow,
+            margin: 0, fontFamily: BODY_FONT, fontSize: inn.disc[4],
+            color: channel === 'lgcom' ? '#fff' : style.discColor,
+            textShadow: channel === 'lgcom' ? undefined : style.discShadow,
             textAlign: hAlign === 'right' ? 'right' : undefined,
-          }}>{state.discText.trim() || '*T&C’s apply'}</p>
+          }}>{(channel === 'lgcom' ? state.lgcomDiscText : state.discText).trim() || '*T&C’s apply'}</p>
         )}
       </div>
     </div>

@@ -84,6 +84,8 @@ export interface BannerState {
   ctaText: string;
   /** 디스클레이머 글귀 ("*T&C's apply") — 법인이 자기 언어/문구로 바꿔 쓴다. */
   discText: string;
+  /** LG.com 전용 디스클레이머 — 1920x720·720x960 두 판에만 쓰인다 (AD Media 의 슬라이드 패널에서 입력). */
+  lgcomDiscText: string;
 }
 
 /** CTA 버튼 글자수 뚜껑 — 이보다 길면 짧은 사이즈에서 버튼이 카피를 밀어낸다. */
@@ -128,6 +130,7 @@ export function createInitialState(designType: DesignType): BannerState {
     showSubcopy: true,
     ctaText: 'Shop now',
     discText: "*T&C’s apply",
+    lgcomDiscText: "*T&C’s apply",
   };
 }
 

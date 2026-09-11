@@ -136,6 +136,13 @@ function Head({ title, desc, right }: { title: string; desc?: string; right?: Re
   );
 }
 
+/** LG.com 사이즈만 쓰는 상세 라벨 — 플랫폼(PC/MO)과 피그마 템플릿 코드를 같이 적는다 */
+const LGCOM_SIZE_LABELS: Record<string, string> = {
+  'lgcom-1920x720': '1920×720 | PC [ST0001]',
+  'lgcom-720x960': '720×960 | MO [ST0001]',
+  'lgcom-960x600': '960x600 | PC [PR0001]',
+};
+
 /** Step 1 썸네일 — 라이브 렌더 대신 레퍼런스 완성본 이미지를 그대로 쓴다 */
 const DESIGN_STEP_THUMBS: Record<DesignType, string> = {
   A: '/main/main-a.png',
@@ -240,9 +247,13 @@ const ZOOM_MAX = 4;
 
 // ── Step 4: AD Media (매체 선택 + 하단 줌/팬 확인창) ────────────────────────────
 function AdMediaStep({ state, update }: StepProps) {
+  /** LG.com 전용 디스클레이머 입력 패널 (오른쪽 슬라이드) */
+  const [lgcomPanel, setLgcomPanel] = useState(false);
   const toggle = (id: string) => {
     const has = state.adChannelIds.includes(id);
     update({ adChannelIds: has ? state.adChannelIds.filter((x) => x !== id) : [...state.adChannelIds, id] });
+    // LG.com 을 켜는 순간 패널이 열리고, 끄면 닫힌다
+    if (id === 'lgcom') setLgcomPanel(!has);
   };
   const channels = AD_CHANNELS.filter((c) => state.adChannelIds.includes(c.id));
 
@@ -451,7 +462,7 @@ function AdMediaStep({ state, update }: StepProps) {
         const chanBtn = (c: (typeof AD_CHANNELS)[number]) => {
           const selected = state.adChannelIds.includes(c.id);
           return (
-            <button key={c.id} onClick={() => toggle(c.id)} className={`h-20 rounded-xl border transition-colors flex items-center gap-3 pl-6 min-w-0 ${selected ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+            <button key={c.id} onClick={() => toggle(c.id)} className={`h-20 w-full rounded-xl border transition-colors flex items-center gap-3 pl-6 min-w-0 ${selected ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
               <span className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-[#FD312E] border-[#FD312E]' : 'border-gray-300 bg-white'}`}>
                 {selected && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
               </span>
@@ -460,8 +471,10 @@ function AdMediaStep({ state, update }: StepProps) {
           );
         };
         // META 계열(meta·metasaudi)은 한 칸을 반씩 나눠 쓴다 — 같은 매체의 두 판이라 묶어 보여준다.
+        // LG.com 은 META 칸 다음(=Pmax 아래 줄)에 온다.
         const metas = AD_CHANNELS.filter((c) => c.id.startsWith('meta'));
-        const rest = AD_CHANNELS.filter((c) => !c.id.startsWith('meta'));
+        const lgcom = AD_CHANNELS.filter((c) => c.id === 'lgcom');
+        const rest = AD_CHANNELS.filter((c) => !c.id.startsWith('meta') && c.id !== 'lgcom');
         return (
           <div className="grid grid-cols-2 gap-3">
             {rest.map(chanBtn)}
@@ -470,6 +483,44 @@ function AdMediaStep({ state, update }: StepProps) {
               <p className="text-[10px] text-[#FD312E] mt-1.5 whitespace-nowrap">
                 * When downloading from the META Media channel, a version without the LG logo is also downloaded.
               </p>
+            </div>
+            {/*
+              LG.com 칸 — 버튼을 켜면 **버튼 뒤에서 오른쪽으로** 디스클레이머 입력 패널이
+              미끄러져 나온다 (별도 팝업이 아니라 같은 줄의 빈 자리를 쓴다).
+            */}
+            <div className="col-span-2 relative">
+              <div className="relative z-10 w-[calc(50%-6px)]">{lgcom.map(chanBtn)}</div>
+              {/*
+                버튼과 겹치지 않게 버튼 오른쪽 끝(+그리드 간격)에서 시작하고,
+                왼쪽에서 크게 밀려나오며 또렷하게 나타난다. 접힌 동안은 클릭도 안 잡힌다.
+              */}
+              <div
+                className={`absolute top-0 right-0 h-20 rounded-xl border border-gray-200 bg-white flex items-center gap-3 pl-5 pr-4 transition-all duration-500 ease-out ${
+                  lgcomPanel && state.adChannelIds.includes('lgcom')
+                    ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-[60%] pointer-events-none'
+                }`}
+                style={{ left: 'calc(50% + 6px)' }}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-xs font-medium text-gray-600">Disclaimer (LG.com)</span>
+                    <span className="text-[10px] text-gray-400">1920×720 · 720×960 only</span>
+                  </div>
+                  <input type="text" value={state.lgcomDiscText}
+                    onChange={(e) => update({ lgcomDiscText: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
+                </div>
+                <button type="button" onClick={() => setLgcomPanel(false)}
+                  className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                </button>
+              </div>
+              {state.adChannelIds.includes('lgcom') && !lgcomPanel && (
+                <button type="button" onClick={() => setLgcomPanel(true)}
+                  className="text-[11px] text-gray-500 hover:text-[#FD312E] mt-1.5 underline underline-offset-2">
+                  Edit LG.com disclaimer: &ldquo;{state.lgcomDiscText.trim() || '*T&C’s apply'}&rdquo;
+                </button>
+              )}
             </div>
           </div>
         );
@@ -604,7 +655,9 @@ function AdMediaStep({ state, update }: StepProps) {
                                     design={state.designType} channel={c.id} size={s.name}
                                     displayWidth={s.w}
                                   />
-                                  <p className="text-[#6b6862] whitespace-nowrap" style={{ fontSize: NS(10), marginTop: NS(4) }}>{s.name}</p>
+                                  <p className="text-[#6b6862] whitespace-nowrap" style={{ fontSize: NS(10), marginTop: NS(4) }}>
+                                    {LGCOM_SIZE_LABELS[`${c.id}-${s.name}`] ?? s.name}
+                                  </p>
                                 </div>
                               ))}
                             </div>

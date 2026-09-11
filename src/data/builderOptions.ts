@@ -17,6 +17,7 @@ export const AD_CHANNELS: AdChannel[] = [
   { id: 'pmax', label: 'Pmax' },
   { id: 'meta', label: 'META' },
   { id: 'metasaudi', label: 'META_Saudi' },
+  { id: 'lgcom', label: 'LG.com' },
 ];
 
 /** Background Type — 배경 그래픽 5종. A/B 디자인별로 다른 이미지 세트.
