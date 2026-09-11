@@ -251,8 +251,14 @@ function AdMediaStep({ state, update }: StepProps) {
   const [lgcomPanel, setLgcomPanel] = useState(false);
   const toggle = (id: string) => {
     const has = state.adChannelIds.includes(id);
+    /*
+      LG.com 은 디스클레이머 패널과 한 몸이다:
+        꺼짐 → 누르면 켜지며 패널이 열린다
+        켜짐 + 패널 닫힘 → 누르면 **패널만 다시 연다** (선택 해제 아님)
+        켜짐 + 패널 열림 → 누르면 선택 해제 + 패널 닫힘
+    */
+    if (id === 'lgcom' && has && !lgcomPanel) { setLgcomPanel(true); return; }
     update({ adChannelIds: has ? state.adChannelIds.filter((x) => x !== id) : [...state.adChannelIds, id] });
-    // LG.com 을 켜는 순간 패널이 열리고, 끄면 닫힌다
     if (id === 'lgcom') setLgcomPanel(!has);
   };
   const channels = AD_CHANNELS.filter((c) => state.adChannelIds.includes(c.id));
@@ -515,12 +521,6 @@ function AdMediaStep({ state, update }: StepProps) {
                   <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
                 </button>
               </div>
-              {state.adChannelIds.includes('lgcom') && !lgcomPanel && (
-                <button type="button" onClick={() => setLgcomPanel(true)}
-                  className="text-[11px] text-gray-500 hover:text-[#FD312E] mt-1.5 underline underline-offset-2">
-                  Edit LG.com disclaimer: &ldquo;{state.lgcomDiscText.trim() || '*T&C’s apply'}&rdquo;
-                </button>
-              )}
             </div>
           </div>
         );
