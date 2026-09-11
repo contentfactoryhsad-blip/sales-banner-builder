@@ -590,6 +590,15 @@ export function SpecBannerPreview({
             // LG.com 은 B 여도 피그마가 Mode=Dark(흰 글씨)다 — 셰이드 없는 컬러 KV 위라 흰색 고정
             color: channel === 'lgcom' ? '#fff' : style.text,
           }}>
+            {/* 아이브로우 — LG.com ST0001 전용 한 줄. 비어 있으면 그리지 않는다. */}
+            {inn.eyebrow && state.lgcomEyebrowText.trim() && (
+              <p style={{
+                position: 'absolute', left: inn.eyebrow[0], top: inn.eyebrow[1],
+                width: 'max-content', whiteSpace: 'nowrap', margin: 0,
+                fontFamily: BODY_FONT, fontSize: inn.eyebrow[4], letterSpacing: inn.eyebrow[5] || undefined,
+                lineHeight: COPY_LINE_HEIGHT,
+              }}>{state.lgcomEyebrowText}</p>
+            )}
             {inn.head && (
               <div ref={headRef} style={{
                 position: 'absolute', left: inn.head[0], top: inn.head[1],

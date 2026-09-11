@@ -507,14 +507,25 @@ function AdMediaStep({ state, update }: StepProps) {
                 }`}
                 style={{ left: 'calc(50% + 6px)' }}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-xs font-medium text-gray-600">Disclaimer (LG.com)</span>
-                    <span className="text-[10px] text-gray-400">1920×720 · 720×960 only</span>
+                <div className="min-w-0 flex-1 flex items-end gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-xs font-medium text-gray-600">Eyebrow (LG.com)</span>
+                      <span className="text-[10px] text-gray-400">optional</span>
+                    </div>
+                    <input type="text" value={state.lgcomEyebrowText} placeholder="Optional line above headline"
+                      onChange={(e) => update({ lgcomEyebrowText: e.target.value })}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
                   </div>
-                  <input type="text" value={state.lgcomDiscText}
-                    onChange={(e) => update({ lgcomDiscText: e.target.value })}
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-xs font-medium text-gray-600">Disclaimer (LG.com)</span>
+                      <span className="text-[10px] text-gray-400">1920×720 · 720×960 only</span>
+                    </div>
+                    <input type="text" value={state.lgcomDiscText}
+                      onChange={(e) => update({ lgcomDiscText: e.target.value })}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
+                  </div>
                 </div>
                 <button type="button" onClick={() => setLgcomPanel(false)}
                   className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">

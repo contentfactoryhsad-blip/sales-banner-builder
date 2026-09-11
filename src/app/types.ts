@@ -86,6 +86,8 @@ export interface BannerState {
   discText: string;
   /** LG.com 전용 디스클레이머 — 1920x720·720x960 두 판에만 쓰인다 (AD Media 의 슬라이드 패널에서 입력). */
   lgcomDiscText: string;
+  /** LG.com 전용 아이브로우 — 같은 두 판의 헤드라인 위 한 줄. 비우면 안 그린다. */
+  lgcomEyebrowText: string;
 }
 
 /** CTA 버튼 글자수 뚜껑 — 이보다 길면 짧은 사이즈에서 버튼이 카피를 밀어낸다. */
@@ -131,6 +133,7 @@ export function createInitialState(designType: DesignType): BannerState {
     ctaText: 'Shop now',
     discText: "*T&C’s apply",
     lgcomDiscText: "*T&C’s apply",
+    lgcomEyebrowText: 'Special offers are here',   // 피그마 A 판 기본 문구 (A·B 공용)
   };
 }
 

@@ -27,6 +27,8 @@ export type Box5 = [number, number, number, number, number];
 
 export interface FigmaInner {
   logo: Rect4 | null;
+  /** 아이브로우 [x,y,w,h,fontSize,letterSpacing] — 현재 LG.com ST0001 두 판만 갖는다 */
+  eyebrow?: [number, number, number, number, number, number] | null;
   copy: [number, number, number, number, number, string] | null;
   head: [number, number, number, number, number, number] | null;
   sub: [number, number, number, number, number] | null;
