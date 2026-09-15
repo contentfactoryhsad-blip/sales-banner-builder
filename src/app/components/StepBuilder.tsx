@@ -6,6 +6,7 @@ import { ProductRow } from './LeftOptionsPanel';
 import { createInitialState, DESIGN_TYPES, MAX_CTA, MAX_DISC, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
 import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
+import { LGCOM_ICON_OPTIONS, lgcomIconSrc } from '../../data/lgcomIcons';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
 import { LOGO_VARIANTS } from '../../data/logos';
@@ -247,8 +248,15 @@ const ZOOM_MAX = 4;
 
 // ── Step 4: AD Media (매체 선택 + 하단 줌/팬 확인창) ────────────────────────────
 function AdMediaStep({ state, update }: StepProps) {
-  /** LG.com 전용 디스클레이머 입력 패널 (오른쪽 슬라이드) */
+  /** LG.com 전용 입력 패널 (오른쪽 슬라이드 + 아래 확장) */
   const [lgcomPanel, setLgcomPanel] = useState(false);
+  const lgcomOpen = lgcomPanel && state.adChannelIds.includes('lgcom');
+  const updateIcons = (patch: Partial<BannerState['lgcomIcons']>) =>
+    update({ lgcomIcons: { ...state.lgcomIcons, ...patch } });
+  const updateIconItem = (i: number, patch: Partial<BannerState['lgcomIcons']['items'][number]>) => {
+    const items = state.lgcomIcons.items.map((it, j) => (j === i ? { ...it, ...patch } : it));
+    update({ lgcomIcons: { ...state.lgcomIcons, items } });
+  };
   const toggle = (id: string) => {
     const has = state.adChannelIds.includes(id);
     /*
@@ -491,46 +499,124 @@ function AdMediaStep({ state, update }: StepProps) {
               </p>
             </div>
             {/*
-              LG.com 칸 — 버튼을 켜면 **버튼 뒤에서 오른쪽으로** 디스클레이머 입력 패널이
-              미끄러져 나온다 (별도 팝업이 아니라 같은 줄의 빈 자리를 쓴다).
+              LG.com 칸 — 켜면 카드가 **아래로 확장**되며 아이콘 컨트롤이 나오고
+              (하단 프리뷰는 자연히 밀려 내려간다), 오른쪽으로는 아이브로우/디스클레이머
+              패널이 미끄러져 나온다. 아이콘 기능은 1920×720·720×960 두 판 전용이다.
             */}
-            <div className="col-span-2 relative">
-              <div className="relative z-10 w-[calc(50%-6px)]">{lgcom.map(chanBtn)}</div>
-              {/*
-                버튼과 겹치지 않게 버튼 오른쪽 끝(+그리드 간격)에서 시작하고,
-                왼쪽에서 크게 밀려나오며 또렷하게 나타난다. 접힌 동안은 클릭도 안 잡힌다.
-              */}
-              <div
-                className={`absolute top-0 right-0 h-20 rounded-xl border border-gray-200 bg-white flex items-center gap-3 pl-5 pr-4 transition-all duration-500 ease-out ${
-                  lgcomPanel && state.adChannelIds.includes('lgcom')
-                    ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-[60%] pointer-events-none'
-                }`}
-                style={{ left: 'calc(50% + 6px)' }}
-              >
-                <div className="min-w-0 flex-1 flex items-end gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-xs font-medium text-gray-600">Eyebrow (LG.com)</span>
-                      <span className="text-[10px] text-gray-400">optional</span>
-                    </div>
-                    <input type="text" value={state.lgcomEyebrowText} placeholder="Optional line above headline"
-                      onChange={(e) => update({ lgcomEyebrowText: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
+            <div className={`col-span-2 rounded-xl transition-all duration-300 ${lgcomOpen ? 'border border-gray-200 bg-white p-4' : ''}`}>
+              <div className="flex gap-3 items-stretch">
+                {/* ── 왼쪽 — LG.com 버튼 + 아이콘 컨트롤 ── */}
+                <div className={lgcomOpen ? 'w-[calc(50%-6px)] shrink-0 flex flex-col gap-3' : 'w-[calc(50%-6px)] shrink-0'}>
+                  <div>
+                    {lgcom.map(chanBtn)}
+                    <p className="text-[10px] text-[#FD312E] mt-1.5">
+                      * When downloading, text areas other than the icons, disclaimer, and images are not included.
+                    </p>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-xs font-medium text-gray-600">Disclaimer (LG.com)</span>
-                      <span className="text-[10px] text-gray-400">1920×720 · 720×960 only</span>
+                  <div className={`overflow-hidden transition-all duration-500 ease-out ${lgcomOpen ? 'max-h-[240px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <button type="button" role="switch" aria-checked={state.lgcomIcons.enabled}
+                          onClick={() => updateIcons({ enabled: !state.lgcomIcons.enabled })}
+                          className={`relative w-11 h-6 shrink-0 rounded-full transition-colors ${state.lgcomIcons.enabled ? 'bg-[#FD312E]' : 'bg-gray-300'}`}>
+                          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${state.lgcomIcons.enabled ? 'left-[22px]' : 'left-0.5'}`} />
+                        </button>
+                        <span className="font-lgei font-bold text-[14px] text-gray-900">Icons</span>
+                        <span className="text-[11px] text-gray-400 truncate">
+                          {state.lgcomIcons.enabled ? 'Shown on 1920×720 · 720×960' : 'Icons are hidden on the banners'}
+                        </span>
+                      </div>
+                      {state.lgcomIcons.enabled && (<>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {(['solid', 'line'] as const).map((s) => (
+                          <button key={s} type="button" onClick={() => updateIcons({ style: s })}
+                            className={`h-10 px-6 rounded-xl border text-sm font-medium transition-colors ${state.lgcomIcons.style === s ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                            {s === 'solid' ? 'Solid Icon' : 'Line Icon'}
+                          </button>
+                        ))}
+                        <div className="flex rounded-xl border border-gray-200 overflow-hidden ml-1">
+                          {(['black', 'white'] as const).map((c) => (
+                            <button key={c} type="button" onClick={() => updateIcons({ color: c })}
+                              className={`h-10 px-5 text-sm flex items-center gap-2 transition-colors ${state.lgcomIcons.color === c ? 'bg-[#F0ECE4] text-gray-900 font-medium' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                              <span className={`w-3 h-3 rounded-full border ${state.lgcomIcons.color === c ? 'border-gray-800 bg-gray-800' : 'border-gray-300'}`}
+                                style={c === 'white' && state.lgcomIcons.color === c ? { background: '#fff', borderColor: '#999' } : undefined} />
+                              {c === 'black' ? 'Black' : 'White'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-gray-600">Number of icons</span>
+                        {[1, 2, 3].map((n) => (
+                          <button key={n} type="button" onClick={() => updateIcons({ count: n })}
+                            className={`w-9 h-9 rounded-lg border text-sm font-medium transition-colors ${state.lgcomIcons.count === n ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                      </>)}
                     </div>
-                    <input type="text" value={state.lgcomDiscText}
-                      onChange={(e) => update({ lgcomDiscText: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
                   </div>
                 </div>
-                <button type="button" onClick={() => setLgcomPanel(false)}
-                  className="w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
-                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
-                </button>
+
+                {/* ── 오른쪽 — 카피 패널 (세로로 넉넉하게) ── */}
+                <div
+                  className={`relative min-w-0 rounded-xl bg-white overflow-hidden transition-all duration-500 ease-out ${
+                    lgcomOpen
+                      ? 'flex-1 border border-gray-200 p-5 opacity-100 translate-x-0'
+                      : 'w-0 h-0 flex-none p-0 border-0 opacity-0 -translate-x-6 pointer-events-none'
+                  }`}
+                >
+                  <button type="button" onClick={() => setLgcomPanel(false)}
+                    className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                  </button>
+                  <div className="flex flex-col gap-4 pr-8">
+                    <div>
+                      <div className="flex items-baseline gap-1.5 mb-1.5">
+                        <span className="text-[13px] font-medium text-gray-700">Eyebrow</span>
+                        <span className="text-[11px] text-gray-400">optional</span>
+                      </div>
+                      <input type="text" value={state.lgcomEyebrowText} placeholder="Line above headline"
+                        onChange={(e) => update({ lgcomEyebrowText: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E]" />
+                    </div>
+                    <div>
+                      <div className="flex items-baseline gap-1.5 mb-1.5">
+                        <span className="text-[13px] font-medium text-gray-700">Disclaimer</span>
+                        <span className="text-[11px] text-gray-400">LG.com sizes only</span>
+                      </div>
+                      <input type="text" value={state.lgcomDiscText}
+                        onChange={(e) => update({ lgcomDiscText: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E]" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── 아이콘 선택 그리드 (전체 폭) ── */}
+              <div className={`overflow-hidden transition-all duration-500 ease-out ${lgcomOpen && state.lgcomIcons.enabled ? 'max-h-[240px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                <div className="grid grid-cols-3 gap-4">
+                  {state.lgcomIcons.items.slice(0, state.lgcomIcons.count).map((item, i) => (
+                    <div key={i} className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2">
+                        <img src={lgcomIconSrc(state.lgcomIcons.style, item.icon)} alt="" draggable={false}
+                          className="w-9 h-9 shrink-0 rounded-md" />
+                        <select value={item.icon}
+                          onChange={(e) => {
+                            const opt = LGCOM_ICON_OPTIONS.find((o) => o.id === e.target.value)!;
+                            updateIconItem(i, { icon: opt.id, label: opt.label });
+                          }}
+                          className="flex-1 min-w-0 text-[13px] outline-none bg-transparent cursor-pointer">
+                          {LGCOM_ICON_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                      </div>
+                      <input type="text" value={item.label} placeholder={LGCOM_ICON_OPTIONS.find((o) => o.id === item.icon)?.label}
+                        onChange={(e) => updateIconItem(i, { label: e.target.value })}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

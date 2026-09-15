@@ -140,6 +140,8 @@ export function useBannerZip(state: BannerState) {
               // 굽는 동안만 유리 박스를 직접 흉내낸다 (SVG 안에서는 backdrop-filter 가 안 먹는다)
               emulateGlass
               hideLogo={job.noLogo}
+              // LG.com 은 글을 CMS 가 얹는다 — 구운 PNG 에서 카피 블록은 뺀다 (아이콘·디스클레이머는 남긴다)
+              hideCopy={job.channel === 'lgcom'}
             />
           ) : null;
         })()}

@@ -88,6 +88,17 @@ export interface BannerState {
   lgcomDiscText: string;
   /** LG.com 전용 아이브로우 — 같은 두 판의 헤드라인 위 한 줄. 비우면 안 그린다. */
   lgcomEyebrowText: string;
+  /** LG.com 혜택 아이콘 줄 — ST0001 두 판 전용. */
+  lgcomIcons: {
+    /** 아이콘 줄 자체를 쓸지 (끄면 배너에서 빠진다) */
+    enabled: boolean;
+    style: 'solid' | 'line';
+    color: 'black' | 'white';
+    /** 보여줄 개수 1~3 */
+    count: number;
+    /** 항상 3칸 — 앞에서 count 개만 그린다 */
+    items: { icon: string; label: string }[];
+  };
 }
 
 /** CTA 버튼 글자수 뚜껑 — 이보다 길면 짧은 사이즈에서 버튼이 카피를 밀어낸다. */
@@ -134,6 +145,15 @@ export function createInitialState(designType: DesignType): BannerState {
     discText: "*T&C’s apply",
     lgcomDiscText: "*T&C’s apply",
     lgcomEyebrowText: 'Special offers are here',   // 피그마 A 판 기본 문구 (A·B 공용)
+    // 피그마 A 판 기본 구성: Solid white 3개 (Free Delivery/Disposal/Installation)
+    lgcomIcons: {
+      enabled: true, style: 'solid', color: 'white', count: 3,
+      items: [
+        { icon: 'free-delivery', label: 'Free Delivery' },
+        { icon: 'free-disposal', label: 'Free Disposal' },
+        { icon: 'free-installation', label: 'Free Installation' },
+      ],
+    },
   };
 }
 

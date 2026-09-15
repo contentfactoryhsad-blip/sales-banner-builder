@@ -8,6 +8,7 @@ import { alphaOf, hexToHsl, hexToRgb, hslToHex, withAlpha, NEUTRAL_BANNER_COLORS
 import { fitScale, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
 import { LOGO_WHITE, logoSrc } from '../../data/logos';
+import { lgcomIconFilter, lgcomIconSrc } from '../../data/lgcomIcons';
 import { BG_POS_BY_BACKGROUND } from '../../data/figmaSpec.bgpos';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
@@ -180,7 +181,7 @@ function promoNameNodes(name: string, br: boolean, k: number) {
 }
 
 export function SpecBannerPreview({
-  state, spec, design, channel, size, displayWidth, emulateGlass = false, hideLogo = false,
+  state, spec, design, channel, size, displayWidth, emulateGlass = false, hideLogo = false, hideCopy = false,
 }: {
   state: BannerState;
   spec: FigmaFrameSpec;
@@ -190,6 +191,11 @@ export function SpecBannerPreview({
   displayWidth: number;
   /** LG 로고를 뺀다 — META 매체의 로고 없는 다운로드 버전용. */
   hideLogo?: boolean;
+  /**
+   * 카피 블록(아이브로우·헤드라인·서브카피·CTA)을 뺀다 — LG.com 다운로드용.
+   * LG.com 은 글을 CMS 가 따로 얹으므로 구운 PNG 에는 이미지·아이콘·디스클레이머만 남긴다.
+   */
+  hideCopy?: boolean;
   /**
    * 유리 박스의 backdrop-filter 를 **직접 흉내낸다** (PNG 로 구울 때만 켠다).
    *
@@ -584,7 +590,7 @@ export function SpecBannerPreview({
         })}
 
         {/* ── 카피 + CTA ── (copy 블록은 프레임 기준, 내부는 블록 기준) */}
-        {inn.copy && (
+        {inn.copy && !hideCopy && (
           <div style={{
             position: 'absolute', left: inn.copy[0], top: inn.copy[1], width: inn.copy[2],
             // LG.com 은 B 여도 피그마가 Mode=Dark(흰 글씨)다 — 셰이드 없는 컬러 KV 위라 흰색 고정
@@ -787,6 +793,28 @@ export function SpecBannerPreview({
                 <text x={S.off.cx} y={S.off.baseline} textAnchor="middle" fill={stickerInk}
                   style={{ fontFamily: STICKER_FONT, fontSize: S.off.size }}>off</text>
               </svg>
+            </div>
+          );
+        })()}
+
+        {/* ── 혜택 아이콘 줄 (LG.com ST0001 전용) ── */}
+        {inn.iconRow && state.lgcomIcons.enabled && state.lgcomIcons.count > 0 && (() => {
+          const [rx, ry, iconSize, itemGap, iconTextGap, iconFs] = inn.iconRow!;
+          const ic = state.lgcomIcons;
+          const textColor = ic.color === 'white' ? '#fff' : '#000';
+          return (
+            <div style={{ position: 'absolute', left: rx, top: ry, display: 'flex', gap: itemGap }}>
+              {ic.items.slice(0, Math.max(1, Math.min(3, ic.count))).map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: iconTextGap }}>
+                  <img src={lgcomIconSrc(ic.style, item.icon)} alt="" draggable={false}
+                    style={{ width: iconSize, height: iconSize, filter: lgcomIconFilter(ic.color) }} />
+                  {/* 라벨은 Figma 처럼 단어 단위로 접는다 (min-content) */}
+                  <span style={{
+                    fontFamily: BODY_FONT, fontSize: iconFs, lineHeight: 1.14, color: textColor,
+                    width: 'min-content', whiteSpace: 'normal',
+                  }}>{item.label}</span>
+                </div>
+              ))}
             </div>
           );
         })()}

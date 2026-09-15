@@ -29,6 +29,8 @@ export interface FigmaInner {
   logo: Rect4 | null;
   /** 아이브로우 [x,y,w,h,fontSize,letterSpacing] — 현재 LG.com ST0001 두 판만 갖는다 */
   eyebrow?: [number, number, number, number, number, number] | null;
+  /** 혜택 아이콘 줄 [x, y, 아이콘크기, 항목간격, 아이콘-글자 간격, fontSize] — LG.com ST0001 전용 */
+  iconRow?: [number, number, number, number, number, number] | null;
   copy: [number, number, number, number, number, string] | null;
   head: [number, number, number, number, number, number] | null;
   sub: [number, number, number, number, number] | null;

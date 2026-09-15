@@ -11,6 +11,7 @@ export function apiPlugin(): Plugin {
   return {
     name: 'dev-api',
     configureServer(server) {
+
       server.middlewares.use('/api/proxy-image', async (req, res) => {
         const json = (code: number, body: unknown) => {
           res.writeHead(code, { 'Content-Type': 'application/json' });
