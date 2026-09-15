@@ -586,9 +586,9 @@ function AdMediaStep({ state, update }: StepProps) {
                         <span className="text-[13px] font-medium text-gray-700">Disclaimer</span>
                         <span className="text-[11px] text-gray-400">LG.com sizes only</span>
                       </div>
-                      <input type="text" value={state.lgcomDiscText}
+                      <textarea value={state.lgcomDiscText} rows={4}
                         onChange={(e) => update({ lgcomDiscText: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E]" />
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E] resize-none" />
                     </div>
                   </div>
                 </div>
