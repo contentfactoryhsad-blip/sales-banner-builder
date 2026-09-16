@@ -67,10 +67,18 @@ export interface BannerState {
 
   /** 할인율 스티커의 숫자 (10~90). "UP TO {discount}% off" */
   discount: number;
+  /** 스티커 윗줄 글귀 (기본 "UP TO") — 법인이 자기 언어로 바꾼다 */
+  stickerTopText: string;
+  /** 스티커 아랫줄 글귀 (기본 "off") */
+  stickerOffText: string;
   /** 스티커 배경 스타일 — 색 3종(레드·웜그레이·블랙) 또는 글래스 */
   stickerStyle: StickerStyle;
   /** 스티커 표시 여부 (Copy 처럼 체크박스로 끄고 켠다) */
   showSticker: boolean;
+  /** 사이즈별 스티커 위치 덮어쓰기 [x, y] (네이티브 px) — AD Media 의 Sticker Position Edit 로 옮긴다 */
+  stickerPosBySize: Record<string, [number, number]>;
+  /** 스티커 전체 배율 (1 = 피그마 원본 크기). 도형·글자가 중심 기준으로 함께 줄어든다. */
+  stickerScale: number;
 
   /** 카피 텍스트 — 실시간 편집, auto-layout(flex)으로 reflow.
    *  (Eyebrow는 전 사이즈에서 제외하기로 확정되어 제거됨) */
@@ -82,6 +90,8 @@ export interface BannerState {
 
   /** CTA 버튼 글귀 — 법인이 자기 언어로 바꿔 쓴다. 버튼 폭은 글자에 맞춰 늘어난다. */
   ctaText: string;
+  /** CTA 버튼 표시 여부 (Copy 요소들처럼 체크박스로 끄고 켠다) */
+  showCta: boolean;
   /** 디스클레이머 글귀 ("*T&C's apply") — 법인이 자기 언어/문구로 바꿔 쓴다. */
   discText: string;
   /** LG.com 전용 디스클레이머 — 1920x720·720x960 두 판에만 쓰인다 (AD Media 의 슬라이드 패널에서 입력). */
@@ -106,6 +116,14 @@ export const MAX_CTA = 15;
 
 /** 디스클레이머 글자수 뚜껑 — 작은 사이즈에서 고지문 한 줄을 지키는 한계. */
 export const MAX_DISC = 24;
+
+/**
+ * 스티커 윗줄/아랫줄 글자수 뚜껑 (영문 기준).
+ * 원래 크기로 안전한 폭은 윗줄 ~12자·아랫줄 ~8자다 — 그보다 길면 렌더러가
+ * 실측 폭 기준으로 글자를 줄여(fitScale) 원 밖으로 새지 않게 한다.
+ */
+export const MAX_STICKER_TOP = 15;
+export const MAX_STICKER_OFF = 15;
 
 export const MAX_BOXES = 6;
 
@@ -135,13 +153,18 @@ export function createInitialState(designType: DesignType): BannerState {
     promoName: PROMOTIONS[0].label,
     comment: '',
     discount: 20,
+    stickerTopText: 'UP TO',
+    stickerOffText: 'off',
     stickerStyle: DEFAULT_STICKER_STYLE[designType],
     showSticker: true,
+    stickerPosBySize: {},
+    stickerScale: 1,
     headline: 'Save on LG favorites',
     subcopy: 'Limited-time offers, only on LG.com',
     showHeadline: true,
     showSubcopy: true,
     ctaText: 'Shop now',
+    showCta: true,
     discText: "*T&C’s apply",
     lgcomDiscText: "*T&C’s apply",
     lgcomEyebrowText: 'Special offers are here',   // 피그마 A 판 기본 문구 (A·B 공용)

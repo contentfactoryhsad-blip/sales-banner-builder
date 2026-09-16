@@ -3,8 +3,8 @@ import { DESIGN_TYPES, type DesignType } from '../types';
 
 /** 첫 화면 썸네일 — 라이브 렌더 대신 레퍼런스 완성본 이미지를 그대로 쓴다 */
 const HOME_THUMBS: Record<DesignType, string> = {
-  A: '/main/main-a.png',
-  B: '/main/main-b.png',
+  A: '/main/main-a-02.png',
+  B: '/main/main-b-02.png',
 };
 
 /**

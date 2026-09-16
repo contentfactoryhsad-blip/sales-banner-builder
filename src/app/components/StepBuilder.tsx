@@ -3,7 +3,7 @@ import { AppHeader, ReadmeTutorialLink } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
-import { createInitialState, DESIGN_TYPES, MAX_CTA, MAX_DISC, type BannerState, type DesignType } from '../types';
+import { createInitialState, DESIGN_TYPES, MAX_CTA, MAX_DISC, MAX_STICKER_OFF, MAX_STICKER_TOP, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
 import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { LGCOM_ICON_OPTIONS, lgcomIconSrc } from '../../data/lgcomIcons';
@@ -15,7 +15,7 @@ import { copyBudget, reflowCopy } from '../utils/copyFit';
 import { useFontsReady } from '../utils/textFit';
 import { HEADLINE_FONT, HEADLINE_WEIGHT, STICKER_COLORS } from '../../data/sizeLayouts';
 import { SpecBannerPreview } from './SpecBannerPreview';
-import { BOX_MATERIALS, getSpec, isWideFrame, specKey } from '../../data/figmaStyle';
+import { BOX_MATERIALS, getSpec, isWideFrame, specKey, stickerRect } from '../../data/figmaStyle';
 import { useBannerZip } from './useBannerZip';
 import { alphaOf, NEUTRAL_BANNER_COLORS } from '../utils/color';
 
@@ -146,8 +146,8 @@ const LGCOM_SIZE_LABELS: Record<string, string> = {
 
 /** Step 1 썸네일 — 라이브 렌더 대신 레퍼런스 완성본 이미지를 그대로 쓴다 */
 const DESIGN_STEP_THUMBS: Record<DesignType, string> = {
-  A: '/main/main-a.png',
-  B: '/main/main-b.png',
+  A: '/main/main-a-02.png',
+  B: '/main/main-b-02.png',
 };
 
 // ── Step 1: Select Template (A/B) ──────────────────────────────────────────────
@@ -250,6 +250,53 @@ const ZOOM_MAX = 4;
 function AdMediaStep({ state, update }: StepProps) {
   /** LG.com 전용 입력 패널 (오른쪽 슬라이드 + 아래 확장) */
   const [lgcomPanel, setLgcomPanel] = useState(false);
+  /**
+   * Sticker Position Edit — 켜면 확인창의 각 배너에서 스티커를 드래그로 옮긴다.
+   * 끌던 중에는 상태를 건드리지 않고 스티커 DOM 에 transform 만 얹어 미리보기가
+   * 40장씩 리렌더되지 않게 하고, 놓는 순간 stickerPosBySize 에 한 번 저장한다.
+   */
+  const [stickerEdit, setStickerEdit] = useState(false);
+  const stickerDrag = useRef<{ key: string; el: HTMLElement; startX: number; startY: number; base: [number, number] } | null>(null);
+  const startStickerDrag = (e: React.MouseEvent, key: string) => {
+    const frame = e.currentTarget as HTMLElement;
+    const el = frame.querySelector<HTMLElement>('[data-sticker]');
+    const baseRect = stickerRect(key);
+    if (!el || !baseRect || !state.showSticker) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const ov = state.stickerPosBySize[key];
+    stickerDrag.current = { key, el, startX: e.clientX, startY: e.clientY, base: ov ? [ov[0], ov[1]] : [baseRect[0], baseRect[1]] };
+    // SIZE 배율이 걸려 있으면 transform 을 덮어쓰지 않고 함께 싣는다
+    const scaleSuffix = state.stickerScale !== 1 ? ` scale(${state.stickerScale})` : '';
+    const onMove = (ev: MouseEvent) => {
+      const d = stickerDrag.current;
+      if (!d) return;
+      const z = zoomRef.current;
+      d.el.style.transform = `translate(${(ev.clientX - d.startX) / z}px, ${(ev.clientY - d.startY) / z}px)${scaleSuffix}`;
+    };
+    const onUp = (ev: MouseEvent) => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const d = stickerDrag.current;
+      stickerDrag.current = null;
+      if (!d) return;
+      d.el.style.transform = scaleSuffix.trim();
+      const z = zoomRef.current;
+      const nx = Math.round(d.base[0] + (ev.clientX - d.startX) / z);
+      const ny = Math.round(d.base[1] + (ev.clientY - d.startY) / z);
+      if (nx === d.base[0] && ny === d.base[1]) return;
+      update({ stickerPosBySize: { ...state.stickerPosBySize, [d.key]: [nx, ny] } });
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+  /** 더블클릭 = 그 사이즈의 이동값을 지우고 원래 자리로 */
+  const resetStickerPos = (key: string) => {
+    if (!(key in state.stickerPosBySize)) return;
+    const next = { ...state.stickerPosBySize };
+    delete next[key];
+    update({ stickerPosBySize: next });
+  };
   const lgcomOpen = lgcomPanel && state.adChannelIds.includes('lgcom');
   const updateIcons = (patch: Partial<BannerState['lgcomIcons']>) =>
     update({ lgcomIcons: { ...state.lgcomIcons, ...patch } });
@@ -584,7 +631,7 @@ function AdMediaStep({ state, update }: StepProps) {
                     <div>
                       <div className="flex items-baseline gap-1.5 mb-1.5">
                         <span className="text-[13px] font-medium text-gray-700">Disclaimer</span>
-                        <span className="text-[11px] text-gray-400">LG.com sizes only</span>
+                        <span className="text-[11px] text-gray-400">1920×720 · 720×960 only</span>
                       </div>
                       <textarea value={state.lgcomDiscText} rows={4}
                         onChange={(e) => update({ lgcomDiscText: e.target.value })}
@@ -685,9 +732,32 @@ function AdMediaStep({ state, update }: StepProps) {
       <div
         ref={canvasRef}
         className="mt-8 relative overflow-hidden rounded-xl border border-gray-200 select-none"
-        style={{ height: 560, background: '#CDC8C1', cursor }}
+        style={{ height: 560, background: '#CDC8C1', cursor: stickerEdit ? 'default' : cursor }}
         onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} onClick={onClick} onWheel={onWheel}
       >
+        {/* ── Sticker Position Edit 토글 (좌상단 고정) ── */}
+        {channels.length > 0 && (
+          <div className="absolute top-3 left-3 z-20 flex items-center gap-2"
+            onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setStickerEdit(!stickerEdit)}
+              className={`h-9 px-3.5 rounded-lg text-[12px] font-medium shadow-sm transition-colors flex items-center gap-2 ${
+                stickerEdit ? 'bg-[#FD312E] text-white' : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
+              }`}>
+              {/* 매체 선택과 같은 체크박스 — 켜짐/꺼짐이 한눈에 보이게 */}
+              <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                stickerEdit ? 'bg-white border-white' : 'border-gray-300 bg-white'
+              }`}>
+                {stickerEdit && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#FD312E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              </span>
+              Sticker Position Edit
+            </button>
+            {stickerEdit && (
+              <span className="text-[11px] text-gray-600 bg-white/80 rounded-md px-2 py-1">
+                Drag a sticker to move it · double-click a banner to reset
+              </span>
+            )}
+          </div>
+        )}
         {channels.length ? (
           <>
             {/*
@@ -734,10 +804,14 @@ function AdMediaStep({ state, update }: StepProps) {
                                 <div
                                   key={`${c.id}-${s.name}`}
                                   className="shrink-0 cursor-pointer"
-                                  onClick={(e) => { e.stopPropagation(); pickSize(specKey(c.id, s.name)); }}
+                                  onClick={(e) => { e.stopPropagation(); if (!stickerEdit) pickSize(specKey(c.id, s.name)); }}
+                                  // 스티커 편집 모드 — 드래그가 팬으로 번지지 않게 여기서 끊고 스티커만 끈다
+                                  onMouseDown={stickerEdit ? (e) => startStickerDrag(e, specKey(c.id, s.name)) : undefined}
+                                  onDoubleClick={stickerEdit ? (e) => { e.stopPropagation(); resetStickerPos(specKey(c.id, s.name)); } : undefined}
                                   style={{
-                                    outline: pickedKey === specKey(c.id, s.name) ? `${NS(3)}px solid #FD312E` : undefined,
+                                    outline: pickedKey === specKey(c.id, s.name) && !stickerEdit ? `${NS(3)}px solid #FD312E` : undefined,
                                     outlineOffset: NS(3),
+                                    cursor: stickerEdit ? 'move' : undefined,
                                   }}
                                 >
                                   {/*
@@ -840,7 +914,8 @@ function ProductUrlsStep({ state, update, setProduct }: StepProps & { setProduct
                 <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-[#FD312E] border-[#FD312E]' : 'border-gray-300 bg-white'}`}>
                   {selected && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                 </span>
-                <span className="flex items-center -space-x-1 shrink-0">
+                {/* 색 점에 마우스를 올리면 색 이름(Active Red 등)이 보인다 */}
+                <span className="flex items-center -space-x-1 shrink-0" title={`${p.main.name} · ${p.secondary.name}`}>
                   <span className="w-3.5 h-3.5 rounded-full border border-black/10" style={{ background: p.main.hex }} />
                   <span className="w-3.5 h-3.5 rounded-full border border-black/10" style={{ background: p.secondary.hex }} />
                 </span>
@@ -1200,11 +1275,17 @@ function EditSticker({ state, update }: StepProps) {
   const [draft, setDraft] = useState(String(state.discount));
   useEffect(() => { setDraft(String(state.discount)); }, [state.discount]);
 
+  /*
+    부호를 살려서 다듬는다 — "-20" 처럼 앞에 마이너스를 붙일 수 있다.
+    범위 검사는 크기(절댓값)에만 건다.
+  */
   const commit = () => {
     const n = Number(draft);
-    const v = Number.isFinite(n) && draft.trim() !== ''
-      ? Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, Math.round(n)))
-      : state.discount;
+    let v = state.discount;
+    if (Number.isFinite(n) && draft.trim() !== '' && n !== 0) {
+      const mag = Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, Math.round(Math.abs(n))));
+      v = n < 0 ? -mag : mag;
+    }
     setDraft(String(v));
     if (v !== state.discount) update({ discount: v });
   };
@@ -1212,14 +1293,16 @@ function EditSticker({ state, update }: StepProps) {
   const onChange = (v: string) => {
     setDraft(v);
     const n = Number(v);
-    // 범위 안의 온전한 값이면 미리보기에 바로 반영
-    if (/^\d+$/.test(v) && n >= MIN_DISCOUNT && n <= MAX_DISCOUNT) update({ discount: n });
+    // 범위 안의 온전한 값이면 미리보기에 바로 반영 (부호 허용)
+    if (/^-?\d+$/.test(v) && Math.abs(n) >= MIN_DISCOUNT && Math.abs(n) <= MAX_DISCOUNT) update({ discount: n });
   };
 
   return (
     <EditSection label="Sticker" checked={state.showSticker} onToggle={(v) => update({ showSticker: v })}>
-      <div className="flex items-center gap-2 mb-2.5">
-        <span className="text-[11px] text-gray-500 shrink-0">UP TO</span>
+      {/* ── 글귀 (숫자·윗줄·아랫줄) ── */}
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Text</p>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[11px] text-gray-500 shrink-0">Number</span>
         <input
           type="text"
           inputMode="numeric"
@@ -1229,8 +1312,51 @@ function EditSticker({ state, update }: StepProps) {
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } }}
           className="w-16 h-9 px-2 rounded-lg border border-gray-200 text-[13px] text-center tabular-nums outline-none focus:border-[#FD312E]"
         />
-        <span className="text-[11px] text-gray-500 shrink-0">% off</span>
-        <span className="text-[10px] text-gray-400 ml-auto shrink-0">{MIN_DISCOUNT}–{MAX_DISCOUNT}</span>
+        <span className="text-[11px] text-gray-500 shrink-0">%</span>
+        <span className="text-[10px] text-gray-400 ml-auto shrink-0">±{MIN_DISCOUNT}–{MAX_DISCOUNT}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-1.5 mb-3">
+        <div>
+          <label className="flex items-baseline gap-1 mb-1 select-none">
+            <span className="text-[11px] font-medium text-gray-600">Top text</span>
+            <span className="text-[10px] text-gray-400 ml-auto tabular-nums">{state.stickerTopText.length}/{MAX_STICKER_TOP}</span>
+          </label>
+          <input type="text" value={state.stickerTopText} maxLength={MAX_STICKER_TOP} placeholder="UP TO"
+            onChange={(e) => update({ stickerTopText: e.target.value })}
+            className="w-full h-9 px-2.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
+        </div>
+        <div>
+          <label className="flex items-baseline gap-1 mb-1 select-none">
+            <span className="text-[11px] font-medium text-gray-600">Bottom text</span>
+            <span className="text-[10px] text-gray-400 ml-auto tabular-nums">{state.stickerOffText.length}/{MAX_STICKER_OFF}</span>
+          </label>
+          <input type="text" value={state.stickerOffText} maxLength={MAX_STICKER_OFF} placeholder="off"
+            onChange={(e) => update({ stickerOffText: e.target.value })}
+            className="w-full h-9 px-2.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
+        </div>
+      </div>
+
+      {/* ── 크기 — 전 사이즈 공통 배율. 도형·글자가 중심 기준으로 균일하게 줄어든다 ── */}
+      <div className="border-t border-gray-100 pt-2.5 mb-3">
+        <div className="flex items-baseline gap-2 mb-1.5">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Size</p>
+          <span className="text-[10px] text-gray-400 ml-auto tabular-nums">{Math.round(state.stickerScale * 100)}%</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <input type="range" min={40} max={100} step={1}
+            value={Math.round(state.stickerScale * 100)}
+            onChange={(e) => update({ stickerScale: Number(e.target.value) / 100 })}
+            className="flex-1 accent-[#FD312E]" />
+          <button type="button" onClick={() => update({ stickerScale: 1 })}
+            className={`text-[11px] shrink-0 ${state.stickerScale === 1 ? 'text-gray-300 cursor-default' : 'text-gray-500 hover:text-[#FD312E] underline underline-offset-2'}`}>
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* ── 색 (스타일) ── */}
+      <div className="border-t border-gray-100 pt-2.5">
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Color</p>
       </div>
       {/*
         2열 그리드로 둔다. flex-1 이면 옵션이 하나뿐인 B 에서 버튼이 폭을 꽉 채워
@@ -1330,7 +1456,8 @@ function EditCopy({ state, update }: StepProps) {
         {/* 디스클레이머 — "*T&C's apply" 를 법인 문구로 바꾼다. */}
         <CopyField label="Disclaimer" max={MAX_DISC} value={state.discText} onChange={(v) => update({ discText: v })} />
         {/* CTA 버튼 글귀 — 법인이 자기 언어로 바꾼다. 버튼 폭은 글자에 맞춰 늘어난다. */}
-        <CopyField label="CTA button" max={MAX_CTA} value={state.ctaText} onChange={(v) => update({ ctaText: v })} />
+        <CopyField label="CTA button" max={MAX_CTA} value={state.ctaText} onChange={(v) => update({ ctaText: v })}
+          checked={state.showCta} onToggle={(v) => update({ showCta: v })} />
       </div>
     </EditSection>
   );

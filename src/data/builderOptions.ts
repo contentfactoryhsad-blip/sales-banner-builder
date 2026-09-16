@@ -269,7 +269,7 @@ export const BOX_COUNTS = [1, 2, 3, 4, 5, 6] as const;
 export const MIN_BOX_COUNT = 3;
 
 /** 할인율 스티커 입력 범위 */
-export const MIN_DISCOUNT = 10;
+export const MIN_DISCOUNT = 1;
 export const MAX_DISCOUNT = 90;
 
 /** 사이즈 베리에이션 (structure.pdf p.9) — 대표 사이즈. 전체 41종은 Figma 확정 후 확장. */

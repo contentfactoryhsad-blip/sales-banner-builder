@@ -5,7 +5,7 @@ import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } fr
 import { DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
 import { ENABLE_COLORING_OPTION } from '../featureFlags';
 import { alphaOf, hexToHsl, hexToRgb, hslToHex, withAlpha, NEUTRAL_BANNER_COLORS } from '../utils/color';
-import { fitScale, useFontsReady } from '../utils/textFit';
+import { fitScale, measure, useFontsReady } from '../utils/textFit';
 import { glassBox } from '../../data/figmaSpec.glass';
 import { LOGO_WHITE, logoSrc } from '../../data/logos';
 import { lgcomIconFilter, lgcomIconSrc } from '../../data/lgcomIcons';
@@ -259,7 +259,9 @@ export function SpecBannerPreview({
     (예: 1200x628 테두리 3·4개 0.842 / 5·6개 1.271, 320x100 Frost 7.883 vs 18.87).
     표에 없으면 종전 비율 계산으로 넘어간다.
   */
-  const discount = Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, state.discount));
+  // 부호(-20% 등)는 살리고 크기만 범위에 가둔다
+  const discountMag = Math.min(MAX_DISCOUNT, Math.max(MIN_DISCOUNT, Math.abs(state.discount)));
+  const discount = state.discount < 0 ? -discountMag : discountMag;
 
   // 박스 — 요청 개수에 해당하는 버전(없으면 가장 가까운 것)
   // 개수를 고르기 전엔 박스를 아예 그리지 않는다. 자리 계산만 기본값으로 해둔다.
@@ -400,8 +402,13 @@ export function SpecBannerPreview({
     빈 자리는 13개 전부 가로형은 왼쪽, 세로형은 아래 — 흰 셰이드가 덮는 쪽이다.
     그래서 바탕을 흰색으로 두면 새어 나와도 셰이드와 같은 색이라 보이지 않는다.
   */
+  /*
+    Anniversary 만 조합색(웜그레이) 도달점을 앞당긴다 — 색 단계를 더 내리지 않고도
+    밝은 영역이 넓어져 오른쪽 베이지가 뚜렷이 보인다. 다른 프로모션은 종전 그대로.
+  */
+  const gradEnd = promo?.id === 'anniversary' ? 72 : 100;
   const frameBg = colorMode === 'overlay'
-    ? `linear-gradient(160deg, ${main} 0%, ${secondary} 100%)` : '#ffffff';
+    ? `linear-gradient(160deg, ${main} 0%, ${secondary} ${gradEnd}%)` : '#ffffff';
 
   const backdrop = (
     <>
@@ -650,7 +657,7 @@ export function SpecBannerPreview({
                 fontFamily: BODY_FONT, fontSize: inn.sub[4], lineHeight: COPY_LINE_HEIGHT, textAlign: hAlign,
               }}>{state.subcopy}</p>
             )}
-            {inn.cta && (
+            {inn.cta && state.showCta && (
               <div style={{
                 // CTA 버튼도 Figma 에선 HUG(글자 폭 + 좌우 패딩)다. 실측 폭을 최소값으로
                 // 두되 글자가 넓어지면 늘어나게 해서 빨간 알약 밖으로 새지 않게 한다.
@@ -683,7 +690,11 @@ export function SpecBannerPreview({
 
         {/* ── 할인율 스티커 ── */}
         {stickerRect(key) && state.showSticker && (() => {
-          const [sx, sy, size] = stickerRect(key)!;
+          const [bx0, by0, size] = stickerRect(key)!;
+          // AD Media 의 Sticker Position Edit 로 옮긴 사이즈는 그 값을 쓴다
+          const ov = state.stickerPosBySize[key];
+          const sx = ov ? ov[0] : bx0;
+          const sy = ov ? ov[1] : by0;
           const L = STICKER_LAYOUT;
           // 디자인별 추가 축소 — Figma 와 같은 중심 기준으로 좌표까지 함께 줄인다
           const k = style.stickerTextScale;
@@ -705,7 +716,12 @@ export function SpecBannerPreview({
           const gDark = design === 'B' ? STICKER_GLASS_DARKEN : 1;
           const gBackdrop = gDark === 1 ? glassCss.backdropFilter : `${glassCss.backdropFilter} brightness(${gDark})`;
           return (
-            <div style={{ position: 'absolute', left: sx, top: sy, width: size, height: size }}>
+            <div data-sticker style={{
+              position: 'absolute', left: sx, top: sy, width: size, height: size,
+              // 전체 배율 — 중심 기준으로 도형·글자가 균일하게 줄어든다 (SIZE 슬라이더)
+              transform: state.stickerScale !== 1 ? `scale(${state.stickerScale})` : undefined,
+              transformOrigin: 'center',
+            }}>
               {(() => {
                 // 도형만 키운다 — 안의 글자는 아래 SVG 라 영향받지 않는다.
                 // 중심을 유지하려고 커진 만큼의 절반을 좌·상으로 당긴다.
@@ -784,14 +800,57 @@ export function SpecBannerPreview({
               })()}
               <svg viewBox={`0 0 ${S.circle} ${S.circle}`} width={size} height={size}
                 style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
-                <text x={S.label.cx} y={S.label.baseline} textAnchor="middle" fill={stickerInk}
-                  style={{ fontFamily: HEADLINE_FONT, fontWeight: HEADLINE_WEIGHT, fontSize: S.label.size }}>UP TO</text>
-                <text x={S.number.cx} y={S.number.baseline} textAnchor="middle" fill={stickerInk}
-                  style={{ fontFamily: STICKER_FONT, fontSize: S.number.size, letterSpacing: S.number.tracking }}>{discount}</text>
-                <text x={S.percent.cx} y={S.percent.baseline} textAnchor="middle" fill={stickerInk}
+                {(() => {
+                  /*
+                    긴 글은 크기를 줄여 원 안에 가둔다. 폭 예산은 222 좌표계에서 그 줄의
+                    베이스라인 높이에 걸리는 원의 현(chord)에 여유를 뺀 값이다 —
+                    윗줄(현 ~196) 170 · 아랫줄(현 ~159) 140.
+                  */
+                  // 기본값은 초기 상태가 넣어 준다 — 비우면 그 줄을 아예 안 그린다 (안 쓰는 것처럼)
+                  const topText = state.stickerTopText.trim();
+                  const offText = state.stickerOffText.trim();
+                  const topFit = fitScale(topText, S.label.size, HEADLINE_WEIGHT, HEADLINE_FONT, 170);
+                  const offFit = fitScale(offText, S.off.size, 400, STICKER_FONT, 140);
+                  /*
+                    아랫줄은 **윗변 기준**으로 줄어든다 — 베이스라인을 고정하면 작아질수록
+                    글이 아래에 매달려 숫자와의 틈이 벌어져 보인다. 글자 윗변(어센더 ≈ 0.75em)
+                    을 고정점으로 두고 베이스라인을 그만큼 끌어올린다.
+                  */
+                  const offBaseline = S.off.baseline - 0.75 * S.off.size * (1 - offFit);
+                  return (<>
+                {topText && <text x={S.label.cx} y={S.label.baseline} textAnchor="middle" fill={stickerInk}
+                  style={{ fontFamily: HEADLINE_FONT, fontWeight: HEADLINE_WEIGHT, fontSize: S.label.size * topFit }}>{topText}</text>}
+                {offText && <text x={S.off.cx} y={offBaseline} textAnchor="middle" fill={stickerInk}
+                  style={{ fontFamily: STICKER_FONT, fontSize: S.off.size * offFit }}>{offText}</text>}
+                  </>);
+                })()}
+                {(() => {
+                  /*
+                    숫자와 % 는 피그마처럼 **한 묶음**이다 — % 가 숫자 오른쪽에 붙고,
+                    묶음 전체가 원 가운데(피그마 Frame 75 중심 111.5)에 온다.
+                    자릿수가 줄면(한 자리·마이너스 없음) % 가 왼쪽으로 따라온다.
+                    폭은 실제 폰트로 재고, 브라우저 advance 처럼 tracking 은 글자 수만큼 더한다.
+                  */
+                  /*
+                    간격·묶음 중심은 값을 새로 정하지 않고 **기본 "20" 배치에서 역산**한다 —
+                    "20" 일 때는 피그마 확정 좌표(S.number.cx / S.percent.cx) 그대로 나오고,
+                    자릿수가 바뀌면 그때의 간격을 유지한 채 묶음이 가운데를 지킨다.
+                  */
+                  const numStr = String(discount);
+                  const adv = (s: string) => measure(s, S.number.size, 400, STICKER_FONT) + s.length * S.number.tracking;
+                  const w20 = adv('20');
+                  const numW = adv(numStr);
+                  const pctW = measure('%', S.percent.size, 400, STICKER_FONT);
+                  const gap0 = (S.percent.cx - pctW / 2) - (S.number.cx + w20 / 2);
+                  const pairCx = ((S.number.cx - w20 / 2) + (S.percent.cx + pctW / 2)) / 2;
+                  const total = numW + gap0 + pctW;
+                  return (<>
+                <text x={pairCx - total / 2 + numW / 2} y={S.number.baseline} textAnchor="middle" fill={stickerInk}
+                  style={{ fontFamily: STICKER_FONT, fontSize: S.number.size, letterSpacing: S.number.tracking }}>{numStr}</text>
+                <text x={pairCx + total / 2 - pctW / 2} y={S.percent.baseline} textAnchor="middle" fill={stickerInk}
                   style={{ fontFamily: STICKER_FONT, fontSize: S.percent.size }}>%</text>
-                <text x={S.off.cx} y={S.off.baseline} textAnchor="middle" fill={stickerInk}
-                  style={{ fontFamily: STICKER_FONT, fontSize: S.off.size }}>off</text>
+                  </>);
+                })()}
               </svg>
             </div>
           );

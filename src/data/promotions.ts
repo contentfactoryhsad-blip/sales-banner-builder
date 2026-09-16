@@ -82,12 +82,13 @@ export const PROMOTIONS: Promotion[] = [
     main: { name: 'Deep Plum', hex: '#5f4a72' },      secondary: { name: 'Warm White', hex: '#faf7f2' },
     sub: { main: { name: 'Indigo', hex: '#464b8c' },    secondary: { name: 'Lilac', hex: '#ded5ea' } } },
   /*
-    LG Red 는 확정값이 #a50034 인데 색상각이 341° 로 마젠타 쪽이라, 밝은 조합색과
-    섞이는 구간이 분홍으로 보였다(50% 지점 #ca768c). 채도·명도는 그대로 두고
-    색상각만 353° 로 돌려 분홍기를 뺐다 — 같은 깊이의 빨강이다(50% 지점 #ca767f).
+    2026-09-16 확정 — 메인은 **Active Red 와 구 LG Red 의 중간색**이다.
+    순수 Active Red(#fd312e)만 쓰면 너무 형광에 가깝고, 구 LG Red(#a50013)만 쓰면
+    어두워서 절반씩 섞었다. 보조색은 Warm Gray 06(#f0ece4)이 너무 옅어 배너에서
+    티가 안 나던 것을 한 단계 짙은 베이지로 바꿔 밝은 영역이 뚜렷이 보이게 했다.
   */
   { id: 'anniversary', label: 'Anniversary',
-    main: { name: 'LG Red', hex: '#a50013' },         secondary: { name: 'Warm Gray 06', hex: '#f0ece4' },
+    main: { name: 'Active Red', hex: '#d11921' },     secondary: { name: 'Warm Gray', hex: '#dcc9a9' },
     sub: { main: { name: 'Wine', hex: '#6e0a2a' },      secondary: { name: 'Champagne', hex: '#e8d8b8' } } },
   { id: 'autumn-sale', label: 'Autumn Sale',
     main: { name: 'Burgundy', hex: '#7b2846' },       secondary: { name: 'Warm Beige', hex: '#d8c3a5' },

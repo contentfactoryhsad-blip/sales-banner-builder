@@ -201,22 +201,19 @@ export const HEADLINE_WEIGHT = 600;
  * CSS로 그대로 옮기면 글자가 겹쳐 어긋난다.
  */
 /**
- * ⚠ 아래 값은 Figma 에서 txt 그룹을 95% 로 줄이기 **전에** 측정한 것이다.
- * 축소는 중심 (110.68, 102.48) 기준이었으므로 같은 변환을 여기서도 적용한다:
- *   v' = center + (v - center) × 0.95,   fontSize' = fontSize × 0.95
- * (검증: Figma 252px 스티커의 "20" 이 116.05 → 222 환산 102.24 = 107.618 × 0.95)
+ * 2026-09-16 개정 — 피그마 "Sticker sample"(6451:11560, 222px) 잉크 bbox 실측.
+ * 구 디자인과 달리 "off" 가 % 옆이 아니라 **숫자 아래 가운데**로 온다.
+ * 이 판이 확정본이라 예전의 95% 축소 보정은 더 이상 없다(실측 그대로).
+ * label(UP TO)·off 는 이제 편집 가능한 글이라, 가운데 앵커 기준으로 늘어난다.
  */
-const TXT_SCALE = 0.95;
 const TXT_CX = 110.68, TXT_CY = 102.48;
-const sx = (v: number) => TXT_CX + (v - TXT_CX) * TXT_SCALE;
-const sy = (v: number) => TXT_CY + (v - TXT_CY) * TXT_SCALE;
 
 export const STICKER_LAYOUT = {
   circle: 222,
-  label:   { cx: sx(111.0), baseline: sy(65),  size: 26.377 * TXT_SCALE },
-  number:  { cx: sx(87.5),  baseline: sy(154), size: 107.618 * TXT_SCALE, tracking: -2.1524 * TXT_SCALE },
-  percent: { cx: sx(172.0), baseline: sy(125), size: 65.942 * TXT_SCALE },
-  off:     { cx: sx(172.5), baseline: sy(154), size: 34.29 * TXT_SCALE },
+  label:   { cx: 109.5, baseline: 60.4,  size: 26.38 },
+  number:  { cx: 88,    baseline: 152.4, size: 107.62, tracking: -2.152 },
+  percent: { cx: 175.5, baseline: 134.5, size: 60 },
+  off:     { cx: 109.5, baseline: 189.5, size: 34.29 },
 } as const;
 
 /**
