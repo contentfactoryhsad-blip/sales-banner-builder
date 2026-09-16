@@ -88,7 +88,7 @@ export const PROMOTIONS: Promotion[] = [
     티가 안 나던 것을 한 단계 짙은 베이지로 바꿔 밝은 영역이 뚜렷이 보이게 했다.
   */
   { id: 'anniversary', label: 'Anniversary',
-    main: { name: 'Active Red', hex: '#d11921' },     secondary: { name: 'Warm Gray', hex: '#dcc9a9' },
+    main: { name: 'Active Red', hex: '#da1e24' },     secondary: { name: 'Warm Gray', hex: '#dcc9a9' },
     sub: { main: { name: 'Wine', hex: '#6e0a2a' },      secondary: { name: 'Champagne', hex: '#e8d8b8' } } },
   { id: 'autumn-sale', label: 'Autumn Sale',
     main: { name: 'Burgundy', hex: '#7b2846' },       secondary: { name: 'Warm Beige', hex: '#d8c3a5' },
