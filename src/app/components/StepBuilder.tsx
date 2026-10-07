@@ -987,13 +987,29 @@ const CANVAS_MAX_W = Math.round((1024 - 48) / BASE_SCALE);
 const NS = (screenPx: number) => Math.round(screenPx / BASE_SCALE);
 
 function EditStep({ state, update }: StepProps) {
+  /*
+    미리보기 칸 폭을 재서 배너를 그 안에 맞춘다 (최대 600).
+    고정 600 이면 창이 좁을 때 배너가 칸 밖으로 넘쳐 편집 패널을 덮는다.
+  */
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [previewWidth, setPreviewWidth] = useState(600);
+  useLayoutEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setPreviewWidth(Math.max(200, Math.min(600, Math.floor(entry.contentRect.width))));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   return (
     <div>
       <Head title="Edit" desc="Edit the representative 1200×628 design — it applies to all sizes." />
       <div className="flex rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm" style={{ height: 600 }}>
         {/* 미리보기 창 — 메인 사이즈(1200×628)는 Figma 확정 디자인으로 렌더 */}
-        <div className="flex-1 flex items-center justify-center p-8" style={{ background: '#f3f1ee' }}>
-          <MainPreview state={state} displayWidth={600} />
+        {/* 카드 안폭 1022 = 미리보기 600 + 좌우 여백 + 패널 384. p-8(64)이면 26px 넘쳐 패널 오른쪽이 잘린다 → 좌우 px-4 */}
+        <div ref={previewRef} className="flex-1 min-w-0 overflow-hidden flex items-center justify-center px-4 py-8" style={{ background: '#f3f1ee' }}>
+          <MainPreview state={state} displayWidth={previewWidth} />
         </div>
         {/* 편집 컨트롤 */}
         <aside className="w-96 shrink-0 border-l border-gray-200 overflow-y-auto p-5 flex flex-col gap-6">
