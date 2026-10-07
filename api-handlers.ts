@@ -663,6 +663,8 @@ export interface UsageRecord {
   productNames: string;
   /** 마지막 화면에서 사용자가 남긴 한 줄 의견 (선택) */
   comment: string;
+  /** 결과 썸네일 묶음 ID — outputs/<id>/ 폴더 이름 (없으면 빈 값) */
+  output?: string;
 }
 
 /*
@@ -673,9 +675,12 @@ export interface UsageRecord {
   재배포와 무관하게 남는다. 예) USAGE_DIR=/data
 */
 const USAGE_CSV = path.join(process.env.USAGE_DIR || path.join(process.cwd(), 'logs'), 'usage.csv');
-const USAGE_HEADER = 'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners,comment\n';
-/** comment 가 없던 시절의 머리줄. 기존 파일을 만나면 이 줄만 갈아끼운다. */
-const USAGE_HEADER_V1 = 'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners\n';
+const USAGE_HEADER = 'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners,comment,output\n';
+/** 예전 머리줄들 (comment 없던 때 · output 없던 때). 기존 파일을 만나면 이 줄만 갈아끼운다. */
+const USAGE_HEADERS_OLD = [
+  'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners\n',
+  'time,country,region,ip,design,promotion,products,product_models,product_names,boxes,channels,banners,comment\n',
+];
 
 /** 프록시 뒤에 있어도 원래 클라이언트 IP 를 찾는다 */
 export function clientIp(headers: Record<string, string | string[] | undefined>, fallback?: string): string {
@@ -729,22 +734,76 @@ export async function appendUsage(rec: UsageRecord, ip: string): Promise<void> {
     new Date().toISOString(), country, region, maskIp(ip),
     rec.design, rec.promotion, rec.products, rec.productModels, rec.productNames,
     rec.boxes ?? '', rec.channels, rec.banners, rec.comment ?? '',
+    isOutputId(rec.output) ? rec.output : '',
   ].map(csvCell).join(',') + '\n';
 
   await fs.mkdir(path.dirname(USAGE_CSV), { recursive: true });
   try {
     await fs.access(USAGE_CSV);
     /*
-      예전 파일에는 comment 칸이 없다. 머리줄을 그대로 두면 새로 붙는 줄의 마지막 값이
+      예전 파일에는 comment·output 칸이 없다. 머리줄을 그대로 두면 새로 붙는 줄의 뒤쪽 값이
       갈 곳이 없어 통계 화면에서 조용히 버려진다. 머리줄 한 줄만 갈아끼운다 —
-      기존 줄들은 칸이 하나 모자란 채로 남고, 그 줄의 comment 는 빈 값이 된다.
+      기존 줄들은 칸이 모자란 채로 남고, 그 줄의 빈 칸은 빈 값이 된다.
     */
     const cur = await fs.readFile(USAGE_CSV, 'utf8');
-    if (cur.startsWith(USAGE_HEADER_V1)) {
-      await fs.writeFile(USAGE_CSV, USAGE_HEADER + cur.slice(USAGE_HEADER_V1.length), 'utf8');
+    const old = USAGE_HEADERS_OLD.find((h) => cur.startsWith(h));
+    if (old) {
+      await fs.writeFile(USAGE_CSV, USAGE_HEADER + cur.slice(old.length), 'utf8');
     }
   } catch { await fs.writeFile(USAGE_CSV, USAGE_HEADER, 'utf8'); }
   await fs.appendFile(USAGE_CSV, row, 'utf8');
+}
+
+// ─── 결과 썸네일 (다운로드한 배너를 통계에서 다시 보기) ──────────────────────
+
+/*
+  다운로드 한 번 = outputs/<id>/ 폴더 하나. 사이즈별로 긴 변 600px JPEG 를 한 장씩 둔다
+  (원본 PNG 의 1/10 이하). usage.csv 의 output 칸이 이 id 를 가리킨다.
+  기록과 같은 USAGE_DIR 아래에 둬야 재배포 때 지워지지 않는다. 자동 삭제는 하지 않는다.
+
+  올리기는 열쇠 없이 열려 있다 (기록 남기기와 같다). 그래서 이름·크기·형식을 좁게 막는다.
+*/
+const OUTPUT_DIR = path.join(path.dirname(USAGE_CSV), 'outputs');
+/** 한 장 상한 — 600px JPEG 는 보통 30~60KB 다 */
+export const OUTPUT_MAX_BYTES = 512 * 1024;
+/** 한 묶음 상한 — 매체를 다 골라도 수십 장이다 */
+const OUTPUT_MAX_FILES = 120;
+
+export const isOutputId = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9-]{8,40}$/.test(v);
+const isOutputName = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9_-]{1,80}$/i.test(v);
+
+/** 썸네일 한 장 저장. 형식이 틀리면 이유를 담아 던진다. */
+export async function saveOutputImage(id: unknown, name: unknown, buf: Buffer): Promise<void> {
+  if (!isOutputId(id) || !isOutputName(name)) throw Object.assign(new Error('Bad id or name'), { status: 400 });
+  if (buf.length === 0 || buf.length > OUTPUT_MAX_BYTES) throw Object.assign(new Error('Bad size'), { status: 413 });
+  // JPEG 시작 표식(FF D8 FF)만 받는다
+  if (buf[0] !== 0xff || buf[1] !== 0xd8 || buf[2] !== 0xff) throw Object.assign(new Error('Not a JPEG'), { status: 415 });
+  const dir = path.join(OUTPUT_DIR, id);
+  await fs.mkdir(dir, { recursive: true });
+  const existing = await fs.readdir(dir);
+  if (existing.length >= OUTPUT_MAX_FILES && !existing.includes(`${name}.jpg`)) {
+    throw Object.assign(new Error('Too many files'), { status: 429 });
+  }
+  await fs.writeFile(path.join(dir, `${name}.jpg`), buf);
+}
+
+/** 한 묶음의 파일 이름들 (확장자 뺀 것). 없으면 빈 배열. */
+export async function listOutput(id: unknown): Promise<string[]> {
+  if (!isOutputId(id)) return [];
+  try {
+    return (await fs.readdir(path.join(OUTPUT_DIR, id)))
+      .filter((f) => f.endsWith('.jpg'))
+      .map((f) => f.slice(0, -4))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+/** 썸네일 한 장의 실제 경로. 이름이 틀리면 null. */
+export function outputFilePath(id: unknown, name: unknown): string | null {
+  if (!isOutputId(id) || !isOutputName(name)) return null;
+  return path.join(OUTPUT_DIR, id, `${name}.jpg`);
 }
 
 /**

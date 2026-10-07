@@ -5,7 +5,7 @@ import { getPromotion } from '../../data/promotions';
 import { MEDIA_SIZES } from '../../data/mediaSizes';
 import { getSpec } from '../../data/figmaStyle';
 import { SpecBannerPreview } from './SpecBannerPreview';
-import { buildFontCss, capturePng, inlineImages, logUsage, saveBlob, settle, stamp } from '../utils/bannerExport';
+import { buildFontCss, capturePng, inlineImages, logUsage, makeThumb, newOutputId, saveBlob, settle, stamp, uploadOutput } from '../utils/bannerExport';
 
 export interface ZipProgress {
   busy: boolean;
@@ -66,6 +66,8 @@ export function useBannerZip(state: BannerState) {
     const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
     const failed: string[] = [];
+    /** 통계에서 다시 볼 썸네일 — 파일 이름(확장자 없이)과 함께 */
+    const thumbs: { name: string; blob: Blob }[] = [];
     let ok = 0;
     let fontCss: string | null = null;
     try {
@@ -81,8 +83,12 @@ export function useBannerZip(state: BannerState) {
         try {
           // 폰트 CSS 는 첫 장에서 한 번만 만들어 모든 장에 같은 것을 넘긴다
           if (fontCss === null) fontCss = await buildFontCss();
-          zip.folder(t.channel)!.file(`${t.channel}-${t.name}${t.noLogo ? '-no-logo' : ''}.png`, await capturePng(host, t.w, t.h, fontCss));
+          const base = `${t.channel}-${t.name}${t.noLogo ? '-no-logo' : ''}`;
+          const png = await capturePng(host, t.w, t.h, fontCss);
+          zip.folder(t.channel)!.file(`${base}.png`, png);
           ok++;
+          const thumb = await makeThumb(png);
+          if (thumb) thumbs.push({ name: base, blob: thumb });
         } catch {
           failed.push(label);
         } finally {
@@ -96,6 +102,7 @@ export function useBannerZip(state: BannerState) {
       setP((s) => ({ ...s, busy: false, current: null }));
       // 다 받은 뒤에 기록한다. 실패해도 결과물에는 영향이 없다.
       const meta = state.productMeta.filter((m, i) => m && state.products[i]);
+      const outputId = thumbs.length ? newOutputId() : '';
       void logUsage({
         design: state.designType,
         promotion: state.promotionId ? getPromotion(state.promotionId)?.label ?? state.promotionId : '',
@@ -106,7 +113,9 @@ export function useBannerZip(state: BannerState) {
         channels: state.adChannelIds.join('|'),
         banners: ok,
         comment: state.comment.trim(),
+        output: outputId,
       });
+      if (outputId) void uploadOutput(outputId, thumbs);
     } catch (e) {
       setP((s) => ({ ...s, busy: false, current: null, error: (e as Error).message }));
     } finally {
