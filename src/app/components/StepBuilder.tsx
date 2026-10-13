@@ -3,12 +3,13 @@ import { AppHeader, ReadmeTutorialLink } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
-import { createInitialState, DESIGN_TYPES, MAX_CTA, MAX_DISC, MAX_STICKER_OFF, MAX_STICKER_TOP, type BannerState, type DesignType } from '../types';
+import { createInitialState, DESIGN_TYPES, MAX_CTA, MAX_DISC, MAX_STICKER_OFF, MAX_STICKER_TEXT, MAX_STICKER_TOP, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
-import { AD_CHANNELS, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
+import { AD_CHANNELS, channelGroups, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { LGCOM_ICON_OPTIONS, lgcomIconSrc } from '../../data/lgcomIcons';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
+import { STICKER_TEXT_MAX_LINES, wrapStickerText } from '../utils/stickerText';
 import { LOGO_VARIANTS } from '../../data/logos';
 import { ENABLE_COLORING_OPTION, ENABLE_LOGO_CHANGE } from '../featureFlags';
 import { copyBudget, reflowCopy } from '../utils/copyFit';
@@ -22,7 +23,7 @@ import { alphaOf, NEUTRAL_BANNER_COLORS } from '../utils/color';
 /** 의견 입력 상한 — 기록 CSV 한 칸에 들어갈 만한 길이 */
 const MAX_COMMENT = 300;
 
-const STEPS = ['1. Design Template', '2. Promotion & Product', '3. Edit', '4. AD Media', '5. Review & Download'];
+const STEPS = ['1. Design Template', '2. Promotion & Product', '3. Edit', '4. Channel', '5. Review & Download'];
 
 type StepProps = { state: BannerState; update: (patch: Partial<BannerState>) => void };
 
@@ -516,159 +517,138 @@ function AdMediaStep({ state, update }: StepProps) {
 
   return (
     <div>
-      <Head title="AD Media" desc="Select media — the 1200×628 design applies to all its sizes." />
+      <Head title="Channel" desc="Select channels — the 1200×628 design applies to all its sizes." />
 
-      <p className="font-lgei font-bold text-[15px] text-gray-900 mb-2">Media Select</p>
-      {(() => {
-        const chanBtn = (c: (typeof AD_CHANNELS)[number]) => {
+      <p className="font-lgei font-bold text-[15px] text-gray-900 mb-2">Channel Select</p>
+      {/*
+        채널 버튼 — 5칸 격자에 AD_CHANNELS 순서대로 깐다. 고르면 칸이 흰색으로 채워진다.
+        채널별 주의 문구(META 로고 없는 판, LG.com 다운로드 범위)는 아래 확인창의
+        Sticker Position Edit 밑으로 옮겼다 — 고른 채널의 것만 보인다.
+      */}
+      <div className="grid grid-cols-5 gap-x-3.5 gap-y-2.5">
+        {AD_CHANNELS.map((c) => {
           const selected = state.adChannelIds.includes(c.id);
           return (
-            <button key={c.id} onClick={() => toggle(c.id)} className={`h-20 w-full rounded-xl border transition-colors flex items-center gap-3 pl-6 min-w-0 ${selected ? 'border-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-              <span className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-[#FD312E] border-[#FD312E]' : 'border-gray-300 bg-white'}`}>
-                {selected && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            <button key={c.id} onClick={() => toggle(c.id)} className={`h-10 w-full rounded-xl border transition-colors flex items-center gap-3 pl-4 min-w-0 ${selected ? 'border-gray-300 bg-white shadow-sm' : 'border-gray-200 bg-transparent hover:bg-white/60'}`}>
+              <span className={`w-[18px] h-[18px] rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-[#FD312E] border-[#FD312E]' : 'border-gray-300 bg-white'}`}>
+                {selected && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
               </span>
-              <span className={`text-[16px] truncate ${selected ? 'text-[#FD312E] font-medium' : 'text-gray-800'}`}>{c.label}</span>
+              <span className={`text-[15px] truncate ${selected ? 'text-gray-900 font-medium' : 'text-gray-800'}`}>{c.label}</span>
             </button>
           );
-        };
-        // META 계열(meta·metasaudi)은 한 칸을 반씩 나눠 쓴다 — 같은 매체의 두 판이라 묶어 보여준다.
-        // LG.com 은 META 칸 다음(=Pmax 아래 줄)에 온다.
-        const metas = AD_CHANNELS.filter((c) => c.id.startsWith('meta'));
-        const lgcom = AD_CHANNELS.filter((c) => c.id === 'lgcom');
-        const rest = AD_CHANNELS.filter((c) => !c.id.startsWith('meta') && c.id !== 'lgcom');
-        return (
-          <div className="grid grid-cols-2 gap-3">
-            {rest.map(chanBtn)}
-            <div>
-              <div className="grid grid-cols-2 gap-3">{metas.map(chanBtn)}</div>
-              <p className="text-[10px] text-[#FD312E] mt-1.5 whitespace-nowrap">
-                * When downloading from the META Media channel, a version without the LG logo is also downloaded.
-              </p>
-            </div>
-            {/*
-              LG.com 칸 — 켜면 카드가 **아래로 확장**되며 아이콘 컨트롤이 나오고
-              (하단 프리뷰는 자연히 밀려 내려간다), 오른쪽으로는 아이브로우/디스클레이머
-              패널이 미끄러져 나온다. 아이콘 기능은 1920×720·720×960 두 판 전용이다.
-            */}
-            <div className={`col-span-2 rounded-xl transition-all duration-300 ${lgcomOpen ? 'border border-gray-200 bg-white p-4' : ''}`}>
-              <div className="flex gap-3 items-stretch">
-                {/* ── 왼쪽 — LG.com 버튼 + 아이콘 컨트롤 ── */}
-                <div className={lgcomOpen ? 'w-[calc(50%-6px)] shrink-0 flex flex-col gap-3' : 'w-[calc(50%-6px)] shrink-0'}>
-                  <div>
-                    {lgcom.map(chanBtn)}
-                    <p className="text-[10px] text-[#FD312E] mt-1.5">
-                      * When downloading, text areas other than the icons, disclaimer, and images are not included.
-                    </p>
-                  </div>
-                  <div className={`overflow-hidden transition-all duration-500 ease-out ${lgcomOpen ? 'max-h-[240px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3">
-                        <button type="button" role="switch" aria-checked={state.lgcomIcons.enabled}
-                          onClick={() => updateIcons({ enabled: !state.lgcomIcons.enabled })}
-                          className={`relative w-11 h-6 shrink-0 rounded-full transition-colors ${state.lgcomIcons.enabled ? 'bg-[#FD312E]' : 'bg-gray-300'}`}>
-                          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${state.lgcomIcons.enabled ? 'left-[22px]' : 'left-0.5'}`} />
-                        </button>
-                        <span className="font-lgei font-bold text-[14px] text-gray-900">Icons</span>
-                        <span className="text-[11px] text-gray-400 truncate">
-                          {state.lgcomIcons.enabled ? 'Shown on 1920×720 · 720×960' : 'Icons are hidden on the banners'}
-                        </span>
-                      </div>
-                      {state.lgcomIcons.enabled && (<>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {(['solid', 'line'] as const).map((s) => (
-                          <button key={s} type="button" onClick={() => updateIcons({ style: s })}
-                            className={`h-10 px-6 rounded-xl border text-sm font-medium transition-colors ${state.lgcomIcons.style === s ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                            {s === 'solid' ? 'Solid Icon' : 'Line Icon'}
-                          </button>
-                        ))}
-                        <div className="flex rounded-xl border border-gray-200 overflow-hidden ml-1">
-                          {(['black', 'white'] as const).map((c) => (
-                            <button key={c} type="button" onClick={() => updateIcons({ color: c })}
-                              className={`h-10 px-5 text-sm flex items-center gap-2 transition-colors ${state.lgcomIcons.color === c ? 'bg-[#F0ECE4] text-gray-900 font-medium' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
-                              <span className={`w-3 h-3 rounded-full border ${state.lgcomIcons.color === c ? 'border-gray-800 bg-gray-800' : 'border-gray-300'}`}
-                                style={c === 'white' && state.lgcomIcons.color === c ? { background: '#fff', borderColor: '#999' } : undefined} />
-                              {c === 'black' ? 'Black' : 'White'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-medium text-gray-600">Number of icons</span>
-                        {[1, 2, 3].map((n) => (
-                          <button key={n} type="button" onClick={() => updateIcons({ count: n })}
-                            className={`w-9 h-9 rounded-lg border text-sm font-medium transition-colors ${state.lgcomIcons.count === n ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                            {n}
-                          </button>
-                        ))}
-                      </div>
-                      </>)}
-                    </div>
-                  </div>
-                </div>
+        })}
+      </div>
 
-                {/* ── 오른쪽 — 카피 패널 (세로로 넉넉하게) ── */}
-                <div
-                  className={`relative min-w-0 rounded-xl bg-white overflow-hidden transition-all duration-500 ease-out ${
-                    lgcomOpen
-                      ? 'flex-1 border border-gray-200 p-5 opacity-100 translate-x-0'
-                      : 'w-0 h-0 flex-none p-0 border-0 opacity-0 -translate-x-6 pointer-events-none'
-                  }`}
-                >
-                  <button type="button" onClick={() => setLgcomPanel(false)}
-                    className="absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
-                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
-                  </button>
-                  <div className="flex flex-col gap-4 pr-8">
-                    <div>
-                      <div className="flex items-baseline gap-1.5 mb-1.5">
-                        <span className="text-[13px] font-medium text-gray-700">Eyebrow</span>
-                        <span className="text-[11px] text-gray-400">optional</span>
-                      </div>
-                      <input type="text" value={state.lgcomEyebrowText} placeholder="Line above headline"
-                        onChange={(e) => update({ lgcomEyebrowText: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E]" />
-                    </div>
-                    <div>
-                      <div className="flex items-baseline gap-1.5 mb-1.5">
-                        <span className="text-[13px] font-medium text-gray-700">Disclaimer</span>
-                        <span className="text-[11px] text-gray-400">1920×720 · 720×960 only</span>
-                      </div>
-                      <textarea value={state.lgcomDiscText} rows={4}
-                        onChange={(e) => update({ lgcomDiscText: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E] resize-none" />
-                    </div>
-                  </div>
+      {/*
+        LG.com 옵션 — LG.com 을 켜면 격자 아래로 펼쳐진다 (하단 확인창은 자연히 밀려 내려간다).
+        위: 왼쪽 반(Eyebrow → 아이콘 켜기·개수 → 아이콘 스타일·색) / 오른쪽 반(Disclaimer 가 왼쪽 높이만큼 늘어남)
+        아래: 아이콘 고르기 3칸 (아이콘을 켰을 때만). 아이콘·디스클레이머는 1920×720·720×960 두 판 전용이다.
+      */}
+      <div className={`overflow-hidden transition-all duration-500 ease-out ${lgcomOpen ? 'max-h-[900px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <div className="grid grid-cols-2 gap-6">
+            {/*
+              ── 왼쪽 — 제목 + 아이콘 설정 ──
+              스타일·색 줄은 남는 높이를 채워 오른쪽(Eyebrow+Disclaimer) 바닥과 맞춘다.
+              아이콘을 꺼도 자리를 비우지 않고 흐리게만 둔다 — 배치가 들썩이지 않게.
+            */}
+            <div className="flex flex-col gap-4 min-w-0">
+              <p className="font-lgei font-bold text-[15px] text-gray-900 leading-[22px]">LG.com</p>
+
+              <div className="flex items-center gap-3 min-w-0">
+                <button type="button" role="switch" aria-checked={state.lgcomIcons.enabled}
+                  onClick={() => updateIcons({ enabled: !state.lgcomIcons.enabled })}
+                  className={`relative w-11 h-6 shrink-0 rounded-full transition-colors ${state.lgcomIcons.enabled ? 'bg-[#FD312E]' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${state.lgcomIcons.enabled ? 'left-[22px]' : 'left-0.5'}`} />
+                </button>
+                <span className="font-lgei font-bold text-[14px] text-gray-900 shrink-0">Icons</span>
+                <span className="text-[11px] text-gray-400 truncate">
+                  {state.lgcomIcons.enabled ? 'Shown on 1920×720 · 720×960' : 'Icons are hidden on the banners'}
+                </span>
+                <div className={`ml-auto flex items-center gap-1.5 shrink-0 transition-opacity ${state.lgcomIcons.enabled ? '' : 'opacity-40 pointer-events-none'}`}>
+                  <span className="text-[12px] text-gray-500 mr-1">Count</span>
+                  {[1, 2, 3].map((n) => (
+                    <button key={n} type="button" onClick={() => updateIcons({ count: n })}
+                      className={`w-9 h-9 rounded-lg border text-sm font-medium transition-colors ${state.lgcomIcons.count === n ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      {n}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* ── 아이콘 선택 그리드 (전체 폭) ── */}
-              <div className={`overflow-hidden transition-all duration-500 ease-out ${lgcomOpen && state.lgcomIcons.enabled ? 'max-h-[240px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
-                <div className="grid grid-cols-3 gap-4">
-                  {state.lgcomIcons.items.slice(0, state.lgcomIcons.count).map((item, i) => (
-                    <div key={i} className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2">
-                        <img src={lgcomIconSrc(state.lgcomIcons.style, item.icon)} alt="" draggable={false}
-                          className="w-9 h-9 shrink-0 rounded-md" />
-                        <select value={item.icon}
-                          onChange={(e) => {
-                            const opt = LGCOM_ICON_OPTIONS.find((o) => o.id === e.target.value)!;
-                            updateIconItem(i, { icon: opt.id, label: opt.label });
-                          }}
-                          className="flex-1 min-w-0 text-[13px] outline-none bg-transparent cursor-pointer">
-                          {LGCOM_ICON_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-                        </select>
-                      </div>
-                      <input type="text" value={item.label} placeholder={LGCOM_ICON_OPTIONS.find((o) => o.id === item.icon)?.label}
-                        onChange={(e) => updateIconItem(i, { label: e.target.value })}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
-                    </div>
+              <div className={`flex-1 min-h-10 grid grid-cols-2 gap-3 transition-opacity ${state.lgcomIcons.enabled ? '' : 'opacity-40 pointer-events-none'}`}>
+                {/* 스타일 — 면/실선 */}
+                <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+                  {(['solid', 'line'] as const).map((st) => (
+                    <button key={st} type="button" onClick={() => updateIcons({ style: st })}
+                      className={`flex-1 text-sm transition-colors ${state.lgcomIcons.style === st ? 'bg-[#FD312E]/5 text-[#FD312E] font-medium' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                      {st === 'solid' ? 'Solid Icon' : 'Line Icon'}
+                    </button>
+                  ))}
+                </div>
+                {/* 색 — 검정/흰색 */}
+                <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+                  {(['black', 'white'] as const).map((c) => (
+                    <button key={c} type="button" onClick={() => updateIcons({ color: c })}
+                      className={`flex-1 text-sm flex items-center justify-center gap-2 transition-colors ${state.lgcomIcons.color === c ? 'bg-[#F0ECE4] text-gray-900 font-medium' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+                      <span className={`w-3 h-3 rounded-full border ${state.lgcomIcons.color === c ? 'border-gray-800 bg-gray-800' : 'border-gray-300'}`}
+                        style={c === 'white' && state.lgcomIcons.color === c ? { background: '#fff', borderColor: '#999' } : undefined} />
+                      {c === 'black' ? 'Black' : 'White'}
+                    </button>
                   ))}
                 </div>
               </div>
             </div>
+
+            {/* ── 오른쪽 — Eyebrow + Disclaimer (닫기는 오른쪽 위) ── */}
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1.5 mb-1.5 h-[22px]">
+                <span className="text-[13px] font-medium text-gray-700">Eyebrow</span>
+                <span className="text-[11px] text-gray-400">optional</span>
+                <button type="button" onClick={() => setLgcomPanel(false)} title="Close"
+                  className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                </button>
+              </div>
+              <input type="text" value={state.lgcomEyebrowText} placeholder="Line above headline"
+                onChange={(e) => update({ lgcomEyebrowText: e.target.value })}
+                className="w-full h-11 px-3.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E]" />
+              <div className="flex items-baseline gap-1.5 mt-3 mb-1.5">
+                <span className="text-[13px] font-medium text-gray-700">Disclaimer</span>
+                <span className="text-[11px] text-gray-400">1920×720 · 720×960 only</span>
+              </div>
+              <textarea value={state.lgcomDiscText}
+                onChange={(e) => update({ lgcomDiscText: e.target.value })}
+                className="flex-1 min-h-[72px] w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E] resize-none" />
+            </div>
           </div>
-        );
-      })()}
+
+          {/* ── 아이콘 고르기 (전체 폭, 개수만큼) ── */}
+          <div className={`overflow-hidden transition-all duration-500 ease-out ${state.lgcomIcons.enabled ? 'max-h-[240px] opacity-100 mt-5' : 'max-h-0 opacity-0'}`}>
+            <div className="grid grid-cols-3 gap-4">
+              {state.lgcomIcons.items.slice(0, state.lgcomIcons.count).map((item, i) => (
+                <div key={i} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2">
+                    <img src={lgcomIconSrc(state.lgcomIcons.style, item.icon)} alt="" draggable={false}
+                      className="w-9 h-9 shrink-0 rounded-md" />
+                    <select value={item.icon}
+                      onChange={(e) => {
+                        const opt = LGCOM_ICON_OPTIONS.find((o) => o.id === e.target.value)!;
+                        updateIconItem(i, { icon: opt.id, label: opt.label });
+                      }}
+                      className="flex-1 min-w-0 text-[13px] outline-none bg-transparent cursor-pointer">
+                      {LGCOM_ICON_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <input type="text" value={item.label} placeholder={LGCOM_ICON_OPTIONS.find((o) => o.id === item.icon)?.label}
+                    onChange={(e) => updateIconItem(i, { label: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* 로고 갈아끼우기 — 확인창에서 고른 사이즈 하나만 대상으로 한다 */}
       {ENABLE_LOGO_CHANGE && channels.length > 0 && (
@@ -737,8 +717,9 @@ function AdMediaStep({ state, update }: StepProps) {
       >
         {/* ── Sticker Position Edit 토글 (좌상단 고정) ── */}
         {channels.length > 0 && (
-          <div className="absolute top-3 left-3 z-20 flex items-center gap-2"
+          <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1.5"
             onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
             <button type="button" onClick={() => setStickerEdit(!stickerEdit)}
               className={`h-9 px-3.5 rounded-lg text-[12px] font-medium shadow-sm transition-colors flex items-center gap-2 ${
                 stickerEdit ? 'bg-[#FD312E] text-white' : 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300'
@@ -755,6 +736,18 @@ function AdMediaStep({ state, update }: StepProps) {
               <span className="text-[11px] text-gray-600 bg-white/80 rounded-md px-2 py-1">
                 Drag a sticker to move it · double-click a banner to reset
               </span>
+            )}
+            </div>
+            {/* 채널별 다운로드 주의 문구 — 고른 채널의 것만 (예전엔 채널 버튼 밑에 있었다) */}
+            {state.adChannelIds.some((id) => id.startsWith('meta')) && (
+              <p className="text-[11px] text-[#FD312E] bg-white/80 rounded-md px-2 py-1">
+                * When downloading from the META channel, a version without the LG logo is also downloaded.
+              </p>
+            )}
+            {state.adChannelIds.includes('lgcom') && (
+              <p className="text-[11px] text-[#FD312E] bg-white/80 rounded-md px-2 py-1">
+                * LG.com: when downloading, text areas other than the icons, disclaimer, and images are not included.
+              </p>
             )}
           </div>
         )}
@@ -777,6 +770,9 @@ function AdMediaStep({ state, update }: StepProps) {
                     max-width 는 그대로라 사이즈가 많은 매체는 예전처럼 그 폭에서 접힌다.
                   */
                   <div key={c.id} className="shrink-0" style={{ width: 'max-content', maxWidth: CANVAS_MAX_W }}>
+                    {/* 한 채널 안의 사이즈 묶음(Pmax → Pmax · Pmax (Only D2C))은 같은 칸에 세로로 나눠 보인다 */}
+                    {channelGroups(c).map((c, gi) => (
+                    <div key={c.id} style={{ marginTop: gi ? NS(40) : undefined }}>
                     {(() => {
                       // Figma 에서 완성된(스펙이 있는) 사이즈만 보여준다.
                       // 숨김 처리된 프레임은 스펙이 없으므로 자연히 제외된다.
@@ -838,6 +834,8 @@ function AdMediaStep({ state, update }: StepProps) {
                         </>
                       );
                     })()}
+                    </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -872,7 +870,7 @@ function AdMediaStep({ state, update }: StepProps) {
 
           </>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-[#6b6862] text-sm">Select media above to preview all sizes.</div>
+          <div className="absolute inset-0 flex items-center justify-center text-[#6b6862] text-sm">Select channels above to preview all sizes.</div>
         )}
       </div>
       {channels.length > 0 && (
@@ -1315,8 +1313,44 @@ function EditSticker({ state, update }: StepProps) {
 
   return (
     <EditSection label="Sticker" checked={state.showSticker} onToggle={(v) => update({ showSticker: v })}>
-      {/* ── 글귀 (숫자·윗줄·아랫줄) ── */}
+      {/* ── 글 구성 — A: UP TO / 20% / off 3단 · B: 문구 한 줄 자유 입력 ── */}
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Type</p>
+      <div className="grid grid-cols-2 gap-1.5 mb-3">
+        {([['a', 'A', 'Sale Sticker'], ['b', 'B', 'Free Typing Sticker']] as const).map(([id, name, hint]) => {
+          const on = state.stickerLayout === id;
+          return (
+            <button key={id} type="button" onClick={() => update({ stickerLayout: id })}
+              className={`h-9 px-2.5 rounded-lg border text-xs transition-colors flex items-center gap-2 ${
+                on ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+              }`}>
+              <span className="font-semibold">{name}</span>
+              <span className={on ? 'text-[#FD312E]/70' : 'text-gray-400'}>{hint}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Text</p>
+      {state.stickerLayout === 'b' ? (
+        <div className="mb-3">
+          <label className="flex items-baseline gap-1 mb-1 select-none">
+            <span className="text-[11px] font-medium text-gray-600">Sticker text</span>
+            <span className="text-[10px] text-gray-400 ml-auto tabular-nums">{wrapStickerText(state.stickerText).length}/{STICKER_TEXT_MAX_LINES} lines</span>
+          </label>
+          {/*
+            엔터로 줄을 나눌 수 있어 textarea 를 쓴다. 글자 크기는 고정이라 넘치면 줄이
+            늘어나는데, 피그마 폭(171)으로 접은 결과가 3줄을 넘는 입력은 받지 않는다.
+          */}
+          <textarea value={state.stickerText} rows={3} maxLength={MAX_STICKER_TEXT} placeholder="20% Sale"
+            onChange={(e) => {
+              const v = e.target.value;
+              if (wrapStickerText(v).length > STICKER_TEXT_MAX_LINES && v.length >= state.stickerText.length) return;
+              update({ stickerText: v });
+            }}
+            className="w-full px-2.5 py-2 rounded-lg border border-gray-200 text-[13px] leading-5 outline-none focus:border-[#FD312E] resize-none" />
+          <p className="text-[10px] text-gray-400 mt-1">Up to {STICKER_TEXT_MAX_LINES} lines — wraps automatically, Enter for a new line.</p>
+        </div>
+      ) : (<>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[11px] text-gray-500 shrink-0">Number</span>
         <input
@@ -1351,6 +1385,7 @@ function EditSticker({ state, update }: StepProps) {
             className="w-full h-9 px-2.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E]" />
         </div>
       </div>
+      </>)}
 
       {/* ── 크기 — 전 사이즈 공통 배율. 도형·글자가 중심 기준으로 균일하게 줄어든다 ── */}
       <div className="border-t border-gray-100 pt-2.5 mb-3">
@@ -1524,7 +1559,7 @@ function ReviewStep({ state, update, zip }: StepProps & { zip: ReturnType<typeof
       <dl className="flex flex-col gap-2 text-sm max-w-md">
         {[
           ['Template', DESIGN_TYPES[state.designType].name],
-          ['Media', picked.map((c) => c.label).join(', ') || '—'],
+          ['Channel', picked.map((c) => c.label).join(', ') || '—'],
           ['Promotion', promo?.label ?? '—'],
           ['Products', String(state.products.filter(Boolean).length)],
           ['Banners', `${zip.count} files`],
@@ -1540,7 +1575,7 @@ function ReviewStep({ state, update, zip }: StepProps & { zip: ReturnType<typeof
       <div className="mt-6 max-w-md rounded-xl border border-gray-200 bg-white p-4">
         <p className="text-[11px] text-gray-400 mb-2">ZIP structure</p>
         <ul className="text-[12px] text-gray-700 font-mono leading-6">
-          {picked.map((c) => (
+          {picked.flatMap(channelGroups).map((c) => (
             <li key={c.id}>
               {c.id}/ <span className="text-gray-400">
                 {MEDIA_SIZES[c.id].filter((s) => !!getSpec(state.designType, c.id, s.name)).length} png

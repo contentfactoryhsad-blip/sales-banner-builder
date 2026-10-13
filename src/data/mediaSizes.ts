@@ -33,4 +33,12 @@ export const MEDIA_SIZES: Record<string, MediaSize[]> = {
   metasaudi: sizes('1080x1080,1080x1920,1080x1440,398x208'),
   /** LG.com 배너 — ST0001 두 판은 카피만, 960x600(PR0001)은 글래스 박스만 있다 */
   lgcom: sizes('1920x720,720x960,960x600'),
+  /* 2026-10 신규 채널 — 스펙은 figmaSpec.newch.ts */
+  googlesem: sizes('1200x1200,1200x628'),
+  twitch: sizes('300x250,728x90,320x50,160x600,970x250'),
+  ecrm: sizes('1200x520'),
+  venngo: sizes('1080x1920,2800x1000,3840x1000,3840x1600,1920x1080,1600x1600'),
+  perkopolis: sizes('600x500,300x250,1230x250'),
+  /** PMax (only D2C) — 별도 채널 버튼 없이 Pmax 안의 하위 묶음으로 보인다(builderOptions.CHANNEL_GROUPS) */
+  pmaxd2c: sizes('1080x1350,800x600,600x800,1080x1920,1200x700,1080x608,970x250,1080x1800,1080x1080,1000x1000,1500x1500'),
 };

@@ -222,6 +222,13 @@ export const STICKER_LAYOUT = {
  */
 export const STICKER_TXT_CENTER = { cx: TXT_CX, cy: TXT_CY } as const;
 
+/**
+ * B형 스티커(문구 한 줄) — 피그마 "Sticker sample_add"(6512:11758, 222px 원) 실측.
+ * Cal Sans 40 · 자간 −2% · 줄높이 40, 글 상자(Frame 75) 폭 171 가운데 정렬.
+ * 글 묶음 중심은 원 중심(111, 112)과 같다.
+ */
+export const STICKER_FREE_LAYOUT = { cx: 111.5, cy: 113, size: 40, tracking: -0.8, lineHeight: 40, maxW: 171 } as const;
+
 // ── 타입 ──────────────────────────────────────────────────────────────────────
 
 export interface BoxGridSpec {

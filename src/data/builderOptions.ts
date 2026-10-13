@@ -17,8 +17,24 @@ export const AD_CHANNELS: AdChannel[] = [
   { id: 'pmax', label: 'Pmax' },
   { id: 'meta', label: 'META' },
   { id: 'metasaudi', label: 'META_Saudi' },
+  { id: 'googlesem', label: 'Google SEM' },
+  { id: 'twitch', label: 'Twitch' },
+  { id: 'ecrm', label: 'ECRM' },
+  { id: 'venngo', label: 'Venngo' },
+  { id: 'perkopolis', label: 'Perkopolis' },
   { id: 'lgcom', label: 'LG.com' },
 ];
+
+/**
+ * 채널 버튼 하나가 여러 사이즈 묶음을 갖는 경우 — 버튼은 하나, 확인창·ZIP 에서만 나눠 보인다.
+ * Pmax 를 고르면 일반 Pmax 3사이즈와 PMax (only D2C) 사이즈가 같이 나온다.
+ * 묶음 id 는 스펙 키 접두어(pmaxd2c-1080x1080)이자 ZIP 폴더 이름이다.
+ */
+export const CHANNEL_GROUPS: Record<string, AdChannel[]> = {
+  pmax: [{ id: 'pmax', label: 'Pmax' }, { id: 'pmaxd2c', label: 'Pmax (Only D2C)' }],
+};
+/** 채널 버튼 → 그 안의 사이즈 묶음들 (묶음이 없으면 자기 자신 하나) */
+export const channelGroups = (c: AdChannel): AdChannel[] => CHANNEL_GROUPS[c.id] ?? [c];
 
 /** Background Type — 배경 그래픽 5종. A/B 디자인별로 다른 이미지 세트.
  *  이미지: public/bg/{a|b}/{id}-color.png (썸네일), -bw.png (tint용 텍스처) */

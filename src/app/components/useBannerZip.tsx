@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { BannerState } from '../types';
-import { AD_CHANNELS } from '../../data/builderOptions';
+import { AD_CHANNELS, channelGroups } from '../../data/builderOptions';
 import { getPromotion } from '../../data/promotions';
 import { MEDIA_SIZES } from '../../data/mediaSizes';
 import { getSpec } from '../../data/figmaStyle';
@@ -45,8 +45,8 @@ export function useBannerZip(state: BannerState) {
   /** 고른 매체 × Figma 스펙이 있는 사이즈 (숨김 프레임은 스펙이 없어 자연히 빠진다) */
   const targets = useMemo(() => {
     const out: { channel: string; name: string; w: number; h: number; noLogo?: boolean }[] = [];
-    for (const c of AD_CHANNELS) {
-      if (!state.adChannelIds.includes(c.id)) continue;
+    // 채널 버튼 하나가 묶음 여럿을 가질 수 있다(Pmax → pmax · pmaxd2c). 묶음마다 폴더가 따로 생긴다.
+    for (const c of AD_CHANNELS.filter((x) => state.adChannelIds.includes(x.id)).flatMap(channelGroups)) {
       for (const s of MEDIA_SIZES[c.id] ?? []) {
         if (!getSpec(state.designType, c.id, s.name)) continue;
         out.push({ channel: c.id, name: s.name, w: s.w, h: s.h });

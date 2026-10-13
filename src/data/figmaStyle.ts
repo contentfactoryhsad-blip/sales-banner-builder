@@ -9,6 +9,10 @@ import { METASAUDI_DISC_PAD, METASAUDI_PRODUCT, SPEC_A_METASAUDI, SPEC_B_METASAU
 import { LGCOM_PRODUCT, LGCOM_SHADE_ANGLE, SPEC_B_LGCOM, SPEC_LGCOM } from './figmaSpec.lgcom';
 import { SHADE } from './figmaSpec.shade';
 import {
+  NEWCH_DISC_PAD, NEWCH_HEAD_CENTER, NEWCH_HEAD_NOWRAP, NEWCH_PRODUCT, NEWCH_SHADE_ANGLE_A, NEWCH_SHADE_B,
+  SPEC_A_NEWCH, SPEC_B_NEWCH,
+} from './figmaSpec.newch';
+import {
   PMAXMETA_DISC_PAD, PMAXMETA_HEAD_CENTER, PMAXMETA_HEAD_NOWRAP, PMAXMETA_PRODUCT,
   PMAXMETA_SHADE_ANGLE,
 } from './figmaSpec.pmaxmeta.extra';
@@ -198,8 +202,8 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
  * (Pmax · META 는 Figma 확정 후 같은 방식으로 추가)
  */
 const SPECS: Record<DesignKind, Record<string, FigmaFrameSpec>> = {
-  A: { ...SPEC_A_CRITEO, ...SPEC_A_DV360, ...SPEC_A_PMAXMETA, ...SPEC_A_METASAUDI, ...SPEC_LGCOM },
-  B: { ...SPEC_B_CRITEO, ...SPEC_B_DV360, ...SPEC_B_PMAXMETA, ...SPEC_B_METASAUDI, ...SPEC_B_LGCOM },
+  A: { ...SPEC_A_CRITEO, ...SPEC_A_DV360, ...SPEC_A_PMAXMETA, ...SPEC_A_METASAUDI, ...SPEC_LGCOM, ...SPEC_A_NEWCH },
+  B: { ...SPEC_B_CRITEO, ...SPEC_B_DV360, ...SPEC_B_PMAXMETA, ...SPEC_B_METASAUDI, ...SPEC_B_LGCOM, ...SPEC_B_NEWCH },
 };
 
 /**
@@ -211,16 +215,16 @@ const sharedKey = (key: string) => key.startsWith('metasaudi-') ? key.replace('m
 
 /** A 의 셰이드 각도 — 종전 그대로. B 는 여기 쓰지 않는다(SHADE.B 사용). */
 const ANGLES_A: Record<string, number> = {
-  ...SHADE_ANGLE, ...DV360_SHADE_ANGLE, ...PMAXMETA_SHADE_ANGLE.A, ...LGCOM_SHADE_ANGLE,
+  ...SHADE_ANGLE, ...DV360_SHADE_ANGLE, ...PMAXMETA_SHADE_ANGLE.A, ...LGCOM_SHADE_ANGLE, ...NEWCH_SHADE_ANGLE_A,
 };
 
-const PRODUCTS: Record<string, Record<string, ProdRect[]>> = { ...PRODUCT, ...DV360_PRODUCT, ...PMAXMETA_PRODUCT, ...METASAUDI_PRODUCT, ...LGCOM_PRODUCT };
-const PADS = { ...DISC_PAD, ...DV360_DISC_PAD, ...PMAXMETA_DISC_PAD, ...METASAUDI_DISC_PAD };
+const PRODUCTS: Record<string, Record<string, ProdRect[]>> = { ...PRODUCT, ...DV360_PRODUCT, ...PMAXMETA_PRODUCT, ...METASAUDI_PRODUCT, ...LGCOM_PRODUCT, ...NEWCH_PRODUCT };
+const PADS = { ...DISC_PAD, ...DV360_DISC_PAD, ...PMAXMETA_DISC_PAD, ...METASAUDI_DISC_PAD, ...NEWCH_DISC_PAD };
 const NOWRAP: Record<DesignKind, string[]> = {
-  A: [...HEAD_NOWRAP.A, ...DV360_HEAD_NOWRAP.A, ...PMAXMETA_HEAD_NOWRAP.A],
-  B: [...HEAD_NOWRAP.B, ...DV360_HEAD_NOWRAP.B, ...PMAXMETA_HEAD_NOWRAP.B],
+  A: [...HEAD_NOWRAP.A, ...DV360_HEAD_NOWRAP.A, ...PMAXMETA_HEAD_NOWRAP.A, ...NEWCH_HEAD_NOWRAP.A],
+  B: [...HEAD_NOWRAP.B, ...DV360_HEAD_NOWRAP.B, ...PMAXMETA_HEAD_NOWRAP.B, ...NEWCH_HEAD_NOWRAP.B],
 };
-const CENTERED = [...HEAD_CENTER, ...DV360_HEAD_CENTER, ...PMAXMETA_HEAD_CENTER];
+const CENTERED = [...HEAD_CENTER, ...DV360_HEAD_CENTER, ...PMAXMETA_HEAD_CENTER, ...NEWCH_HEAD_CENTER];
 
 /**
  * 프로모션 명칭의 뒷단어를 **무조건 다음 줄**로 내리는 사이즈.
@@ -320,7 +324,7 @@ export function shadeCss(
   gr: FigmaFrameSpec['gr'], design: DesignKind, key: string, boost = 1, tint?: ShadeTint | null,
 ) {
   if (design === 'B') {
-    const s = SHADE.B[sharedKey(key)];
+    const s = SHADE.B[sharedKey(key)] ?? NEWCH_SHADE_B[key];
     if (!s) return 'none';
     const [deg, stops] = s;
     const rgb = DESIGN_STYLES.B.shadeRgb;

@@ -71,6 +71,14 @@ export interface BannerState {
   stickerTopText: string;
   /** 스티커 아랫줄 글귀 (기본 "off") */
   stickerOffText: string;
+  /**
+   * 스티커 글 구성.
+   *   a = "UP TO / 20% / off" 3단 (숫자·윗줄·아랫줄 따로 입력) — 피그마 Sticker sample
+   *   b = 문구 한 줄 자유 입력 ("20% Sale") — 피그마 Sticker sample_add (6512:11758)
+   */
+  stickerLayout: 'a' | 'b';
+  /** B형 스티커 문구 */
+  stickerText: string;
   /** 스티커 배경 스타일 — 색 3종(레드·웜그레이·블랙) 또는 글래스 */
   stickerStyle: StickerStyle;
   /** 스티커 표시 여부 (Copy 처럼 체크박스로 끄고 켠다) */
@@ -124,6 +132,8 @@ export const MAX_DISC = 24;
  */
 export const MAX_STICKER_TOP = 15;
 export const MAX_STICKER_OFF = 15;
+/** B형 스티커 문구 글자수 뚜껑(줄바꿈 포함). 실제 제한은 3줄 — utils/stickerText 가 막는다 */
+export const MAX_STICKER_TEXT = 60;
 
 export const MAX_BOXES = 6;
 
@@ -155,6 +165,8 @@ export function createInitialState(designType: DesignType): BannerState {
     discount: 20,
     stickerTopText: 'UP TO',
     stickerOffText: 'off',
+    stickerLayout: 'a',
+    stickerText: '20% Sale',
     stickerStyle: DEFAULT_STICKER_STYLE[designType],
     showSticker: true,
     stickerPosBySize: {},

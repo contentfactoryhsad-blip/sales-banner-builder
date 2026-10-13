@@ -6,6 +6,7 @@ import { DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, MIN_BOX_COUNT, resolveBackground
 import { ENABLE_COLORING_OPTION } from '../featureFlags';
 import { alphaOf, hexToHsl, hexToRgb, hslToHex, withAlpha, NEUTRAL_BANNER_COLORS } from '../utils/color';
 import { fitScale, measure, useFontsReady } from '../utils/textFit';
+import { STICKER_TEXT_MAX_LINES, wrapStickerText } from '../utils/stickerText';
 import { glassBox } from '../../data/figmaSpec.glass';
 import { LOGO_WHITE, logoSrc } from '../../data/logos';
 import { lgcomIconFilter, lgcomIconSrc } from '../../data/lgcomIcons';
@@ -15,7 +16,7 @@ import type { FigmaFrameSpec } from '../../data/figmaSpec';
 import { BOX_MATERIALS, DESIGN_STYLES, discPad, isWideFrame, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, stickerRect, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
 import {
   BODY_FONT, FROST_TO_PX, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
-  GLASS_DEFAULT, STICKER_COLORS, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, glassToCss,
+  GLASS_DEFAULT, STICKER_COLORS, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, STICKER_FREE_LAYOUT, glassToCss,
 } from '../../data/sizeLayouts';
 
 /**
@@ -800,6 +801,25 @@ export function SpecBannerPreview({
               })()}
               <svg viewBox={`0 0 ${S.circle} ${S.circle}`} width={size} height={size}
                 style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
+                {state.stickerLayout === 'b' ? (() => {
+                  /*
+                    B형 — 문구 자유 입력 (피그마 Sticker sample_add).
+                    글자 크기는 줄이지 않는다. 폭 171 에서 자동 줄바꿈 + 엔터 줄바꿈, 최대 3줄.
+                    줄 묶음의 세로 중심을 원 중심에 고정한다.
+                  */
+                  const F = STICKER_FREE_LAYOUT;
+                  const lines = wrapStickerText(state.stickerText).slice(0, STICKER_TEXT_MAX_LINES);
+                  if (lines.length === 0) return null;
+                  const fs = F.size * k;
+                  const lh = F.lineHeight * k;
+                  const cx = tx(F.cx), cy = ty(F.cy);
+                  // 줄 상자 가운데에 베이스라인을 놓는 근사 — Cal Sans 캡하이트 ≈ 0.7em (피그마 대조로 확인)
+                  const base0 = cy - (lines.length - 1) * lh / 2 + fs * 0.35;
+                  return lines.map((l, i) => (
+                    <text key={i} x={cx} y={base0 + i * lh} textAnchor="middle" fill={stickerInk}
+                      style={{ fontFamily: STICKER_FONT, fontSize: fs, letterSpacing: F.tracking * k }}>{l}</text>
+                  ));
+                })() : (<>
                 {(() => {
                   /*
                     긴 글은 크기를 줄여 원 안에 가둔다. 폭 예산은 222 좌표계에서 그 줄의
@@ -851,6 +871,7 @@ export function SpecBannerPreview({
                   style={{ fontFamily: STICKER_FONT, fontSize: S.percent.size }}>%</text>
                   </>);
                 })()}
+                </>)}
               </svg>
             </div>
           );
