@@ -763,13 +763,17 @@ function AdMediaStep({ state, update }: StepProps) {
             <div ref={contentRef} style={{ position: 'absolute', top: 0, left: 0, width: 'max-content', transformOrigin: 'top left' }}>
               {/* 매체가 늘어나면 오른쪽으로 붙는다 — 세로로 쌓으면 아래로만 길어져 비교가 안 된다 */}
               <div className="flex items-start" style={{ gap: NS(56) }}>
-                {channels.map((c) => (
+                {channels.map((c) => {
+                  // 칸 상한 — 상한보다 넓은 배너(venngo 3840)가 있으면 그 폭까지 넓힌다.
+                  // 안 그러면 배너가 칸 밖으로 삐져나와 옆 매체 칸을 덮는다.
+                  const colMax = Math.max(CANVAS_MAX_W, ...channelGroups(c).flatMap((g) => MEDIA_SIZES[g.id].map((s) => s.w)));
+                  return (
                   /*
                     칸 폭은 **내용에 맞춘다.** CANVAS_MAX_W 로 고정하면 사이즈가 적은 매체
                     (META 는 3개)의 칸이 텅 비어 다음 매체가 멀리 밀린다.
                     max-width 는 그대로라 사이즈가 많은 매체는 예전처럼 그 폭에서 접힌다.
                   */
-                  <div key={c.id} className="shrink-0" style={{ width: 'max-content', maxWidth: CANVAS_MAX_W }}>
+                  <div key={c.id} className="shrink-0" style={{ width: 'max-content', maxWidth: colMax }}>
                     {/* 한 채널 안의 사이즈 묶음(Pmax → Pmax · Pmax (Only D2C))은 같은 칸에 세로로 나눠 보인다 */}
                     {channelGroups(c).map((c, gi) => (
                     <div key={c.id} style={{ marginTop: gi ? NS(40) : undefined }}>
@@ -792,10 +796,10 @@ function AdMediaStep({ state, update }: StepProps) {
                           {ready.length === 0 ? (
                             <p className="text-[#6b6862]" style={{ fontSize: NS(12) }}>No sizes ready for this channel yet.</p>
                           ) : (
-                            <div className={columns ? 'flex flex-wrap items-stretch' : ''} style={{ gap: NS(20), maxWidth: CANVAS_MAX_W }}>
+                            <div className={columns ? 'flex flex-wrap items-stretch' : ''} style={{ gap: NS(20), maxWidth: colMax }}>
                               {(columns ?? rows!).map((col, ci) => (
                             <div key={ci} className={columns ? 'flex flex-col justify-between' : 'flex flex-wrap items-end'}
-                              style={{ gap: NS(20), maxWidth: CANVAS_MAX_W, marginBottom: columns ? undefined : NS(24) }}>
+                              style={{ gap: NS(20), maxWidth: colMax, marginBottom: columns ? undefined : NS(24) }}>
                               {col.map((s) => (
                                 <div
                                   key={`${c.id}-${s.name}`}
@@ -837,7 +841,8 @@ function AdMediaStep({ state, update }: StepProps) {
                     </div>
                     ))}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             {/* 스크롤 바 — 줌으로 화면 밖으로 나간 만큼만 나타난다 */}
