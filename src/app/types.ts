@@ -55,6 +55,8 @@ export interface BannerState {
    * 없는 사이즈는 시안 기본 로고를 쓴다 — 묻히는 사이즈만 골라 담는 자리다.
    */
   logoBySize: Record<string, string>;
+  /** Edit 화면에서 고른 전 사이즈 공통 로고 (LOGO_VARIANTS id). null = 시안 기본 로고. 사이즈별 교체가 더 우선. */
+  logoId: string | null;
 
   /** 세일 프로모션 명칭 (사용자 입력) */
   promoName: string;
@@ -102,6 +104,8 @@ export interface BannerState {
   showCta: boolean;
   /** 디스클레이머 글귀 ("*T&C's apply") — 법인이 자기 언어/문구로 바꿔 쓴다. */
   discText: string;
+  /** 디스클레이머 표시 여부 (광고 매체용 — LG.com 전용 고지문은 따로 입력) */
+  showDisc: boolean;
   /** LG.com 전용 디스클레이머 — 1920x720·720x960 두 판에만 쓰인다 (AD Media 의 슬라이드 패널에서 입력). */
   lgcomDiscText: string;
   /** LG.com 전용 아이브로우 — 같은 두 판의 헤드라인 위 한 줄. 비우면 안 그린다. */
@@ -160,6 +164,7 @@ export function createInitialState(designType: DesignType): BannerState {
     products: Array(MAX_BOXES).fill(null),
     productMeta: Array(MAX_BOXES).fill(null),
     logoBySize: {},
+    logoId: null,
     promoName: PROMOTIONS[0].label,
     comment: '',
     discount: 20,
@@ -178,6 +183,7 @@ export function createInitialState(designType: DesignType): BannerState {
     ctaText: 'Shop now',
     showCta: true,
     discText: "*T&C’s apply",
+    showDisc: true,
     lgcomDiscText: "*T&C’s apply",
     lgcomEyebrowText: 'Special offers are here',   // 피그마 A 판 기본 문구 (A·B 공용)
     // 피그마 A 판 기본 구성: Solid white 3개 (Free Delivery/Disposal/Installation)

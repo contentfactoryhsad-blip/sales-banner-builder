@@ -1015,6 +1015,7 @@ function EditStep({ state, update }: StepProps) {
           <EditBackground state={state} update={update} />
           <EditGraphic state={state} update={update} />
           <EditBox state={state} update={update} />
+          <EditLogo state={state} update={update} />
           <EditSticker state={state} update={update} />
           <EditCopy state={state} update={update} />
         </aside>
@@ -1285,6 +1286,36 @@ function EditBox({ state, update }: StepProps) {
  * 10/90 밖으로 나갈 수 없어 사실상 두 값만 입력 가능해진다.
  * 범위 안의 온전한 숫자일 때만 즉시 반영하고, 나머지는 blur/Enter에서 클램프한다.
  */
+/**
+ * Logo — 전 사이즈 공통 로고 4종 (reference/logos). 안 고르면 시안 기본 로고
+ * (A 흰색, B 는 사이즈에 따라 컬러/흰색). 고른 걸 다시 누르면 기본으로 돌아간다.
+ */
+function EditLogo({ state, update }: StepProps) {
+  return (
+    <EditSection label="Logo">
+      <div className="flex items-start gap-3">
+        {LOGO_VARIANTS.map((v) => {
+          const on = state.logoId === v.id;
+          return (
+            <button key={v.id} type="button" onClick={() => update({ logoId: on ? null : v.id })} title={v.label}
+              className="flex flex-col items-center gap-1.5 w-[68px] shrink-0">
+              <span className={`w-14 h-14 rounded-full flex items-center justify-center border transition-shadow ${
+                on ? 'border-transparent ring-[3px] ring-[#FD312E] ring-offset-2' : 'border-gray-200 hover:border-gray-300'}`}
+                style={{ background: v.thumbBg }}>
+                <img src={v.src} alt={v.label} className="w-9 h-auto" draggable={false} />
+              </span>
+              <span className={`text-[11px] whitespace-nowrap ${on ? 'text-[#FD312E] font-medium' : 'text-gray-600'}`}>{v.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] text-gray-400 mt-1.5">
+        {state.logoId ? 'Click again to go back to the design default.' : 'Not selected — each size uses the design default logo.'}
+      </p>
+    </EditSection>
+  );
+}
+
 function EditSticker({ state, update }: StepProps) {
   const [draft, setDraft] = useState(String(state.discount));
   useEffect(() => { setDraft(String(state.discount)); }, [state.discount]);
@@ -1503,9 +1534,11 @@ function EditCopy({ state, update }: StepProps) {
           <textarea value={raw} rows={2} onChange={(e) => onHeadChange(e.target.value)}
             className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[13px] outline-none focus:border-[#FD312E] resize-none" />
         </div>
-        <CopyField label="Sub copy" max={MAX_SUBCOPY} multiline value={state.subcopy} onChange={(v) => update({ subcopy: v })} />
+        <CopyField label="Sub copy" max={MAX_SUBCOPY} multiline value={state.subcopy} onChange={(v) => update({ subcopy: v })}
+          checked={state.showSubcopy} onToggle={(v) => update({ showSubcopy: v })} />
         {/* 디스클레이머 — "*T&C's apply" 를 법인 문구로 바꾼다. */}
-        <CopyField label="Disclaimer" max={MAX_DISC} value={state.discText} onChange={(v) => update({ discText: v })} />
+        <CopyField label="Disclaimer" max={MAX_DISC} value={state.discText} onChange={(v) => update({ discText: v })}
+          checked={state.showDisc !== false} onToggle={(v) => update({ showDisc: v })} />
         {/* CTA 버튼 글귀 — 법인이 자기 언어로 바꾼다. 버튼 폭은 글자에 맞춰 늘어난다. */}
         <CopyField label="CTA button" max={MAX_CTA} value={state.ctaText} onChange={(v) => update({ ctaText: v })}
           checked={state.showCta} onToggle={(v) => update({ showCta: v })} />

@@ -323,11 +323,11 @@ export function SpecBannerPreview({
     state.promoName, state.headline, state.showHeadline, state.subcopy,
   ]);
   /*
-    Figma 가 잡아둔 카피 바닥 → 그 아래 CTA 까지의 간격.
-    서브카피를 끈 상태면 Figma 도 헤드만 있는 셈이므로 헤드 바닥을 기준으로 잰다
-    (그래야 서브카피를 껐다고 CTA 가 위로 딸려 올라가지 않는다).
+    Figma 가 잡아둔 카피 바닥 → 그 아래 CTA 까지의 간격(= 오토레이아웃 gap).
+    간격은 늘 Figma 의 마지막 글 요소(서브카피가 있는 사이즈면 서브카피) 바닥에서 잰다.
+    서브카피를 끄면 그린 바닥이 헤드 바닥이 되므로, 피그마 오토레이아웃처럼 CTA 가 그만큼 올라온다.
   */
-  const figmaBottom = showSub && inn.sub
+  const figmaBottom = inn.sub
     ? inn.sub[1] + inn.sub[3]
     : inn.head ? inn.head[1] + inn.head[3] : 0;
   const ctaGap = inn.cta ? inn.cta[1] - figmaBottom : 0;
@@ -511,7 +511,7 @@ export function SpecBannerPreview({
 
         {/* LG 로고 */}
         {inn.logo && !hideLogo && (
-          <img src={logoSrc(state.logoBySize[key], baseLogo)} alt="LG" draggable={false}
+          <img src={logoSrc(state.logoBySize[key] ?? state.logoId ?? undefined, baseLogo)} alt="LG" draggable={false}
             style={{ position: 'absolute', left: inn.logo[0], top: inn.logo[1], width: inn.logo[2], height: inn.logo[3] }} />
         )}
 
@@ -900,7 +900,7 @@ export function SpecBannerPreview({
         })()}
 
         {/* 디스클레이머 */}
-        {inn.disc && (
+        {inn.disc && (channel === 'lgcom' || state.showDisc !== false) && (
           <p style={{
             position: 'absolute', left: inn.disc[0] + dpad[0],
             width: inn.disc[2] - dpad[0] - dpad[1],

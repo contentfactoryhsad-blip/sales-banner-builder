@@ -11,17 +11,22 @@
  * 것이다 — 컬러 SVG 에 filter 를 걸어 하얗게 만들면 원 안쪽이 뭉개진다.
  * `lg-logo-black.svg` 도 같은 이유로 흰색본의 fill 만 검정으로 바꿔 만들었다
  * (컬러본에 filter 를 걸면 원과 얼굴 선이 뭉개진다).
+ * `lg-logo-ogwhite.svg` 는 컬러본(빨간 원)의 회색 글자만 흰색으로 바꾼 것 — reference/logos/LG Logo-og-white.png.
  */
 export interface LogoVariant {
   id: string;
   label: string;
   src: string;
+  /** Edit 화면 썸네일 바탕 — 로고가 보이는 쪽으로 */
+  thumbBg: string;
 }
 
+/** 순서 = Edit 화면 Logo 선택지 순서 */
 export const LOGO_VARIANTS: LogoVariant[] = [
-  { id: 'color', label: 'Color', src: '/lg-logo.svg' },
-  { id: 'white', label: 'White', src: '/lg-logo-white.svg' },
-  { id: 'black', label: 'Black', src: '/lg-logo-black.svg' },
+  { id: 'white', label: 'LG White', src: '/lg-logo-white.svg', thumbBg: '#1a1a1a' },
+  { id: 'black', label: 'LG Black', src: '/lg-logo-black.svg', thumbBg: '#eeebe6' },
+  { id: 'color', label: 'LG OG', src: '/lg-logo.svg', thumbBg: '#eeebe6' },
+  { id: 'ogwhite', label: 'LG OG_White', src: '/lg-logo-ogwhite.svg', thumbBg: '#1a1a1a' },
 ];
 
 /** 흰 로고 경로 — 규칙으로 못박을 때 쓴다 (B 세로형). */
