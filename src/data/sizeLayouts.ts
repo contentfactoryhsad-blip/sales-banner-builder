@@ -224,10 +224,14 @@ export const STICKER_TXT_CENTER = { cx: TXT_CX, cy: TXT_CY } as const;
 
 /**
  * B형 스티커(문구 한 줄) — 피그마 "Sticker sample_add"(6512:11758, 222px 원) 실측.
- * Cal Sans 40 · 자간 −2% · 줄높이 40, 글 상자(Frame 75) 폭 171 가운데 정렬.
+ * 40 · 자간 −2% · 줄높이 40, 글 상자(Frame 75) 폭 171 가운데 정렬.
  * 글 묶음 중심은 원 중심(111, 112)과 같다.
+ * 폰트는 피그마의 Cal Sans 대신 LGEI Headline SemiBold 를 쓴다 (2026-10-21 요청 — 헤드카피와 같은 서체).
  */
-export const STICKER_FREE_LAYOUT = { cx: 111.5, cy: 113, size: 40, tracking: -0.8, lineHeight: 40, maxW: 171 } as const;
+export const STICKER_FREE_LAYOUT = {
+  cx: 111.5, cy: 113, size: 40, tracking: -0.8, lineHeight: 40, maxW: 171,
+  font: '"LGEI Headline", "Apple SD Gothic Neo", sans-serif', weight: 600,
+} as const;
 
 // ── 타입 ──────────────────────────────────────────────────────────────────────
 

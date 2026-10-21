@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { BannerState } from '../types';
+import { DEFAULT_EYEBROW, type BannerState } from '../types';
 import { getPromotion, promoPair } from '../../data/promotions';
 import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
 import { DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, MIN_BOX_COUNT, resolveBackground, resolveStickerStyle } from '../../data/builderOptions';
@@ -273,6 +273,10 @@ export function SpecBannerPreview({
   const prods = productRects(key, boxKey);
 
   const inn = spec.in;
+  // 아이브로우 문구 — LG.com 은 자기 입력칸, 광고 매체는 공용 토글+문구 (스펙에 아이브로우 자리가 있을 때만 그린다)
+  const eyebrowText = channel === 'lgcom'
+    ? state.lgcomEyebrowText
+    : (state.showEyebrow !== false ? (state.eyebrowText ?? DEFAULT_EYEBROW) : '');
   const hAlign = headAlign(key);
   const noWrap = headNoWrap(design, key);
   /*
@@ -510,7 +514,7 @@ export function SpecBannerPreview({
         {backdrop}
 
         {/* LG 로고 */}
-        {inn.logo && !hideLogo && (
+        {inn.logo && !hideLogo && state.showLogo !== false && (
           <img src={logoSrc(state.logoBySize[key] ?? state.logoId ?? undefined, baseLogo)} alt="LG" draggable={false}
             style={{ position: 'absolute', left: inn.logo[0], top: inn.logo[1], width: inn.logo[2], height: inn.logo[3] }} />
         )}
@@ -605,13 +609,13 @@ export function SpecBannerPreview({
             color: channel === 'lgcom' ? '#fff' : style.text,
           }}>
             {/* 아이브로우 — LG.com ST0001 전용 한 줄. 비어 있으면 그리지 않는다. */}
-            {inn.eyebrow && state.lgcomEyebrowText.trim() && (
+            {inn.eyebrow && eyebrowText.trim() && (
               <p style={{
                 position: 'absolute', left: inn.eyebrow[0], top: inn.eyebrow[1],
                 width: 'max-content', whiteSpace: 'nowrap', margin: 0,
                 fontFamily: BODY_FONT, fontSize: inn.eyebrow[4], letterSpacing: inn.eyebrow[5] || undefined,
                 lineHeight: COPY_LINE_HEIGHT,
-              }}>{state.lgcomEyebrowText}</p>
+              }}>{eyebrowText}</p>
             )}
             {inn.head && (
               <div ref={headRef} style={{
@@ -817,7 +821,7 @@ export function SpecBannerPreview({
                   const base0 = cy - (lines.length - 1) * lh / 2 + fs * 0.35;
                   return lines.map((l, i) => (
                     <text key={i} x={cx} y={base0 + i * lh} textAnchor="middle" fill={stickerInk}
-                      style={{ fontFamily: STICKER_FONT, fontSize: fs, letterSpacing: F.tracking * k }}>{l}</text>
+                      style={{ fontFamily: F.font, fontWeight: F.weight, fontSize: fs, letterSpacing: F.tracking * k }}>{l}</text>
                   ));
                 })() : (<>
                 {(() => {

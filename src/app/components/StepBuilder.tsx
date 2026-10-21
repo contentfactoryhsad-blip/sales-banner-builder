@@ -3,7 +3,7 @@ import { AppHeader, ReadmeTutorialLink } from './AppHeader';
 import { WizardBreadcrumb } from './WizardBreadcrumb';
 import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
-import { createInitialState, DESIGN_TYPES, MAX_CTA, MAX_DISC, MAX_STICKER_OFF, MAX_STICKER_TEXT, MAX_STICKER_TOP, type BannerState, type DesignType } from '../types';
+import { createInitialState, DEFAULT_EYEBROW, DESIGN_TYPES, MAX_CTA, MAX_DISC, MAX_EYEBROW, MAX_STICKER_OFF, MAX_STICKER_TEXT, MAX_STICKER_TOP, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
 import { AD_CHANNELS, channelGroups, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { LGCOM_ICON_OPTIONS, lgcomIconSrc } from '../../data/lgcomIcons';
@@ -1297,7 +1297,7 @@ function EditBox({ state, update }: StepProps) {
  */
 function EditLogo({ state, update }: StepProps) {
   return (
-    <EditSection label="Logo">
+    <EditSection label="Logo" checked={state.showLogo !== false} onToggle={(v) => update({ showLogo: v })}>
       <div className="flex items-start gap-3">
         {LOGO_VARIANTS.map((v) => {
           const on = state.logoId === v.id;
@@ -1531,6 +1531,9 @@ function EditCopy({ state, update }: StepProps) {
   return (
     <EditSection label="Copy">
       <div className="flex flex-col gap-2.5">
+        {/* 아이브로우 — 헤드라인 위 한 줄. 아이브로우 자리가 있는 사이즈에만 그려진다. (LG.com 은 채널 옵션의 Eyebrow 를 쓴다) */}
+        <CopyField label="Eyebrow" max={MAX_EYEBROW} value={state.eyebrowText ?? DEFAULT_EYEBROW} onChange={(v) => update({ eyebrowText: v })}
+          checked={state.showEyebrow !== false} onToggle={(v) => update({ showEyebrow: v })} />
         <div>
           <label className="flex items-center gap-2 mb-1 select-none">
             <span className="text-xs font-medium text-gray-600">Head copy</span>

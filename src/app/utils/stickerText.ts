@@ -1,4 +1,4 @@
-import { STICKER_FONT, STICKER_FREE_LAYOUT } from '../../data/sizeLayouts';
+import { STICKER_FREE_LAYOUT } from '../../data/sizeLayouts';
 import { measure } from './textFit';
 
 /** B형 스티커 최대 줄 수 */
@@ -14,7 +14,7 @@ export const STICKER_TEXT_MAX_LINES = 3;
  */
 export function wrapStickerText(text: string): string[] {
   const F = STICKER_FREE_LAYOUT;
-  const w = (t: string) => measure(t, F.size, 400, STICKER_FONT) + t.length * F.tracking;
+  const w = (t: string) => measure(t, F.size, F.weight, F.font) + t.length * F.tracking;
   const out: string[] = [];
   for (const para of text.split('\n')) {
     const words = para.trim().split(/\s+/).filter(Boolean);

@@ -57,6 +57,8 @@ export interface BannerState {
   logoBySize: Record<string, string>;
   /** Edit 화면에서 고른 전 사이즈 공통 로고 (LOGO_VARIANTS id). null = 시안 기본 로고. 사이즈별 교체가 더 우선. */
   logoId: string | null;
+  /** LG 로고 표시 여부 (Edit 의 Logo 체크박스). 끄면 전 사이즈에서 로고를 그리지 않는다. */
+  showLogo: boolean;
 
   /** 세일 프로모션 명칭 (사용자 입력) */
   promoName: string;
@@ -98,6 +100,12 @@ export interface BannerState {
   showHeadline: boolean;
   showSubcopy: boolean;
 
+  /**
+   * 아이브로우 — 헤드라인 위 한 줄 (광고 매체 공용). 사이즈 스펙에 아이브로우 자리가 있을 때만 그린다.
+   * LG.com 은 따로 lgcomEyebrowText 를 쓴다.
+   */
+  showEyebrow: boolean;
+  eyebrowText: string;
   /** CTA 버튼 글귀 — 법인이 자기 언어로 바꿔 쓴다. 버튼 폭은 글자에 맞춰 늘어난다. */
   ctaText: string;
   /** CTA 버튼 표시 여부 (Copy 요소들처럼 체크박스로 끄고 켠다) */
@@ -125,6 +133,11 @@ export interface BannerState {
 
 /** CTA 버튼 글자수 뚜껑 — 이보다 길면 짧은 사이즈에서 버튼이 카피를 밀어낸다. */
 export const MAX_CTA = 15;
+
+/** 아이브로우 기본 문구 (피그마 A 판 Eyebrow 텍스트) */
+export const DEFAULT_EYEBROW = 'LG.com exclusive deals';
+/** 아이브로우 글자수 뚜껑 — 기본 문구 길이에 여유를 조금 둔다. */
+export const MAX_EYEBROW = 28;
 
 /** 디스클레이머 글자수 뚜껑 — 작은 사이즈에서 고지문 한 줄을 지키는 한계. */
 export const MAX_DISC = 24;
@@ -165,6 +178,7 @@ export function createInitialState(designType: DesignType): BannerState {
     productMeta: Array(MAX_BOXES).fill(null),
     logoBySize: {},
     logoId: null,
+    showLogo: true,
     promoName: PROMOTIONS[0].label,
     comment: '',
     discount: 20,
@@ -180,6 +194,8 @@ export function createInitialState(designType: DesignType): BannerState {
     subcopy: 'Limited-time offers, only on LG.com',
     showHeadline: true,
     showSubcopy: true,
+    showEyebrow: true,
+    eyebrowText: DEFAULT_EYEBROW,
     ctaText: 'Shop now',
     showCta: true,
     discText: "*T&C’s apply",
