@@ -5,7 +5,7 @@ import { PreviewPanel } from './PreviewPanel';
 import { ProductRow } from './LeftOptionsPanel';
 import { createInitialState, DEFAULT_EYEBROW, DESIGN_TYPES, MAX_CTA, MAX_DISC, MAX_EYEBROW, MAX_STICKER_OFF, MAX_STICKER_TEXT, MAX_STICKER_TOP, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
-import { AD_CHANNELS, channelGroups, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
+import { AD_CHANNELS, CHANNEL_SECTIONS, channelGroups, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
 import { LGCOM_ICON_OPTIONS, lgcomIconSrc } from '../../data/lgcomIcons';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
@@ -521,20 +521,28 @@ function AdMediaStep({ state, update }: StepProps) {
 
       <p className="font-lgei font-bold text-[15px] text-gray-900 mb-2">Channel Select</p>
       {/*
-        채널 버튼 — 5칸 격자에 AD_CHANNELS 순서대로 깐다. 고르면 칸이 흰색으로 채워진다.
+        채널 버튼 — 단(CHANNEL_SECTIONS)별로 5칸 격자에 깐다: 1단 메인 매체 / 2단 어필리에잇 / 3단 LG.com.
+        단 사이는 간격으로 띄워 구분한다. 고르면 칸이 흰색으로 채워진다.
         채널별 주의 문구(META 로고 없는 판, LG.com 다운로드 범위)는 아래 확인창의
         Sticker Position Edit 밑으로 옮겼다 — 고른 채널의 것만 보인다.
       */}
-      <div className="grid grid-cols-5 gap-x-3.5 gap-y-2.5">
-        {AD_CHANNELS.map((c) => {
-          const selected = state.adChannelIds.includes(c.id);
+      <div className="flex flex-col gap-6">
+        {CHANNEL_SECTIONS.map((ids, si) => {
+          const list = AD_CHANNELS.filter((c) => ids.includes(c.id));
           return (
-            <button key={c.id} onClick={() => toggle(c.id)} className={`h-10 w-full rounded-xl border transition-colors flex items-center gap-3 pl-4 min-w-0 ${selected ? 'border-gray-300 bg-white shadow-sm' : 'border-gray-200 bg-transparent hover:bg-white/60'}`}>
-              <span className={`w-[18px] h-[18px] rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-[#FD312E] border-[#FD312E]' : 'border-gray-300 bg-white'}`}>
-                {selected && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-              </span>
-              <span className={`text-[15px] truncate ${selected ? 'text-gray-900 font-medium' : 'text-gray-800'}`}>{c.label}</span>
-            </button>
+            <div key={si} className="grid grid-cols-5 gap-x-3.5 gap-y-2.5">
+              {list.map((c) => {
+                const selected = state.adChannelIds.includes(c.id);
+                return (
+                  <button key={c.id} onClick={() => toggle(c.id)} className={`h-10 w-full rounded-xl border transition-colors flex items-center gap-3 pl-4 min-w-0 ${selected ? 'border-gray-300 bg-white shadow-sm' : 'border-gray-200 bg-transparent hover:bg-white/60'}`}>
+                    <span className={`w-[18px] h-[18px] rounded border flex items-center justify-center shrink-0 ${selected ? 'bg-[#FD312E] border-[#FD312E]' : 'border-gray-300 bg-white'}`}>
+                      {selected && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    </span>
+                    <span className={`text-[15px] truncate ${selected ? 'text-gray-900 font-medium' : 'text-gray-800'}`}>{c.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           );
         })}
       </div>
@@ -766,7 +774,7 @@ function AdMediaStep({ state, update }: StepProps) {
                 {channels.map((c) => {
                   // 칸 상한 — 상한보다 넓은 배너(venngo 3840)가 있으면 그 폭까지 넓힌다.
                   // 안 그러면 배너가 칸 밖으로 삐져나와 옆 매체 칸을 덮는다.
-                  const colMax = Math.max(CANVAS_MAX_W, ...channelGroups(c).flatMap((g) => MEDIA_SIZES[g.id].map((s) => s.w)));
+                  const colMax = Math.max(CANVAS_MAX_W, ...channelGroups(c).flatMap((g) => (MEDIA_SIZES[g.id] ?? []).map((s) => s.w)));
                   return (
                   /*
                     칸 폭은 **내용에 맞춘다.** CANVAS_MAX_W 로 고정하면 사이즈가 적은 매체
@@ -780,7 +788,7 @@ function AdMediaStep({ state, update }: StepProps) {
                     {(() => {
                       // Figma 에서 완성된(스펙이 있는) 사이즈만 보여준다.
                       // 숨김 처리된 프레임은 스펙이 없으므로 자연히 제외된다.
-                      const ready = MEDIA_SIZES[c.id].filter((s) => !!getSpec(state.designType, c.id, s.name));
+                      const ready = (MEDIA_SIZES[c.id] ?? []).filter((s) => !!getSpec(state.designType, c.id, s.name));
                       /*
                         META 만 칸으로 묶는다 — 1080x1920 옆이 통째로 비어서
                         작은 398x208 을 그 빈자리에 올린다. 사이즈가 많은 매체는
@@ -1619,7 +1627,7 @@ function ReviewStep({ state, update, zip }: StepProps & { zip: ReturnType<typeof
           {picked.flatMap(channelGroups).map((c) => (
             <li key={c.id}>
               {c.id}/ <span className="text-gray-400">
-                {MEDIA_SIZES[c.id].filter((s) => !!getSpec(state.designType, c.id, s.name)).length} png
+                {(MEDIA_SIZES[c.id] ?? []).filter((s) => !!getSpec(state.designType, c.id, s.name)).length} png
               </span>
             </li>
           ))}

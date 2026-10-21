@@ -20,9 +20,29 @@ export const AD_CHANNELS: AdChannel[] = [
   { id: 'googlesem', label: 'Google SEM' },
   { id: 'twitch', label: 'Twitch' },
   { id: 'ecrm', label: 'ECRM' },
+  { id: 'quantcast', label: 'Quantcast' },
+  { id: 'rakuten', label: 'Rakuten' },
   { id: 'venngo', label: 'Venngo' },
   { id: 'perkopolis', label: 'Perkopolis' },
+  { id: 'awin', label: 'Awin' },
+  { id: 'dataaudience', label: 'Data Audience' },
+  { id: 'vasekupony', label: 'Vase kupony' },
+  { id: 'plnapenezenka', label: 'Plna penezenka' },
+  { id: 'tipli', label: 'Tipli' },
+  { id: 'twaffiliate', label: 'Taiwan Affiliate' },
+  { id: 'telushealth', label: 'Telus Health' },
   { id: 'lgcom', label: 'LG.com' },
+];
+
+/**
+ * Channel Select 화면의 단 구분 — 1단 메인 매체 / 2단 어필리에잇 / 3단 LG.com.
+ * 단 사이는 간격으로 띄운다. 각 단 안의 순서는 AD_CHANNELS 순서를 따른다.
+ * (어필리에잇 채널의 사이즈 데이터는 아직 다듬는 중 — MEDIA_SIZES 에 없는 채널은 사이즈 0개로 보인다)
+ */
+export const CHANNEL_SECTIONS: string[][] = [
+  ['criteo', 'dv360', 'pmax', 'meta', 'metasaudi', 'googlesem', 'twitch', 'quantcast', 'ecrm'],
+  ['rakuten', 'venngo', 'perkopolis', 'awin', 'dataaudience', 'vasekupony', 'plnapenezenka', 'tipli', 'twaffiliate', 'telushealth'],
+  ['lgcom'],
 ];
 
 /**
