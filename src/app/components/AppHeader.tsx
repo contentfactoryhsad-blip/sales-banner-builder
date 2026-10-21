@@ -6,7 +6,7 @@ import { BackButton } from './BackButton';
 export function ReadmeTutorialLink() {
   return (
     <a
-      href="https://f.io/IWxBt1Gc"
+      href="https://f.io/1lXLWeok"
       target="_blank"
       rel="noopener noreferrer"
       className="flex items-center gap-1.5 h-9 px-4 rounded-full border border-gray-300 bg-transparent text-[13px] font-medium text-gray-700 transition-colors hover:bg-black/[0.04] hover:border-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FD312E]/40 shrink-0"
