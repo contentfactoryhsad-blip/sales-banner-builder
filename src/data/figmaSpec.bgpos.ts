@@ -18,7 +18,7 @@ import { V2_BGPOS_B2, V2_BGPOS_B3, V2_BGPOS_B4, V2_BGPOS_B5 } from './figmaSpec.
 export const BG_POS_BY_BACKGROUND: Record<string, Record<string, [number, number, number, number]>> = {
   // Sales Template (B)-1 — Figma 섹션 6360:59984 (2026-10-13 박스 중심 재배치분 반영)
   'b-bg-01': {
-    'lgcom-1920x720': [-73, -673, 2066, 2066],
+    'lgcom-1920x720': [-146, -1077, 2874, 2874],
     'lgcom-720x960': [-135, -15, 990, 990],
     'lgcom-960x600': [-37, -216, 1034, 1034],
     'criteo-1024x768': [43, -333.08, 1433, 1433],
@@ -66,7 +66,7 @@ export const BG_POS_BY_BACKGROUND: Record<string, Record<string, [number, number
   },
   // Sales Template (B)-2) — Figma 섹션 6338:4938
   'b-bg-02': {
-    'lgcom-1920x720': [-28, -1029, 1981, 1981],
+    'lgcom-1920x720': [-93, -671, 1981, 1981],
     'lgcom-720x960': [-69, -27, 1013, 1013],
     'lgcom-960x600': [-79, -306, 1118, 1118],
     'criteo-1024x768': [180, -173, 1159, 1159],
@@ -114,7 +114,7 @@ export const BG_POS_BY_BACKGROUND: Record<string, Record<string, [number, number
   },
   // Sales Template (B)-3 — Figma 섹션 6338:7063
   'b-bg-03': {
-    'lgcom-1920x720': [-46, -673, 2065, 2065],
+    'lgcom-1920x720': [-212, -1155, 3093, 3093],
     'lgcom-720x960': [-271, -96, 1318, 1318],
     'lgcom-960x600': [-53, -222, 1111, 1111],
     'criteo-1024x768': [56, -333, 1433, 1433],
@@ -162,7 +162,7 @@ export const BG_POS_BY_BACKGROUND: Record<string, Record<string, [number, number
   },
   // Sales Template (B)-4 — Figma 섹션 6338:11313
   'b-bg-04': {
-    'lgcom-1920x720': [-428, -1272, 3033, 3033],
+    'lgcom-1920x720': [-241, -1490, 3385, 3385],
     'lgcom-720x960': [-329, -303, 1566, 1566],
     'lgcom-960x600': [-313, -641, 1706, 1706],
     'criteo-1024x768': [-10, -545, 1693, 1693],
@@ -210,7 +210,7 @@ export const BG_POS_BY_BACKGROUND: Record<string, Record<string, [number, number
   },
   // Sales Template (B)-5 — Figma 섹션 6338:9188
   'b-bg-05': {
-    'lgcom-1920x720': [-30, -599, 2034, 2034],
+    'lgcom-1920x720': [-171, -1144, 3100, 3100],
     'lgcom-720x960': [-181, -61, 1082, 1082],
     'lgcom-960x600': [-209, -283, 1377, 1377],
     'criteo-1024x768': [65, -151, 1374, 1374],
