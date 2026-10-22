@@ -219,9 +219,16 @@ export function SpecBannerPreview({
     묻힌다. 사이즈마다 사람이 골라 주는 것보다 판이 정해 주는 편이 낫다.
     A 는 원래 전 사이즈가 흰 로고라 이 규칙과 무관하다.
   */
-  const baseLogo = design === 'B' && !isWideFrame(FW, FH)
+  /*
+    글자 모드(Light/Dark) — 기본은 A=다크·B=라이트, 사용자가 반대로 고를 수 있다.
+    글자·디스클레이머 색과 로고는 시안이 아니라 이 모드를 따른다 (피그마 Mode 변형과 같은 묶음).
+    라이트의 세로형 흰 로고 규칙은 위 설명 그대로 유지한다.
+  */
+  const textMode = state.textMode ?? (design === 'A' ? 'dark' : 'light');
+  const tone = DESIGN_STYLES[textMode === 'dark' ? 'A' : 'B'];
+  const baseLogo = textMode === 'light' && !isWideFrame(FW, FH)
     ? LOGO_WHITE
-    : DESIGN_STYLES[design].logo;
+    : tone.logo;
   const scale = displayWidth / FW;
   const style = DESIGN_STYLES[design];
   /*
@@ -274,9 +281,7 @@ export function SpecBannerPreview({
 
   const inn = spec.in;
   // 아이브로우 문구 — LG.com 은 자기 입력칸, 광고 매체는 공용 토글+문구 (스펙에 아이브로우 자리가 있을 때만 그린다)
-  const eyebrowText = channel === 'lgcom'
-    ? state.lgcomEyebrowText
-    : (state.showEyebrow !== false ? (state.eyebrowText ?? DEFAULT_EYEBROW) : '');
+  const eyebrowText = state.showEyebrow !== false ? (state.eyebrowText ?? DEFAULT_EYEBROW) : '';
   const hAlign = headAlign(key);
   const noWrap = headNoWrap(design, key);
   /*
@@ -606,7 +611,7 @@ export function SpecBannerPreview({
           <div style={{
             position: 'absolute', left: inn.copy[0], top: inn.copy[1], width: inn.copy[2],
             // LG.com 은 B 여도 피그마가 Mode=Dark(흰 글씨)다 — 셰이드 없는 컬러 KV 위라 흰색 고정
-            color: channel === 'lgcom' ? '#fff' : style.text,
+            color: channel === 'lgcom' ? '#fff' : tone.text,
           }}>
             {/* 아이브로우 — LG.com ST0001 전용 한 줄. 비어 있으면 그리지 않는다. */}
             {inn.eyebrow && eyebrowText.trim() && (
@@ -904,14 +909,14 @@ export function SpecBannerPreview({
         })()}
 
         {/* 디스클레이머 */}
-        {inn.disc && (channel === 'lgcom' || state.showDisc !== false) && (
+        {inn.disc && (channel === 'lgcom' ? state.lgcomShowDisc !== false : state.showDisc !== false) && (
           <p style={{
             position: 'absolute', left: inn.disc[0] + dpad[0],
             width: inn.disc[2] - dpad[0] - dpad[1],
             bottom: spec.f[1] - (inn.disc[1] + inn.disc[3]) + dpad[2],
             margin: 0, fontFamily: BODY_FONT, fontSize: inn.disc[4],
-            color: channel === 'lgcom' ? '#fff' : style.discColor,
-            textShadow: channel === 'lgcom' ? undefined : style.discShadow,
+            color: channel === 'lgcom' ? '#fff' : tone.discColor,
+            textShadow: channel === 'lgcom' ? undefined : tone.discShadow,
             textAlign: hAlign === 'right' ? 'right' : undefined,
           }}>{(channel === 'lgcom' ? state.lgcomDiscText : state.discText).trim() || '*T&C’s apply'}</p>
         )}

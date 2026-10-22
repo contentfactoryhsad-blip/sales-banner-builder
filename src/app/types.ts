@@ -102,7 +102,7 @@ export interface BannerState {
 
   /**
    * 아이브로우 — 헤드라인 위 한 줄 (광고 매체 공용). 사이즈 스펙에 아이브로우 자리가 있을 때만 그린다.
-   * LG.com 은 따로 lgcomEyebrowText 를 쓴다.
+   * LG.com 도 이 값을 쓴다 (2026-10-22 LG.com 패널의 Eyebrow 칸 제거).
    */
   showEyebrow: boolean;
   eyebrowText: string;
@@ -114,10 +114,17 @@ export interface BannerState {
   discText: string;
   /** 디스클레이머 표시 여부 (광고 매체용 — LG.com 전용 고지문은 따로 입력) */
   showDisc: boolean;
+  /**
+   * 글자 모드 — 피그마 템플릿의 Mode=Light/Dark 와 같다. 카피·디스클레이머 색과 로고가 같이 바뀐다.
+   * 기본은 A=다크(흰 글씨) · B=라이트(검정 글씨). Edit › Copy 위쪽에서 반대로 고를 수 있다.
+   */
+  textMode: 'light' | 'dark';
   /** LG.com 전용 디스클레이머 — 1920x720·720x960 두 판에만 쓰인다 (AD Media 의 슬라이드 패널에서 입력). */
   lgcomDiscText: string;
   /** LG.com 전용 아이브로우 — 같은 두 판의 헤드라인 위 한 줄. 비우면 안 그린다. */
   lgcomEyebrowText: string;
+  /** LG.com 디스클레이머 표시 여부 (LG.com 패널의 토글) */
+  lgcomShowDisc: boolean;
   /** LG.com 혜택 아이콘 줄 — ST0001 두 판 전용. */
   lgcomIcons: {
     /** 아이콘 줄 자체를 쓸지 (끄면 배너에서 빠진다) */
@@ -200,6 +207,8 @@ export function createInitialState(designType: DesignType): BannerState {
     showCta: true,
     discText: "*T&C’s apply",
     showDisc: true,
+    textMode: designType === 'A' ? 'dark' : 'light',
+    lgcomShowDisc: true,
     lgcomDiscText: "*T&C’s apply",
     lgcomEyebrowText: 'Special offers are here',   // 피그마 A 판 기본 문구 (A·B 공용)
     // 피그마 A 판 기본 구성: Solid white 3개 (Free Delivery/Disposal/Installation)

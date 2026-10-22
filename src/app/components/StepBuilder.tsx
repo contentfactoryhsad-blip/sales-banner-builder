@@ -549,7 +549,8 @@ function AdMediaStep({ state, update }: StepProps) {
 
       {/*
         LG.com 옵션 — LG.com 을 켜면 격자 아래로 펼쳐진다 (하단 확인창은 자연히 밀려 내려간다).
-        위: 왼쪽 반(Eyebrow → 아이콘 켜기·개수 → 아이콘 스타일·색) / 오른쪽 반(Disclaimer 가 왼쪽 높이만큼 늘어남)
+        위: 왼쪽 반(아이콘 켜기·개수 → 아이콘 스타일·색) / 오른쪽 반(Disclaimer 토글+입력칸이 왼쪽 높이만큼 늘어남)
+        아이브로우는 앞 단계 Copy 의 공용 값을 쓴다 (2026-10-22 이 패널에서 뺌).
         아래: 아이콘 고르기 3칸 (아이콘을 켰을 때만). 아이콘·디스클레이머는 1920×720·720×960 두 판 전용이다.
       */}
       <div className={`overflow-hidden transition-all duration-500 ease-out ${lgcomOpen ? 'max-h-[900px] opacity-100 mt-3' : 'max-h-0 opacity-0'}`}>
@@ -557,7 +558,7 @@ function AdMediaStep({ state, update }: StepProps) {
           <div className="grid grid-cols-2 gap-6">
             {/*
               ── 왼쪽 — 제목 + 아이콘 설정 ──
-              스타일·색 줄은 남는 높이를 채워 오른쪽(Eyebrow+Disclaimer) 바닥과 맞춘다.
+              스타일·색 줄은 남는 높이를 채워 오른쪽(Disclaimer) 바닥과 맞춘다.
               아이콘을 꺼도 자리를 비우지 않고 흐리게만 둔다 — 배치가 들썩이지 않게.
             */}
             <div className="flex flex-col gap-4 min-w-0">
@@ -608,26 +609,26 @@ function AdMediaStep({ state, update }: StepProps) {
               </div>
             </div>
 
-            {/* ── 오른쪽 — Eyebrow + Disclaimer (닫기는 오른쪽 위) ── */}
+            {/* ── 오른쪽 — Disclaimer 토글 + 입력칸 (닫기는 오른쪽 위) ── */}
             <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1.5 mb-1.5 h-[22px]">
-                <span className="text-[13px] font-medium text-gray-700">Eyebrow</span>
-                <span className="text-[11px] text-gray-400">optional</span>
+              <div className="flex items-center gap-3 mb-2 h-[22px]">
+                <button type="button" role="switch" aria-checked={state.lgcomShowDisc !== false}
+                  onClick={() => update({ lgcomShowDisc: state.lgcomShowDisc === false })}
+                  className={`relative w-11 h-6 shrink-0 rounded-full transition-colors ${state.lgcomShowDisc !== false ? 'bg-[#FD312E]' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${state.lgcomShowDisc !== false ? 'left-[22px]' : 'left-0.5'}`} />
+                </button>
+                <span className="font-lgei font-bold text-[14px] text-gray-900 shrink-0">Disclaimer</span>
+                <span className="text-[11px] text-gray-400 truncate">
+                  {state.lgcomShowDisc !== false ? 'Shown on 1920×720 · 720×960' : 'Disclaimer is hidden on the banners'}
+                </span>
                 <button type="button" onClick={() => setLgcomPanel(false)} title="Close"
-                  className="ml-auto w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
+                  className="ml-auto w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
                   <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
                 </button>
               </div>
-              <input type="text" value={state.lgcomEyebrowText} placeholder="Line above headline"
-                onChange={(e) => update({ lgcomEyebrowText: e.target.value })}
-                className="w-full h-11 px-3.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E]" />
-              <div className="flex items-baseline gap-1.5 mt-3 mb-1.5">
-                <span className="text-[13px] font-medium text-gray-700">Disclaimer</span>
-                <span className="text-[11px] text-gray-400">1920×720 · 720×960 only</span>
-              </div>
               <textarea value={state.lgcomDiscText}
                 onChange={(e) => update({ lgcomDiscText: e.target.value })}
-                className="flex-1 min-h-[72px] w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E] resize-none" />
+                className={`flex-1 min-h-[140px] w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-[14px] outline-none focus:border-[#FD312E] resize-none transition-opacity ${state.lgcomShowDisc !== false ? '' : 'opacity-40 pointer-events-none'}`} />
             </div>
           </div>
 
@@ -1539,7 +1540,23 @@ function EditCopy({ state, update }: StepProps) {
   return (
     <EditSection label="Copy">
       <div className="flex flex-col gap-2.5">
-        {/* 아이브로우 — 헤드라인 위 한 줄. 아이브로우 자리가 있는 사이즈에만 그려진다. (LG.com 은 채널 옵션의 Eyebrow 를 쓴다) */}
+        {/* 글자 모드 — 피그마 Mode=Light/Dark. 기본은 A=Dark · B=Light, 반대로 고를 수 있다 (글자·디스클레이머·로고 색). */}
+        <div>
+          <p className="text-xs font-medium text-gray-600 mb-1">Text mode</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(['light', 'dark'] as const).map((m) => {
+              const on = (state.textMode ?? (state.designType === 'A' ? 'dark' : 'light')) === m;
+              return (
+                <button key={m} type="button" onClick={() => update({ textMode: m })}
+                  className={`h-9 px-2.5 rounded-lg border text-xs transition-colors flex items-center gap-2 ${on ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  <span className={`w-4 h-4 shrink-0 rounded-full border border-black/10 ${m === 'dark' ? 'bg-black' : 'bg-white'}`} />
+                  {m === 'light' ? 'Light' : 'Dark'}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {/* 아이브로우 — 헤드라인 위 한 줄. 아이브로우 자리가 있는 사이즈에만 그려진다. (LG.com 도 이 값을 쓴다) */}
         <CopyField label="Eyebrow" max={MAX_EYEBROW} value={state.eyebrowText ?? DEFAULT_EYEBROW} onChange={(v) => update({ eyebrowText: v })}
           checked={state.showEyebrow !== false} onToggle={(v) => update({ showEyebrow: v })} />
         <div>
