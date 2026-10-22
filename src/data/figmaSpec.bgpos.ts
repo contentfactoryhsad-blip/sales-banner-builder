@@ -1,6 +1,7 @@
 import { NEWCH_BGPOS } from './figmaSpec.newch';
 import { V2_BGPOS_B1 } from './figmaSpec.v2';
 import { V2_BGPOS_B2, V2_BGPOS_B3, V2_BGPOS_B4, V2_BGPOS_B5 } from './figmaSpec.v2b';
+import { LGCOM2_BGPOS } from './figmaSpec.lgcom2';
 
 /**
  * 배경 종류별 배경 배치 — Figma 의 "Sales Template (B)-N" 섹션에서 잰 값.
@@ -268,3 +269,5 @@ Object.assign(BG_POS_BY_BACKGROUND['b-bg-02'], V2_BGPOS_B2);
 Object.assign(BG_POS_BY_BACKGROUND['b-bg-03'], V2_BGPOS_B3);
 Object.assign(BG_POS_BY_BACKGROUND['b-bg-04'], V2_BGPOS_B4);
 Object.assign(BG_POS_BY_BACKGROUND['b-bg-05'], V2_BGPOS_B5);
+// 2026-10-22 LG.com 나머지 30사이즈 — 판별 배치 (figmaSpec.lgcom2.ts)
+for (const [bg, m] of Object.entries(LGCOM2_BGPOS)) Object.assign((BG_POS_BY_BACKGROUND[bg] ??= {}), m);

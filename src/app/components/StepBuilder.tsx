@@ -6,6 +6,7 @@ import { ProductRow } from './LeftOptionsPanel';
 import { createInitialState, DEFAULT_EYEBROW, DESIGN_TYPES, MAX_CTA, MAX_DISC, MAX_EYEBROW, MAX_STICKER_OFF, MAX_STICKER_TEXT, MAX_STICKER_TOP, type BannerState, type DesignType } from '../types';
 import { PROMOTIONS, getPromotion, promoPair, type ColorSet } from '../../data/promotions';
 import { AD_CHANNELS, CHANNEL_SECTIONS, channelGroups, BACKGROUND_TYPES, BOX_STYLES_BY_DESIGN, BOX_COUNTS, COLOR_MODES_BY_DESIGN, DEFAULT_BOX_STYLE, DEFAULT_COLOR_MODE, DEFAULT_STICKER_STYLE, GRAPHIC_KINDS, GRAPHIC_TYPES, graphicSrc, NO_GRAPHIC_ID, MAX_HEADLINE, MAX_HEAD_BLOCK, MAX_SUBCOPY, MIN_DISCOUNT, MAX_DISCOUNT, STICKER_STYLES_BY_DESIGN, resolveStickerStyle } from '../../data/builderOptions';
+import { LGCOM2_LABELS } from '../../data/figmaSpec.lgcom2';
 import { LGCOM_ICON_OPTIONS, lgcomIconSrc } from '../../data/lgcomIcons';
 import { resolveBackground } from '../../data/builderOptions';
 import { MEDIA_SIZES, type MediaSize } from '../../data/mediaSizes';
@@ -143,6 +144,7 @@ const LGCOM_SIZE_LABELS: Record<string, string> = {
   'lgcom-1920x720': '1920×720 | PC [ST0001]',
   'lgcom-720x960': '720×960 | MO [ST0001]',
   'lgcom-960x600': '960x600 | PC [PR0001]',
+  ...LGCOM2_LABELS,
 };
 
 /** Step 1 썸네일 — 라이브 렌더 대신 레퍼런스 완성본 이미지를 그대로 쓴다 */
@@ -620,7 +622,7 @@ function AdMediaStep({ state, update }: StepProps) {
                 </button>
                 <span className="font-lgei font-bold text-[14px] text-gray-900 shrink-0">Disclaimer</span>
                 <span className="text-[11px] text-gray-400 truncate">
-                  {state.lgcomShowDisc !== false ? 'Shown on 1920×720 · 720×960' : 'Disclaimer is hidden on the banners'}
+                  {state.lgcomShowDisc !== false ? 'Shown on ST0001 sizes' : 'Disclaimer is hidden on the banners'}
                 </span>
                 <button type="button" onClick={() => setLgcomPanel(false)} title="Close"
                   className="ml-auto w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">

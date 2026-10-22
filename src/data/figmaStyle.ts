@@ -25,6 +25,22 @@ import {
   V2_HEAD_BREAK, V2_PROMO_ONLY, V2_SHADE_ANGLE_A, V2_SHADE_B,
 } from './figmaSpec.v2';
 import { V2_SHADE_B_BY_BG } from './figmaSpec.v2b';
+import {
+  LGCOM2_HEAD_CENTER, LGCOM2_HEAD_NOWRAP, LGCOM2_PRODUCT, LGCOM2_SHADE_ANGLE_A, SPEC_A_LGCOM2, SPEC_B_LGCOM2,
+} from './figmaSpec.lgcom2';
+
+/*
+  LG.com 나머지 30사이즈(figmaSpec.lgcom2.ts)는 재추출분과 같은 인코딩이라 v2 표에 합쳐
+  광고 매체와 같은 경로(카피 쌓기·디스클레이머 패딩·제품 크기)로 그린다. B 판 셰이드는 없다.
+*/
+Object.assign(SPEC_A_V2, SPEC_A_LGCOM2);
+Object.assign(SPEC_B_V2, SPEC_B_LGCOM2);
+Object.assign(V2_SHADE_ANGLE_A, LGCOM2_SHADE_ANGLE_A);
+Object.assign(V2_PRODUCT, LGCOM2_PRODUCT);
+for (const k of Object.keys(SPEC_A_LGCOM2)) V2_SHADE_B[k] = null;
+V2_HEAD_NOWRAP.A.push(...LGCOM2_HEAD_NOWRAP);
+V2_HEAD_NOWRAP.B.push(...LGCOM2_HEAD_NOWRAP);
+V2_HEAD_CENTER.push(...LGCOM2_HEAD_CENTER);
 
 export type DesignKind = 'A' | 'B';
 
@@ -215,6 +231,9 @@ const SPECS: Record<DesignKind, Record<string, FigmaFrameSpec>> = {
   예전 표에 같은 키가 남아 있어도(줄바꿈·가운데정렬 목록 등) 섞이지 않게 한다.
 */
 const inV2 = (key: string) => key in SPEC_A_V2;
+
+/** 예전부터 있던 LG.com 3사이즈(figmaSpec.lgcom.ts) — 카피를 피그마 y 고정으로 그리고 자간이 px 다. */
+export const isLegacyLgcom = (key: string) => key in SPEC_LGCOM;
 
 /**
  * META-Saudi 는 META 의 좌우 미러 판이라 **기하가 아닌 부가 데이터**(제품 사각형·

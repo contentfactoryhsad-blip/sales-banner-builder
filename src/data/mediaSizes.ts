@@ -1,3 +1,5 @@
+import { LGCOM2_SIZES } from './figmaSpec.lgcom2';
+
 /**
  * 매체별 배너 사이즈 — Figma "Banner Template" 페이지의 채널 섹션
  * (External Banner / Dark mode: Criteo / DV360 / Pmax / META) 프레임에서 추출.
@@ -15,7 +17,8 @@ function sizes(list: string): MediaSize[] {
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => {
-      const [w, h] = s.split('x').map(Number);
+      // "1200x628" 또는 LG.com 처럼 컴포넌트 이름이 붙은 "st0004-mo-720x480" — 끝의 WxH 를 읽는다
+      const [, w, h] = s.match(/(\d+)x(\d+)$/)!.map(Number);
       return { name: s, w, h };
     });
 }
@@ -51,5 +54,5 @@ export const MEDIA_SIZES: Record<string, MediaSize[]> = {
   twaffiliate: sizes('1029x600,750x348,1029x357,674x674,1500x1000,600x600,1040x1040,1080x240,600x400,1080x360,1080x300,300x120,900x1320,900x360'),
   telushealth: sizes('1080x720,1000x1000'),
   /** LG.com 배너 — ST0001 두 판은 카피만, 960x600(PR0001)은 글래스 박스만 있다 */
-  lgcom: sizes('1920x720,720x960,960x600'),
+  lgcom: [...sizes('1920x720,720x960,960x600'), ...sizes(LGCOM2_SIZES.join(','))],
 };

@@ -13,7 +13,7 @@ import { lgcomIconFilter, lgcomIconSrc } from '../../data/lgcomIcons';
 import { BG_POS_BY_BACKGROUND } from '../../data/figmaSpec.bgpos';
 import { GradientMapBackground } from './GradientMapBackground';
 import type { FigmaFrameSpec } from '../../data/figmaSpec';
-import { BOX_MATERIALS, DESIGN_STYLES, discPad, isWideFrame, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, stickerRect, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
+import { BOX_MATERIALS, DESIGN_STYLES, discPad, isLegacyLgcom, isWideFrame, graphicRects, headAlign, headLines, headNoWrap, productRects, promoBreak, resolveBoxCount, shadeCss, specKey, stickerRect, type DesignKind, type ShadeTint } from '../../data/figmaStyle';
 import {
   BODY_FONT, FROST_TO_PX, GRAPHIC_OPACITY_BY_KIND, HEADLINE_FONT, HEADLINE_WEIGHT,
   GLASS_DEFAULT, STICKER_COLORS, STICKER_FILL, STICKER_FONT, STICKER_RED, STICKER_TXT_CENTER, STICKER_LAYOUT, STICKER_FREE_LAYOUT, glassToCss,
@@ -395,7 +395,7 @@ export function SpecBannerPreview({
     블록 정렬(inn.va)은 피그마 프레임의 세로 정렬이다 — MAX(바닥 정렬)면 바닥을 피그마 자리에 두고
     위로 쌓이고, CENTER 는 줄어든 만큼의 절반, MIN 은 위를 고정한다.
     CTA 가 카피 **옆**에 붙는 가로형(728x90 등)은 세로로 쌓지 않고, 옆에 붙은 요소만큼만 따라 움직인다.
-    LG.com 은 아이콘 줄이 따로 있어 종전 방식(피그마 y 고정 + CTA 만 따라감)을 유지한다.
+    예전 LG.com 3사이즈는 아이콘 줄이 따로 있어 종전 방식(피그마 y 고정 + CTA 만 따라감)을 유지한다.
   */
   const copyTops = (() => {
     type It = { id: 'eb' | 'head' | 'sub' | 'cta'; y: number; h: number; shown: boolean; mh: number };
@@ -416,7 +416,7 @@ export function SpecBannerPreview({
     if (inn.cta) all.push({ id: 'cta', y: inn.cta[1], h: inn.cta[3], shown: state.showCta, mh: inn.cta[3] });
     const tops: Record<string, number> = {};
     for (const it of all) tops[it.id] = it.y;
-    if (channel === 'lgcom' || !all.length) return { ...tops, cta: legacyCtaTop };
+    if (isLegacyLgcom(key) || !all.length) return { ...tops, cta: legacyCtaTop };
     // 세로로 이어지는 줄(chain)과 옆에 붙은 요소(side)를 가른다
     const chain: It[] = [];
     const side: It[] = [];
@@ -728,8 +728,8 @@ export function SpecBannerPreview({
                 ...textBox(inn.eyebrow, ebWrap),
                 margin: 0,
                 fontFamily: BODY_FONT, fontSize: inn.eyebrow[4],
-                // LG.com 표는 px 로, 재추출분은 피그마 PERCENT 로 저장돼 있다
-                letterSpacing: (channel === 'lgcom' ? inn.eyebrow[5] : (inn.eyebrow[4] * inn.eyebrow[5]) / 100) || undefined,
+                // 예전 LG.com 3사이즈 표는 px 로, 재추출분(LG.com 30사이즈 포함)은 피그마 PERCENT 로 저장돼 있다
+                letterSpacing: (isLegacyLgcom(key) ? inn.eyebrow[5] : (inn.eyebrow[4] * inn.eyebrow[5]) / 100) || undefined,
                 lineHeight: COPY_LINE_HEIGHT,
               }}>{eyebrowText}</p>
             )}

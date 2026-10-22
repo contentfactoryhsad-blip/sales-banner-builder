@@ -1,6 +1,7 @@
 import { FROST_TO_PX } from './sizeLayouts';
 import { NEWCH_GLASS } from './figmaSpec.newch';
 import { V2_GLASS } from './figmaSpec.v2';
+import { LGCOM2_GLASS } from './figmaSpec.lgcom2';
 
 /**
  * 유리 박스의 사이즈·박스개수별 실측값 — [Frost, 테두리두께, 그림자].
@@ -72,7 +73,7 @@ export const GLASS_BOX: Record<string, Record<string, [number, number, number]>>
 export function glassBox(key: string, boxKey: string) {
   const k = key.startsWith('metasaudi-') ? key.replace('metasaudi-', 'meta-') : key;
   // 2026-10-21 재추출(figmaSpec.v2.ts)이 우선 — metasaudi 도 자기 실측이 있다
-  const bySize = V2_GLASS[key] ?? GLASS_BOX[k] ?? NEWCH_GLASS[k];
+  const bySize = V2_GLASS[key] ?? LGCOM2_GLASS[key] ?? GLASS_BOX[k] ?? NEWCH_GLASS[k];
   if (!bySize) return null;
   const v = bySize[boxKey] ?? bySize[Object.keys(bySize).sort((a, b) => +a - +b)[0]];
   return v ? { blur: v[0] * FROST_TO_PX, stroke: v[1], shadow: v[2] } : null;
