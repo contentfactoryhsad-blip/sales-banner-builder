@@ -102,8 +102,12 @@ function inflateBg(
  *   · Figma 가 한 줄에 넣은 것 중 가장 빡빡한 줄 = 101.2%  → 여유는 1.2% 보다 커야 하고
  *   · Figma 가 접은 줄 중 가장 여유 있는 줄 = 106.4%       → 6.4% 보다 작아야 한다
  * 그 가운데인 3% 를 쓴다. 접혀야 할 줄은 그대로 접힌다.
+ *
+ * 2026-10-21 재추출(185사이즈)로 다시 재니 피그마가 한 줄로 둔 것 중 가장 빡빡한 줄 = 101.5%,
+ * 접은 줄 중 가장 여유 있는 줄 = 102.5%(criteo-1024x768 — 3% 면 한 줄로 붙어 버렸다).
+ * 그 사이인 2% 로 줄였다. 이 범위를 벗어나는 4사이즈는 줄바꿈 없음 목록(V2_HEAD_NOWRAP)으로 뺐다.
  */
-const HEAD_WRAP_TOLERANCE = 1.03;
+const HEAD_WRAP_TOLERANCE = 1.02;
 
 /**
  * 프로모션 명칭의 꼬리말 축소 배율.
@@ -122,6 +126,13 @@ const PROMO_TAIL_SCALE = 0.6;
 
 /** 카피 줄 높이 (Figma lineHeight 106%). CTA 자리 계산에도 쓴다. */
 const COPY_LINE_HEIGHT = 1.06;
+
+/**
+ * 디스클레이머 줄 높이 — Figma 의 lineHeight AUTO 와 같은 값.
+ * Figma 는 LGEI Text 의 ascent+descent(1946+492)/2048 만 쓰고, 브라우저 normal 은
+ * lineGap(184)까지 더해 1.28 이 된다. 그 차이만큼 글자가 위로 떠서 CTA 와 겹쳤다.
+ */
+const DISC_LINE_HEIGHT = (1946 + 492) / 2048;
 
 /**
  * 굽는 쪽 유리 블러 배율 (1 = 미리보기와 같은 세기).
@@ -277,12 +288,39 @@ export function SpecBannerPreview({
   const boxKey = resolveBoxCount(spec, state.boxCount ?? MIN_BOX_COUNT);
   // 박스가 아예 없는 사이즈(LG.com ST0001)는 빈 목록으로 — 카피만 그린다
   const [bx, by, rects] = spec.box[boxKey] ?? [0, 0, []];
-  const prods = productRects(key, boxKey);
+  const prods = productRects(key, boxKey, design);
 
   const inn = spec.in;
-  // 아이브로우 문구 — LG.com 은 자기 입력칸, 광고 매체는 공용 토글+문구 (스펙에 아이브로우 자리가 있을 때만 그린다)
+  /*
+    아이브로우 — LG.com 도 광고 매체와 같은 공용 토글+문구 (앞 단계 Copy 에서 입력).
+    끄면 아래 카피 쌓기(copyTops)가 그 자리를 빼고 다시 쌓는다.
+  */
   const eyebrowText = state.showEyebrow !== false ? (state.eyebrowText ?? DEFAULT_EYEBROW) : '';
+  const showEyebrow = !!(inn.eyebrow && eyebrowText.trim());
   const hAlign = headAlign(key);
+  /*
+    피그마가 두 줄로 접어 둔 서브카피·아이브로우 — 세로로 좁은 판(160x600·120x600·300x1050 등)이다.
+    상자 높이를 글자 한 줄 높이로 나눠 1.5 이상이면 접는 판으로 보고, 폭에 가둬 그대로 접는다.
+    나머지(한 줄 판)는 종전처럼 접지 않는다.
+  */
+  const wraps = (r: readonly number[] | null | undefined, fs: number | undefined) =>
+    !!r && !!fs && r[3] / (fs * COPY_LINE_HEIGHT) >= 1.5;
+  const subWrap = wraps(inn.sub, inn.sub?.[4]);
+  const ebWrap = wraps(inn.eyebrow, inn.eyebrow?.[4]);
+  /** 글 상자 배치 — 접는 판은 폭(여유 포함)에 가두고, 아니면 글자 폭(max-content). 정렬은 헤드라인을 따른다. */
+  const textBox = (r: readonly number[], wrap: boolean): React.CSSProperties => {
+    const [x, , w] = r;
+    if (wrap) {
+      const ww = w * HEAD_WRAP_TOLERANCE;
+      return { left: x - (ww - w) / (hAlign === 'center' ? 2 : hAlign === 'right' ? 1 : Infinity), width: ww, whiteSpace: 'normal', textAlign: hAlign };
+    }
+    return {
+      ...(hAlign === 'right'
+        ? { right: (inn.copy?.[2] ?? 0) - (x + w) }
+        : hAlign === 'center' ? { left: x + w / 2, transform: 'translateX(-50%)' } : { left: x }),
+      width: 'max-content', whiteSpace: 'nowrap', textAlign: hAlign,
+    };
+  };
   const noWrap = headNoWrap(design, key);
   /*
     끊기로 한 사이즈는 프로모션 앞말이 반드시 한 줄이어야 한다.
@@ -311,6 +349,8 @@ export function SpecBannerPreview({
   */
   const headRef = useRef<HTMLDivElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
+  const ebRef = useRef<HTMLParagraphElement>(null);
+  const [meas, setMeas] = useState<{ eb: number; head: number; sub: number } | null>(null);
   const [copyBottom, setCopyBottom] = useState<number | null>(null);
   const showSub = !!(inn.sub && state.showSubcopy && state.subcopy);
   /*
@@ -327,9 +367,12 @@ export function SpecBannerPreview({
     const b = Math.max(hb, sb);
     // 같은 값이면 다시 그리지 않는다 (측정 → 렌더 무한루프 방지)
     setCopyBottom((prev) => (prev !== null && Math.abs(prev - b) < 0.5 ? prev : b));
+    const m = { eb: ebRef.current?.offsetHeight ?? 0, head: h.offsetHeight, sub: subRef.current?.offsetHeight ?? 0 };
+    setMeas((prev) => (prev && Math.abs(prev.eb - m.eb) < 0.5 && Math.abs(prev.head - m.head) < 0.5
+      && Math.abs(prev.sub - m.sub) < 0.5 ? prev : m));
   }, [
     key, inn.head, inn.sub, showSub, promoK, noWrap, fontsReady,
-    state.promoName, state.headline, state.showHeadline, state.subcopy,
+    state.promoName, state.headline, state.showHeadline, state.subcopy, showEyebrow, eyebrowText,
   ]);
   /*
     Figma 가 잡아둔 카피 바닥 → 그 아래 CTA 까지의 간격(= 오토레이아웃 gap).
@@ -340,7 +383,71 @@ export function SpecBannerPreview({
     ? inn.sub[1] + inn.sub[3]
     : inn.head ? inn.head[1] + inn.head[3] : 0;
   const ctaGap = inn.cta ? inn.cta[1] - figmaBottom : 0;
-  const ctaTop = inn.cta ? (copyBottom === null ? inn.cta[1] : copyBottom + ctaGap) : 0;
+  const legacyCtaTop = inn.cta ? (copyBottom === null ? inn.cta[1] : copyBottom + ctaGap) : 0;
+  /*
+    ── 카피 쌓기: 피그마 `Copy + CTA btn` 오토레이아웃 재현 ──
+
+    아이브로우 · 헤드라인 · 서브카피 · CTA 를 **그린 뒤 잰 높이**로 위에서부터 다시 쌓는다.
+    간격은 피그마에서 각 요소와 바로 위 요소 사이의 거리를 그대로 쓴다. 꺼진 요소는 자리도 간격도 뺀다.
+    헤드카피가 피그마 샘플보다 한 줄 짧으면 그만큼 아래 요소가 붙어 올라온다(예전엔 서브카피가
+    피그마 y 에 고정이라 한 줄만큼 비었다).
+
+    블록 정렬(inn.va)은 피그마 프레임의 세로 정렬이다 — MAX(바닥 정렬)면 바닥을 피그마 자리에 두고
+    위로 쌓이고, CENTER 는 줄어든 만큼의 절반, MIN 은 위를 고정한다.
+    CTA 가 카피 **옆**에 붙는 가로형(728x90 등)은 세로로 쌓지 않고, 옆에 붙은 요소만큼만 따라 움직인다.
+    LG.com 은 아이콘 줄이 따로 있어 종전 방식(피그마 y 고정 + CTA 만 따라감)을 유지한다.
+  */
+  const copyTops = (() => {
+    type It = { id: 'eb' | 'head' | 'sub' | 'cta'; y: number; h: number; shown: boolean; mh: number };
+    /*
+      높이는 **줄 수 차이만큼만** 바꾼다. 피그마 글 상자는 글자보다 조금 크거나 작게 잡힌 판이 있어
+      (tipli-1200x600 헤드 상자 110 = 글자 2.4줄) 잰 높이를 그대로 쓰면 줄 수가 같아도 위치가 튄다.
+      그래서 피그마 높이 + (그린 줄 수 − 피그마 줄 수) × 한 줄 높이 로 잡는다.
+    */
+    const hOf = (r: readonly number[], fs: number, measured: number | undefined) => {
+      if (!measured) return r[3];
+      const lh = fs * COPY_LINE_HEIGHT;
+      return r[3] + (Math.round(measured / lh) - Math.round(r[3] / lh)) * lh;
+    };
+    const all: It[] = [];
+    if (inn.eyebrow) all.push({ id: 'eb', y: inn.eyebrow[1], h: inn.eyebrow[3], shown: showEyebrow, mh: hOf(inn.eyebrow, inn.eyebrow[4], meas?.eb) });
+    if (inn.head) all.push({ id: 'head', y: inn.head[1], h: inn.head[3], shown: true, mh: hOf(inn.head, inn.head[4], meas?.head) });
+    if (inn.sub) all.push({ id: 'sub', y: inn.sub[1], h: inn.sub[3], shown: showSub, mh: hOf(inn.sub, inn.sub[4], meas?.sub) });
+    if (inn.cta) all.push({ id: 'cta', y: inn.cta[1], h: inn.cta[3], shown: state.showCta, mh: inn.cta[3] });
+    const tops: Record<string, number> = {};
+    for (const it of all) tops[it.id] = it.y;
+    if (channel === 'lgcom' || !all.length) return { ...tops, cta: legacyCtaTop };
+    // 세로로 이어지는 줄(chain)과 옆에 붙은 요소(side)를 가른다
+    const chain: It[] = [];
+    const side: It[] = [];
+    for (const it of all) {
+      const prev = chain[chain.length - 1];
+      if (!prev || it.y >= prev.y + prev.h - 0.5) chain.push(it); else side.push(it);
+    }
+    const start = chain[0].y;
+    const last = chain[chain.length - 1];
+    const figEnd = last.y + last.h;
+    let end = start;
+    let placed = false;
+    chain.forEach((it, i) => {
+      if (!it.shown) return;
+      const gap = i > 0 ? it.y - (chain[i - 1].y + chain[i - 1].h) : 0;
+      const top = placed ? end + gap : start;
+      tops[it.id] = top;
+      end = top + it.mh;
+      placed = true;
+    });
+    const va = inn.va ?? 'MIN';
+    const off = va === 'MAX' ? figEnd - end : va === 'CENTER' ? (figEnd - end) / 2 : 0;
+    for (const it of chain) tops[it.id] += off;
+    // 옆에 붙은 요소는 세로로 겹치는 줄 요소가 움직인 만큼만 따라간다
+    for (const it of side) {
+      const host = chain.find((c) => c.shown && it.y < c.y + c.h && it.y + it.h > c.y);
+      tops[it.id] = it.y + (host ? tops[host.id] - host.y : off);
+    }
+    return tops;
+  })();
+  const ctaTop = copyTops.cta ?? 0;
   // Figma letterSpacing 은 PERCENT 단위다. 숫자를 그대로 넘기면 CSS 가 px 로 읽어 크게 벌어진다.
   const headLs = inn.head && inn.head[5] ? (inn.head[4] * inn.head[5]) / 100 : undefined;
   const dpad = discPad(key);
@@ -478,7 +585,7 @@ export function SpecBannerPreview({
           <div style={{
             position: 'absolute', inset: 0,
             mixBlendMode: shadeTint ? (style.shadeTintBlend ?? 'normal') : style.shadeBlend,
-            background: shadeCss(spec.gr, design, key, style.shadeOpacity, shadeTint),
+            background: shadeCss(spec.gr, design, key, style.shadeOpacity, shadeTint, bgType.id),
           }} />
         )}
 
@@ -613,18 +720,22 @@ export function SpecBannerPreview({
             // 글자 모드를 따른다. LG.com 다크는 흰 글씨(빛 번짐 없음), 라이트는 광고 매체와 같은 색.
             color: channel === 'lgcom' && textMode === 'dark' ? '#fff' : tone.text,
           }}>
-            {/* 아이브로우 — LG.com ST0001 전용 한 줄. 비어 있으면 그리지 않는다. */}
-            {inn.eyebrow && eyebrowText.trim() && (
-              <p style={{
-                position: 'absolute', left: inn.eyebrow[0], top: inn.eyebrow[1],
-                width: 'max-content', whiteSpace: 'nowrap', margin: 0,
-                fontFamily: BODY_FONT, fontSize: inn.eyebrow[4], letterSpacing: inn.eyebrow[5] || undefined,
+            {/* 아이브로우 — 헤드라인 위 한 줄. 끄거나 비어 있으면 그리지 않는다. */}
+            {showEyebrow && inn.eyebrow && (
+              <p ref={ebRef} style={{
+                // 정렬은 헤드라인을 따른다 — 가운데는 상자 중심 고정, 오른쪽(metasaudi)은 오른쪽 끝 고정
+                position: 'absolute', top: copyTops.eb,
+                ...textBox(inn.eyebrow, ebWrap),
+                margin: 0,
+                fontFamily: BODY_FONT, fontSize: inn.eyebrow[4],
+                // LG.com 표는 px 로, 재추출분은 피그마 PERCENT 로 저장돼 있다
+                letterSpacing: (channel === 'lgcom' ? inn.eyebrow[5] : (inn.eyebrow[4] * inn.eyebrow[5]) / 100) || undefined,
                 lineHeight: COPY_LINE_HEIGHT,
               }}>{eyebrowText}</p>
             )}
             {inn.head && (
               <div ref={headRef} style={{
-                position: 'absolute', left: inn.head[0], top: inn.head[1],
+                position: 'absolute', left: inn.head[0], top: copyTops.head,
                 /*
                   Figma 의 WIDTH_AND_HEIGHT 는 글자에 맞춰 상자가 늘어나는 모드다.
                   저장된 폭은 제약이 아니라 **결과값**이라, 그 폭에 가두고 잘라내면
@@ -652,19 +763,15 @@ export function SpecBannerPreview({
               <p ref={subRef} style={{
                 // 오른쪽 정렬 사이즈는 **오른쪽 끝을 고정**한다 — max-content 폭이라
                 // 왼쪽 고정이면 글자가 길어질수록 오른쪽으로 삐져나간다.
-                position: 'absolute', top: inn.sub[1],
-                ...(hAlign === 'right'
-                  ? { right: inn.copy[2] - (inn.sub[0] + inn.sub[2]) }
-                  : { left: inn.sub[0] }),
+                position: 'absolute', top: copyTops.sub,
                 /*
-                  서브카피는 접지 않는다. Figma 의 서브카피 상자 높이를 전 사이즈에서
-                  글자크기로 나눠 보면 10개 모두 정확히 1줄이다(0.99~1.01).
-                  저장된 폭은 그 한 줄을 잰 결과값이라, 폭으로 가두면 브라우저가
-                  Figma 보다 조금 넓게 잡는 순간 두 줄로 깨진다.
+                  서브카피는 한 줄 판에선 접지 않는다 — 저장된 폭은 그 한 줄을 잰 결과값이라,
+                  폭으로 가두면 브라우저가 Figma 보다 조금 넓게 잡는 순간 두 줄로 깨진다.
+                  피그마가 두 줄로 접은 판(subWrap)만 폭에 가둬 접는다.
                 */
-                width: 'max-content', whiteSpace: 'nowrap',
+                ...textBox(inn.sub, subWrap),
                 margin: 0,
-                fontFamily: BODY_FONT, fontSize: inn.sub[4], lineHeight: COPY_LINE_HEIGHT, textAlign: hAlign,
+                fontFamily: BODY_FONT, fontSize: inn.sub[4], lineHeight: COPY_LINE_HEIGHT,
               }}>{state.subcopy}</p>
             )}
             {inn.cta && state.showCta && (
@@ -822,7 +929,7 @@ export function SpecBannerPreview({
                   const fs = F.size * k;
                   const lh = F.lineHeight * k;
                   const cx = tx(F.cx), cy = ty(F.cy);
-                  // 줄 상자 가운데에 베이스라인을 놓는 근사 — Cal Sans 캡하이트 ≈ 0.7em (피그마 대조로 확인)
+                  // 줄 상자 가운데에 베이스라인을 놓는 근사 — 캡하이트 ≈ 0.7em (LGEI Headline 도 같은 비율)
                   const base0 = cy - (lines.length - 1) * lh / 2 + fs * 0.35;
                   return lines.map((l, i) => (
                     <text key={i} x={cx} y={base0 + i * lh} textAnchor="middle" fill={stickerInk}
@@ -914,7 +1021,7 @@ export function SpecBannerPreview({
             position: 'absolute', left: inn.disc[0] + dpad[0],
             width: inn.disc[2] - dpad[0] - dpad[1],
             bottom: spec.f[1] - (inn.disc[1] + inn.disc[3]) + dpad[2],
-            margin: 0, fontFamily: BODY_FONT, fontSize: inn.disc[4],
+            margin: 0, fontFamily: BODY_FONT, fontSize: inn.disc[4], lineHeight: DISC_LINE_HEIGHT,
             color: channel === 'lgcom' && textMode === 'dark' ? '#fff' : tone.discColor,
             textShadow: channel === 'lgcom' && textMode === 'dark' ? undefined : tone.discShadow,
             textAlign: hAlign === 'right' ? 'right' : undefined,

@@ -20,6 +20,11 @@ import {
   DV360_DISC_PAD, DV360_HEAD_CENTER, DV360_HEAD_NOWRAP, DV360_PRODUCT, DV360_SHADE_ANGLE,
 } from './figmaSpec.dv360.extra';
 import { DISC_PAD, HEAD_BREAK, HEAD_CENTER, HEAD_NOWRAP, PRODUCT, SHADE_ANGLE, type ProdRect } from './figmaSpec.extra';
+import {
+  SPEC_A_V2, SPEC_B_V2, V2_DISC_PAD, V2_HEAD_CENTER, V2_HEAD_NOWRAP, V2_PRODUCT, V2_PRODUCT_B,
+  V2_HEAD_BREAK, V2_PROMO_ONLY, V2_SHADE_ANGLE_A, V2_SHADE_B,
+} from './figmaSpec.v2';
+import { V2_SHADE_B_BY_BG } from './figmaSpec.v2b';
 
 export type DesignKind = 'A' | 'B';
 
@@ -202,16 +207,21 @@ export const DESIGN_STYLES: Record<DesignKind, DesignStyle> = {
  * (Pmax · META 는 Figma 확정 후 같은 방식으로 추가)
  */
 const SPECS: Record<DesignKind, Record<string, FigmaFrameSpec>> = {
-  A: { ...SPEC_A_CRITEO, ...SPEC_A_DV360, ...SPEC_A_PMAXMETA, ...SPEC_A_METASAUDI, ...SPEC_LGCOM, ...SPEC_A_NEWCH },
-  B: { ...SPEC_B_CRITEO, ...SPEC_B_DV360, ...SPEC_B_PMAXMETA, ...SPEC_B_METASAUDI, ...SPEC_B_LGCOM, ...SPEC_B_NEWCH },
+  A: { ...SPEC_A_CRITEO, ...SPEC_A_DV360, ...SPEC_A_PMAXMETA, ...SPEC_A_METASAUDI, ...SPEC_LGCOM, ...SPEC_A_NEWCH, ...SPEC_A_V2 },
+  B: { ...SPEC_B_CRITEO, ...SPEC_B_DV360, ...SPEC_B_PMAXMETA, ...SPEC_B_METASAUDI, ...SPEC_B_LGCOM, ...SPEC_B_NEWCH, ...SPEC_B_V2 },
 };
+/*
+  2026-10-21 재추출(figmaSpec.v2.ts)에 있는 키는 아래 부가 표도 **v2 것만** 본다.
+  예전 표에 같은 키가 남아 있어도(줄바꿈·가운데정렬 목록 등) 섞이지 않게 한다.
+*/
+const inV2 = (key: string) => key in SPEC_A_V2;
 
 /**
  * META-Saudi 는 META 의 좌우 미러 판이라 **기하가 아닌 부가 데이터**(제품 사각형·
  * 고지문 패딩·셰이드 각도·줄바꿈 목록)는 META 것을 그대로 물려받는다.
  * 키 기반 조회 앞에서 metasaudi-* → meta-* 로 바꿔 조회한다.
  */
-const sharedKey = (key: string) => key.startsWith('metasaudi-') ? key.replace('metasaudi-', 'meta-') : key;
+const sharedKey = (key: string) => key.startsWith('metasaudi-') && !inV2(key) ? key.replace('metasaudi-', 'meta-') : key;
 
 /** A 의 셰이드 각도 — 종전 그대로. B 는 여기 쓰지 않는다(SHADE.B 사용). */
 const ANGLES_A: Record<string, number> = {
@@ -321,10 +331,13 @@ const SHADE_FALLOFF_A = 1;
 export type ShadeTint = { from: [number, number, number]; to: [number, number, number] };
 
 export function shadeCss(
-  gr: FigmaFrameSpec['gr'], design: DesignKind, key: string, boost = 1, tint?: ShadeTint | null,
+  gr: FigmaFrameSpec['gr'], design: DesignKind, key: string, boost = 1, tint?: ShadeTint | null, bgId?: string,
 ) {
   if (design === 'B') {
-    const s = SHADE.B[sharedKey(key)] ?? NEWCH_SHADE_B[key];
+    // 판(배경 종류)에서 따로 손본 사이즈가 있으면 그 값이 먼저다 (figmaSpec.v2b.ts)
+    const byBg = bgId ? V2_SHADE_B_BY_BG[bgId] : undefined;
+    const s = byBg && key in byBg ? byBg[key]
+      : inV2(key) ? V2_SHADE_B[key] : SHADE.B[sharedKey(key)] ?? NEWCH_SHADE_B[key];
     if (!s) return 'none';
     const [deg, stops] = s;
     const rgb = DESIGN_STYLES.B.shadeRgb;
@@ -352,7 +365,7 @@ export function shadeCss(
   }
   if (!gr) return 'none';
   const [, stops] = gr;
-  const angle = ANGLES_A[sharedKey(key)] ?? 0;
+  const angle = inV2(key) ? V2_SHADE_ANGLE_A[key] : ANGLES_A[sharedKey(key)] ?? 0;
   const last = stops.length - 1;
   /*
     램프 위 위치 u(0~1) 에서의 색.
@@ -382,13 +395,15 @@ export function shadeCss(
 }
 
 /** 이 사이즈·박스개수의 제품 사각형 목록 (박스 기준). 없으면 빈 배열 */
-export function productRects(key: string, boxKey: string): ProdRect[] {
+export function productRects(key: string, boxKey: string, design: DesignKind = 'A'): ProdRect[] {
+  if (inV2(key)) return (design === 'B' ? V2_PRODUCT_B[key]?.[boxKey] : undefined) ?? V2_PRODUCT[key]?.[boxKey] ?? [];
   // 자기 키가 우선(사우디 전용 값), 없으면 공유 키(meta)로 폴백 — 개수 단위로 갈린다
   return PRODUCTS[key]?.[boxKey] ?? PRODUCTS[sharedKey(key)]?.[boxKey] ?? [];
 }
 
 /** 이 사이즈의 헤드라인이 줄바꿈하지 않는가 (Figma WIDTH_AND_HEIGHT) */
 export function headNoWrap(design: DesignKind, key: string) {
+  if (inV2(key)) return V2_HEAD_NOWRAP[design].includes(key);
   return NOWRAP[design].includes(sharedKey(key));
 }
 /** 이 사이즈는 프로모션 명칭의 뒷단어를 다음 줄로 내리는가 */
@@ -398,11 +413,13 @@ export function promoBreak(key: string) {
 /** 헤드라인 자체의 정렬 (블록 정렬과 다를 수 있다). metasaudi 는 RTL 미러라 오른쪽. */
 export function headAlign(key: string): 'left' | 'center' | 'right' {
   if (key.startsWith('metasaudi-')) return 'right';
+  if (inV2(key)) return V2_HEAD_CENTER.includes(key) ? 'center' : 'left';
   return CENTERED.includes(key) ? 'center' : 'left';
 }
 
 /** 고지문 프레임 안쪽 패딩 [좌, 우, 아래]. 자기 키가 우선, 없으면 공유 키(meta)로. */
 export function discPad(key: string): [number, number, number] {
+  if (inV2(key)) return V2_DISC_PAD[key] ?? [0, 0, 0];
   return PADS[key] ?? PADS[sharedKey(key)] ?? [0, 0, 0];
 }
 
@@ -411,7 +428,10 @@ export function discPad(key: string): [number, number, number] {
  * 줄바꿈이 지정되지 않은 사이즈는 한 줄 그대로 반환한다.
  */
 export function headLines(design: DesignKind, key: string, text: string): string[] {
-  const at = HEAD_BREAK[design][sharedKey(key)];
+  // 프로모션 명칭만 있는 판(awin-120x20 — 높이 20px)은 헤드카피를 그리지 않는다
+  if (V2_PROMO_ONLY.includes(key)) return [];
+  // 재추출분(v2)은 피그마 헤드라인에 수동 개행이 실제로 있는 사이즈만 끊는다(V2_HEAD_BREAK)
+  const at = inV2(key) ? V2_HEAD_BREAK[key] : HEAD_BREAK[design][sharedKey(key)];
   if (!at) return [text];
   const w = text.trim().split(/\s+/);
   if (w.length <= at) return [text];

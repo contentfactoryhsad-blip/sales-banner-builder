@@ -27,7 +27,7 @@ export type Box5 = [number, number, number, number, number];
 
 export interface FigmaInner {
   logo: Rect4 | null;
-  /** 아이브로우 [x,y,w,h,fontSize,letterSpacing] — 현재 LG.com ST0001 두 판만 갖는다 */
+  /** 아이브로우 [x,y,w,h,fontSize,letterSpacing] (copy 블록 기준) — 광고 매체는 2026-10-21 재추출분부터 갖는다 */
   eyebrow?: [number, number, number, number, number, number] | null;
   /** 혜택 아이콘 줄 [x, y, 아이콘크기, 항목간격, 아이콘-글자 간격, fontSize] — LG.com ST0001 전용 */
   iconRow?: [number, number, number, number, number, number] | null;
@@ -36,6 +36,11 @@ export interface FigmaInner {
   sub: [number, number, number, number, number] | null;
   cta: [number, number, number, number, number, number] | null;
   disc: [number, number, number, number, number] | null;
+  /**
+   * 카피 블록의 세로 정렬(피그마 오토레이아웃 primaryAxisAlignItems).
+   * 아이브로우를 끌 때 나머지가 어느 쪽으로 붙는지 정한다 — MIN 위로 당김 / MAX 바닥 고정 / CENTER 절반.
+   */
+  va?: 'MIN' | 'CENTER' | 'MAX' | null;
 }
 
 export interface FigmaFrameSpec {

@@ -1,4 +1,6 @@
 import { NEWCH_BGPOS } from './figmaSpec.newch';
+import { V2_BGPOS_B1 } from './figmaSpec.v2';
+import { V2_BGPOS_B2, V2_BGPOS_B3, V2_BGPOS_B4, V2_BGPOS_B5 } from './figmaSpec.v2b';
 
 /**
  * 배경 종류별 배경 배치 — Figma 의 "Sales Template (B)-N" 섹션에서 잰 값.
@@ -258,3 +260,11 @@ export const BG_POS_BY_BACKGROUND: Record<string, Record<string, [number, number
 
 // 2026-10 신규 채널(Google SEM·Twitch·ECRM·Venngo·Perkopolis·PMax D2C) — 판별 값은 figmaSpec.newch.ts
 for (const [bg, m] of Object.entries(NEWCH_BGPOS)) Object.assign((BG_POS_BY_BACKGROUND[bg] ??= {}), m);
+
+// 2026-10-21 (B)-1 전 사이즈 재추출 — 같은 키는 위 값보다 우선한다 (figmaSpec.v2.ts)
+Object.assign(BG_POS_BY_BACKGROUND['b-bg-01'], V2_BGPOS_B1);
+// 2026-10-22 (B)-2 ~ (B)-5 — 판마다 잡은 배치 (figmaSpec.v2b.ts)
+Object.assign(BG_POS_BY_BACKGROUND['b-bg-02'], V2_BGPOS_B2);
+Object.assign(BG_POS_BY_BACKGROUND['b-bg-03'], V2_BGPOS_B3);
+Object.assign(BG_POS_BY_BACKGROUND['b-bg-04'], V2_BGPOS_B4);
+Object.assign(BG_POS_BY_BACKGROUND['b-bg-05'], V2_BGPOS_B5);

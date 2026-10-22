@@ -19,8 +19,8 @@ export const AD_CHANNELS: AdChannel[] = [
   { id: 'metasaudi', label: 'META_Saudi' },
   { id: 'googlesem', label: 'Google SEM' },
   { id: 'twitch', label: 'Twitch' },
-  { id: 'ecrm', label: 'ECRM' },
   { id: 'quantcast', label: 'Quantcast' },
+  { id: 'ecrm', label: 'ECRM' },
   { id: 'rakuten', label: 'Rakuten' },
   { id: 'venngo', label: 'Venngo' },
   { id: 'perkopolis', label: 'Perkopolis' },
@@ -37,7 +37,6 @@ export const AD_CHANNELS: AdChannel[] = [
 /**
  * Channel Select 화면의 단 구분 — 1단 메인 매체 / 2단 어필리에잇 / 3단 LG.com.
  * 단 사이는 간격으로 띄운다. 각 단 안의 순서는 AD_CHANNELS 순서를 따른다.
- * (어필리에잇 채널의 사이즈 데이터는 아직 다듬는 중 — MEDIA_SIZES 에 없는 채널은 사이즈 0개로 보인다)
  */
 export const CHANNEL_SECTIONS: string[][] = [
   ['criteo', 'dv360', 'pmax', 'meta', 'metasaudi', 'googlesem', 'twitch', 'quantcast', 'ecrm'],
@@ -52,6 +51,8 @@ export const CHANNEL_SECTIONS: string[][] = [
  */
 export const CHANNEL_GROUPS: Record<string, AdChannel[]> = {
   pmax: [{ id: 'pmax', label: 'Pmax' }, { id: 'pmaxd2c', label: 'Pmax (Only D2C)' }],
+  // 피그마 ECRM 섹션의 세 판 — 사이즈가 겹쳐(1200x1200 둘) 묶음으로 나눈다
+  ecrm: [{ id: 'ecrm1', label: 'ECRM 1' }, { id: 'ecrm2', label: 'ECRM 2' }, { id: 'ecrm3', label: 'ECRM 3' }],
 };
 /** 채널 버튼 → 그 안의 사이즈 묶음들 (묶음이 없으면 자기 자신 하나) */
 export const channelGroups = (c: AdChannel): AdChannel[] => CHANNEL_GROUPS[c.id] ?? [c];

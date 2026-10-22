@@ -523,6 +523,7 @@ function AdMediaStep({ state, update }: StepProps) {
       {/*
         채널 버튼 — 단(CHANNEL_SECTIONS)별로 5칸 격자에 깐다: 1단 메인 매체 / 2단 어필리에잇 / 3단 LG.com.
         단 사이는 간격으로 띄워 구분한다. 고르면 칸이 흰색으로 채워진다.
+        5개가 안 차는 줄도 칸을 넓히지 않고 같은 폭으로 왼쪽부터 채운다.
         채널별 주의 문구(META 로고 없는 판, LG.com 다운로드 범위)는 아래 확인창의
         Sticker Position Edit 밑으로 옮겼다 — 고른 채널의 것만 보인다.
       */}
@@ -775,7 +776,7 @@ function AdMediaStep({ state, update }: StepProps) {
                 {channels.map((c) => {
                   // 칸 상한 — 상한보다 넓은 배너(venngo 3840)가 있으면 그 폭까지 넓힌다.
                   // 안 그러면 배너가 칸 밖으로 삐져나와 옆 매체 칸을 덮는다.
-                  const colMax = Math.max(CANVAS_MAX_W, ...channelGroups(c).flatMap((g) => (MEDIA_SIZES[g.id] ?? []).map((s) => s.w)));
+                  const colMax = Math.max(CANVAS_MAX_W, ...channelGroups(c).flatMap((g) => MEDIA_SIZES[g.id].map((s) => s.w)));
                   return (
                   /*
                     칸 폭은 **내용에 맞춘다.** CANVAS_MAX_W 로 고정하면 사이즈가 적은 매체
@@ -789,7 +790,7 @@ function AdMediaStep({ state, update }: StepProps) {
                     {(() => {
                       // Figma 에서 완성된(스펙이 있는) 사이즈만 보여준다.
                       // 숨김 처리된 프레임은 스펙이 없으므로 자연히 제외된다.
-                      const ready = (MEDIA_SIZES[c.id] ?? []).filter((s) => !!getSpec(state.designType, c.id, s.name));
+                      const ready = MEDIA_SIZES[c.id].filter((s) => !!getSpec(state.designType, c.id, s.name));
                       /*
                         META 만 칸으로 묶는다 — 1080x1920 옆이 통째로 비어서
                         작은 398x208 을 그 빈자리에 올린다. 사이즈가 많은 매체는
@@ -1556,7 +1557,7 @@ function EditCopy({ state, update }: StepProps) {
             })}
           </div>
         </div>
-        {/* 아이브로우 — 헤드라인 위 한 줄. 아이브로우 자리가 있는 사이즈에만 그려진다. (LG.com 도 이 값을 쓴다) */}
+        {/* 아이브로우 — 헤드라인 위 한 줄. 끄면 카피가 피그마 오토레이아웃처럼 붙는다. (LG.com 도 이 값을 쓴다) */}
         <CopyField label="Eyebrow" max={MAX_EYEBROW} value={state.eyebrowText ?? DEFAULT_EYEBROW} onChange={(v) => update({ eyebrowText: v })}
           checked={state.showEyebrow !== false} onToggle={(v) => update({ showEyebrow: v })} />
         <div>
@@ -1644,7 +1645,7 @@ function ReviewStep({ state, update, zip }: StepProps & { zip: ReturnType<typeof
           {picked.flatMap(channelGroups).map((c) => (
             <li key={c.id}>
               {c.id}/ <span className="text-gray-400">
-                {(MEDIA_SIZES[c.id] ?? []).filter((s) => !!getSpec(state.designType, c.id, s.name)).length} png
+                {MEDIA_SIZES[c.id].filter((s) => !!getSpec(state.designType, c.id, s.name)).length} png
               </span>
             </li>
           ))}
