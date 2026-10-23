@@ -54,5 +54,6 @@ export const MEDIA_SIZES: Record<string, MediaSize[]> = {
   twaffiliate: sizes('1029x600,750x348,1029x357,674x674,1500x1000,600x600,1040x1040,1080x240,600x400,1080x360,1080x300,300x120,900x1320,900x360'),
   telushealth: sizes('1080x720,1000x1000'),
   /** LG.com 배너 — ST0001 두 판은 카피만, 960x600(PR0001)은 글래스 박스만 있다 */
-  lgcom: [...sizes('1920x720,720x960,960x600'), ...sizes(LGCOM2_SIZES.join(','))],
+  // ST0047 MO 720x480 은 피그마 템플릿에서 숨겨 목록에서도 뺀다 (데이터는 남겨 둔다)
+  lgcom: [...sizes('1920x720,720x960,960x600'), ...sizes(LGCOM2_SIZES.filter(n => n !== 'st0047-mo-720x480').join(','))],
 };
