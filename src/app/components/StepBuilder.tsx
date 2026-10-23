@@ -219,20 +219,20 @@ const STACK_GAP = 20;
  * 카피 없는 판(박스만 있는 PR0001·PD0046·ST0041)은 한 줄로 모은다. 나머지는 가로형 / 그 외.
  */
 const LGCOM_HERO = ['1920x720', '720x960'];
-/** 가로형 줄에서 빼 맨 아랫줄 앞에 두는 판 (ST0044 두 판) */
-const LGCOM_TO_BOTTOM = ['st0044-mo-656x436', 'st0044-pc-342x228'];
+/** 맨 아래 한 줄에 이 순서로 모으는 판 — 접지 않는다 */
+const LGCOM_BOTTOM = ['st0044-mo-656x436', 'st0044-pc-342x228', 'pd0041-pc-mo-464x550', 'pd0001-pc-mo-768x1200', 'pd0001-pc-800x800'];
 /** 가로형 줄에서 첫 판 바로 뒤로 당기는 판 (LNB 580x180 → GNB 322x164) */
 const LGCOM_WIDE_EARLY = ['cm0001-lnb-pc-mo-580x180', 'cm0001-gnb-322x164'];
 function lgcomRows(sizes: MediaSize[], noCopy: (s: MediaSize) => boolean): MediaSize[][] {
   const pick = (names: string[]) => names.map((n) => sizes.find((s) => s.name === n)).filter((s): s is MediaSize => !!s);
   const hero = pick(LGCOM_HERO);
-  const bottom = pick(LGCOM_TO_BOTTOM);
+  const bottom = pick(LGCOM_BOTTOM);
   const early = pick(LGCOM_WIDE_EARLY);
   const rest = sizes.filter((s) => !hero.includes(s) && !bottom.includes(s));
   const bare = rest.filter(noCopy);
   const other = rest.filter((s) => !noCopy(s));
   const wide = other.filter((s) => isWide(s) && !early.includes(s));
-  return [hero, bare, [...wide.slice(0, 1), ...early, ...wide.slice(1)], [...bottom, ...other.filter((s) => !isWide(s))]]
+  return [hero, bare, [...wide.slice(0, 1), ...early, ...wide.slice(1)], other.filter((s) => !isWide(s)), bottom]
     .filter((r) => r.length > 0);
 }
 /** 줄 하나를 접지 않고 놓을 때의 폭 (사이 간격 포함) */
@@ -803,10 +803,11 @@ function AdMediaStep({ state, update }: StepProps) {
                   // 칸 상한 — 상한보다 넓은 배너(venngo 3840)가 있으면 그 폭까지 넓힌다.
                   // 안 그러면 배너가 칸 밖으로 삐져나와 옆 매체 칸을 덮는다.
                   const lgcomNoCopy = (s: MediaSize) => !getSpec(state.designType, 'lgcom', s.name)?.in.copy;
-                  // LG.com 은 히어로 줄·카피 없는 줄이 접히지 않게 그 줄 폭까지 넓힌다
-                  const lgcomMax = c.id === 'lgcom'
-                    ? Math.max(0, ...lgcomRows(MEDIA_SIZES.lgcom.filter((s) => !!getSpec(state.designType, 'lgcom', s.name)), lgcomNoCopy).slice(0, 2).map((r) => rowWidth(r, NS(20))))
-                    : 0;
+                  // LG.com 은 히어로 줄·카피 없는 줄·맨 아랫줄이 접히지 않게 그 줄 폭까지 넓힌다
+                  const lgcomRowsAll = c.id === 'lgcom'
+                    ? lgcomRows(MEDIA_SIZES.lgcom.filter((s) => !!getSpec(state.designType, 'lgcom', s.name)), lgcomNoCopy)
+                    : [];
+                  const lgcomMax = Math.max(0, ...[...lgcomRowsAll.slice(0, 2), ...lgcomRowsAll.slice(-1)].map((r) => rowWidth(r, NS(20))));
                   const colMax = Math.max(CANVAS_MAX_W, lgcomMax, ...channelGroups(c).flatMap((g) => MEDIA_SIZES[g.id].map((s) => s.w)));
                   return (
                   /*
