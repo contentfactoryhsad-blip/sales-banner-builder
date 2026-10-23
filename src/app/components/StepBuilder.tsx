@@ -832,7 +832,8 @@ function AdMediaStep({ state, update }: StepProps) {
                           ) : (
                             <div className={columns ? 'flex flex-wrap items-stretch' : ''} style={{ gap: NS(20), maxWidth: colMax }}>
                               {(columns ?? rows!).map((col, ci) => (
-                            <div key={ci} className={columns ? 'flex flex-col justify-between' : 'flex flex-wrap items-end'}
+                            // LG.com 은 줄마다 윗정렬 — 히어로 두 판(1920x720·720x960)의 위가 맞아야 한다
+                            <div key={ci} className={columns ? 'flex flex-col justify-between' : `flex flex-wrap ${c.id === 'lgcom' ? 'items-start' : 'items-end'}`}
                               style={{ gap: NS(20), maxWidth: colMax, marginBottom: columns ? undefined : NS(24) }}>
                               {col.map((s) => (
                                 <div
