@@ -183,7 +183,7 @@ function DesignStep({ state, update, picked, onPick, onChosen }: StepProps & { p
             여기서 stopPropagation 으로 끊는다.
           */
           return (
-            <button key={key} onClick={(e) => { e.stopPropagation(); onPick(); update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], boxOpacity: null, stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key] }); onChosen(); }} className={`text-left rounded-2xl border p-4 transition-all cursor-pointer ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'}`}>
+            <button key={key} onClick={(e) => { e.stopPropagation(); onPick(); update({ designType: key, backgroundTypeId: null, boxStyleId: DEFAULT_BOX_STYLE[key], boxOpacity: null, stickerStyle: DEFAULT_STICKER_STYLE[key], colorMode: DEFAULT_COLOR_MODE[key], textMode: key === 'A' ? 'dark' : 'light' }); onChosen(); }} className={`text-left rounded-2xl border p-4 transition-all cursor-pointer ${selected ? 'border-[#FD312E] ring-1 ring-[#FD312E] shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-md'}`}>
               <div className="mb-3 flex justify-center rounded-lg overflow-hidden" style={{ background: '#F8F7F5' }}>
                 <img src={DESIGN_STEP_THUMBS[key]} alt={d.name} className="w-full h-auto block" />
               </div>
