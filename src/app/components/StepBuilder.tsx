@@ -219,12 +219,21 @@ const STACK_GAP = 20;
  * 카피 없는 판(박스만 있는 PR0001·PD0046·ST0041)은 한 줄로 모은다. 나머지는 가로형 / 그 외.
  */
 const LGCOM_HERO = ['1920x720', '720x960'];
+/** 가로형 줄에서 빼 맨 아랫줄 앞에 두는 판 (ST0044 두 판) */
+const LGCOM_TO_BOTTOM = ['st0044-mo-656x436', 'st0044-pc-342x228'];
+/** 가로형 줄에서 첫 판 바로 뒤로 당기는 판 (LNB 580x180 → GNB 322x164) */
+const LGCOM_WIDE_EARLY = ['cm0001-lnb-pc-mo-580x180', 'cm0001-gnb-322x164'];
 function lgcomRows(sizes: MediaSize[], noCopy: (s: MediaSize) => boolean): MediaSize[][] {
-  const hero = LGCOM_HERO.map((n) => sizes.find((s) => s.name === n)).filter((s): s is MediaSize => !!s);
-  const rest = sizes.filter((s) => !hero.includes(s));
+  const pick = (names: string[]) => names.map((n) => sizes.find((s) => s.name === n)).filter((s): s is MediaSize => !!s);
+  const hero = pick(LGCOM_HERO);
+  const bottom = pick(LGCOM_TO_BOTTOM);
+  const early = pick(LGCOM_WIDE_EARLY);
+  const rest = sizes.filter((s) => !hero.includes(s) && !bottom.includes(s));
   const bare = rest.filter(noCopy);
   const other = rest.filter((s) => !noCopy(s));
-  return [hero, bare, other.filter(isWide), other.filter((s) => !isWide(s))].filter((r) => r.length > 0);
+  const wide = other.filter((s) => isWide(s) && !early.includes(s));
+  return [hero, bare, [...wide.slice(0, 1), ...early, ...wide.slice(1)], [...bottom, ...other.filter((s) => !isWide(s))]]
+    .filter((r) => r.length > 0);
 }
 /** 줄 하나를 접지 않고 놓을 때의 폭 (사이 간격 포함) */
 const rowWidth = (row: MediaSize[], gap: number) => row.reduce((w, s) => w + s.w, 0) + gap * Math.max(0, row.length - 1);
