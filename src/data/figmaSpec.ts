@@ -35,6 +35,8 @@ export interface FigmaInner {
   head: [number, number, number, number, number, number] | null;
   sub: [number, number, number, number, number] | null;
   cta: [number, number, number, number, number, number] | null;
+  /** CTA 가 글자 없는 화살표 원형 버튼(LG.com PD0001) — cta 의 w·h 가 원 지름, fontSize 는 0 */
+  ctaArrow?: boolean;
   disc: [number, number, number, number, number] | null;
   /**
    * 카피 블록의 세로 정렬(피그마 오토레이아웃 primaryAxisAlignItems).

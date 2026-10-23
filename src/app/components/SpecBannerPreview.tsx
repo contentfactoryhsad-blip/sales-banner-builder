@@ -774,7 +774,14 @@ export function SpecBannerPreview({
                 fontFamily: BODY_FONT, fontSize: inn.sub[4], lineHeight: COPY_LINE_HEIGHT,
               }}>{state.subcopy}</p>
             )}
-            {inn.cta && state.showCta && (
+            {/* 화살표 원형 CTA (LG.com PD0001) — 피그마처럼 테두리 80% + 화살표, 색은 글자색을 따른다 */}
+            {inn.cta && inn.ctaArrow && state.showCta && (
+              <svg viewBox="0 0 72 72" fill="none" style={{ position: 'absolute', top: ctaTop, left: inn.cta[0], width: inn.cta[2], height: inn.cta[3] }}>
+                <rect x="1" y="1" width="70" height="70" rx="35" stroke="currentColor" strokeOpacity="0.8" strokeWidth="2" />
+                <path d="M24 34H48M38 44L48 34L38 24" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+            {inn.cta && !inn.ctaArrow && state.showCta && (
               <div style={{
                 // CTA 버튼도 Figma 에선 HUG(글자 폭 + 좌우 패딩)다. 실측 폭을 최소값으로
                 // 두되 글자가 넓어지면 늘어나게 해서 빨간 알약 밖으로 새지 않게 한다.
