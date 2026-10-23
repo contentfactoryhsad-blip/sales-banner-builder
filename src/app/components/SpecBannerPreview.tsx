@@ -610,8 +610,8 @@ export function SpecBannerPreview({
         {inn.copy && !hideCopy && (
           <div style={{
             position: 'absolute', left: inn.copy[0], top: inn.copy[1], width: inn.copy[2],
-            // LG.com 은 B 여도 피그마가 Mode=Dark(흰 글씨)다 — 셰이드 없는 컬러 KV 위라 흰색 고정
-            color: channel === 'lgcom' ? '#fff' : tone.text,
+            // 글자 모드를 따른다. LG.com 다크는 흰 글씨(빛 번짐 없음), 라이트는 광고 매체와 같은 색.
+            color: channel === 'lgcom' && textMode === 'dark' ? '#fff' : tone.text,
           }}>
             {/* 아이브로우 — LG.com ST0001 전용 한 줄. 비어 있으면 그리지 않는다. */}
             {inn.eyebrow && eyebrowText.trim() && (
@@ -915,8 +915,8 @@ export function SpecBannerPreview({
             width: inn.disc[2] - dpad[0] - dpad[1],
             bottom: spec.f[1] - (inn.disc[1] + inn.disc[3]) + dpad[2],
             margin: 0, fontFamily: BODY_FONT, fontSize: inn.disc[4],
-            color: channel === 'lgcom' ? '#fff' : tone.discColor,
-            textShadow: channel === 'lgcom' ? undefined : tone.discShadow,
+            color: channel === 'lgcom' && textMode === 'dark' ? '#fff' : tone.discColor,
+            textShadow: channel === 'lgcom' && textMode === 'dark' ? undefined : tone.discShadow,
             textAlign: hAlign === 'right' ? 'right' : undefined,
           }}>{(channel === 'lgcom' ? state.lgcomDiscText : state.discText).trim() || '*T&C’s apply'}</p>
         )}
