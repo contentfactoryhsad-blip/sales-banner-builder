@@ -214,6 +214,21 @@ const isWide = (s: MediaSize) => isWideFrame(s.w, s.h);
 const CAPTION_H = 34;   // 배너 아래 사이즈 이름이 차지하는 높이 (네이티브 px 기준)
 const STACK_GAP = 20;
 
+/**
+ * LG.com 줄 나누기 — 히어로 메인 두 판(ST0001 1920x720·720x960)은 한 줄에 나란히,
+ * 카피 없는 판(박스만 있는 PR0001·PD0046·ST0041)은 한 줄로 모은다. 나머지는 가로형 / 그 외.
+ */
+const LGCOM_HERO = ['1920x720', '720x960'];
+function lgcomRows(sizes: MediaSize[], noCopy: (s: MediaSize) => boolean): MediaSize[][] {
+  const hero = LGCOM_HERO.map((n) => sizes.find((s) => s.name === n)).filter((s): s is MediaSize => !!s);
+  const rest = sizes.filter((s) => !hero.includes(s));
+  const bare = rest.filter(noCopy);
+  const other = rest.filter((s) => !noCopy(s));
+  return [hero, bare, other.filter(isWide), other.filter((s) => !isWide(s))].filter((r) => r.length > 0);
+}
+/** 줄 하나를 접지 않고 놓을 때의 폭 (사이 간격 포함) */
+const rowWidth = (row: MediaSize[], gap: number) => row.reduce((w, s) => w + s.w, 0) + gap * Math.max(0, row.length - 1);
+
 function packSizes(sizes: MediaSize[]): MediaSize[][] {
   const items = [...sizes].sort((a, b) => b.h - a.h);
   const cols: { w: number; h: number; items: MediaSize[] }[] = [];
@@ -778,7 +793,12 @@ function AdMediaStep({ state, update }: StepProps) {
                 {channels.map((c) => {
                   // 칸 상한 — 상한보다 넓은 배너(venngo 3840)가 있으면 그 폭까지 넓힌다.
                   // 안 그러면 배너가 칸 밖으로 삐져나와 옆 매체 칸을 덮는다.
-                  const colMax = Math.max(CANVAS_MAX_W, ...channelGroups(c).flatMap((g) => MEDIA_SIZES[g.id].map((s) => s.w)));
+                  const lgcomNoCopy = (s: MediaSize) => !getSpec(state.designType, 'lgcom', s.name)?.in.copy;
+                  // LG.com 은 히어로 줄·카피 없는 줄이 접히지 않게 그 줄 폭까지 넓힌다
+                  const lgcomMax = c.id === 'lgcom'
+                    ? Math.max(0, ...lgcomRows(MEDIA_SIZES.lgcom.filter((s) => !!getSpec(state.designType, 'lgcom', s.name)), lgcomNoCopy).slice(0, 2).map((r) => rowWidth(r, NS(20))))
+                    : 0;
+                  const colMax = Math.max(CANVAS_MAX_W, lgcomMax, ...channelGroups(c).flatMap((g) => MEDIA_SIZES[g.id].map((s) => s.w)));
                   return (
                   /*
                     칸 폭은 **내용에 맞춘다.** CANVAS_MAX_W 로 고정하면 사이즈가 적은 매체
@@ -799,7 +819,9 @@ function AdMediaStep({ state, update }: StepProps) {
                         묶으면 순서가 뒤섞여 찾기 어려워지므로 그대로 둔다.
                       */
                       const columns = c.id === 'meta' || c.id === 'metasaudi' ? packSizes(ready) : null;
-                      const rows = columns ? null : [ready.filter(isWide), ready.filter((s) => !isWide(s))].filter((r) => r.length > 0);
+                      const rows = columns ? null
+                        : c.id === 'lgcom' ? lgcomRows(ready, lgcomNoCopy)
+                        : [ready.filter(isWide), ready.filter((s) => !isWide(s))].filter((r) => r.length > 0);
                       return (
                         <>
                           <p className="font-lgei font-bold text-[#4A4946]" style={{ fontSize: NS(13), marginBottom: NS(6) }}>
