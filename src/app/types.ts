@@ -120,6 +120,8 @@ export interface BannerState {
    * 기본은 A=다크(흰 글씨) · B=라이트(검정 글씨). Edit › Copy 아래에서 반대로 고를 수 있다.
    */
   textMode: 'light' | 'dark';
+  /** LG.com 전용 글자 모드 — 광고 매체(textMode)와 따로 고른다. 기본은 같은 규칙(A=다크·B=라이트). AD Media 의 LG.com 패널에서 고른다. */
+  lgcomTextMode: 'light' | 'dark';
   /** LG.com 전용 디스클레이머 — 1920x720·720x960 두 판에만 쓰인다 (AD Media 의 슬라이드 패널에서 입력). */
   lgcomDiscText: string;
   /** LG.com 디스클레이머 표시 여부 (같은 패널의 토글) */
@@ -209,6 +211,7 @@ export function createInitialState(designType: DesignType): BannerState {
     discText: "*T&C’s apply",
     showDisc: true,
     textMode: designType === 'A' ? 'dark' : 'light',
+    lgcomTextMode: designType === 'A' ? 'dark' : 'light',
     lgcomDiscText: "*T&C’s apply",
     lgcomShowDisc: true,
     lgcomEyebrowText: DEFAULT_EYEBROW,   // 광고 매체와 같은 "LG.com exclusive deals" (2026-10-21 변경, 예전 'Special offers are here')

@@ -234,8 +234,9 @@ export function SpecBannerPreview({
     글자 모드(Light/Dark) — 기본은 A=다크·B=라이트, 사용자가 반대로 고를 수 있다.
     글자·디스클레이머 색과 로고는 시안이 아니라 이 모드를 따른다 (피그마 Mode 변형과 같은 묶음).
     라이트의 세로형 흰 로고 규칙은 위 설명 그대로 유지한다.
+    LG.com 은 광고 매체와 따로 고른다 (lgcomTextMode — LG.com 패널).
   */
-  const textMode = state.textMode ?? (design === 'A' ? 'dark' : 'light');
+  const textMode = (channel === 'lgcom' ? state.lgcomTextMode : state.textMode) ?? (design === 'A' ? 'dark' : 'light');
   const tone = DESIGN_STYLES[textMode === 'dark' ? 'A' : 'B'];
   const baseLogo = textMode === 'light' && !isWideFrame(FW, FH)
     ? LOGO_WHITE
