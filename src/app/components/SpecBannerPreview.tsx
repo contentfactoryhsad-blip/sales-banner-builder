@@ -301,7 +301,7 @@ export function SpecBannerPreview({
   /*
     피그마가 두 줄로 접어 둔 서브카피·아이브로우 — 세로로 좁은 판(160x600·120x600·300x1050 등)이다.
     상자 높이를 글자 한 줄 높이로 나눠 1.5 이상이면 접는 판으로 보고, 폭에 가둬 그대로 접는다.
-    나머지(한 줄 판)는 종전처럼 접지 않는다.
+    나머지(한 줄 판)는 글자 폭만큼 쓰되, 상자 폭을 넘으면 그 폭에서 접는다.
   */
   const wraps = (r: readonly number[] | null | undefined, fs: number | undefined) =>
     !!r && !!fs && r[3] / (fs * COPY_LINE_HEIGHT) >= 1.5;
@@ -318,7 +318,8 @@ export function SpecBannerPreview({
       ...(hAlign === 'right'
         ? { right: (inn.copy?.[2] ?? 0) - (x + w) }
         : hAlign === 'center' ? { left: x + w / 2, transform: 'translateX(-50%)' } : { left: x }),
-      width: 'max-content', whiteSpace: 'nowrap', textAlign: hAlign,
+      // 피그마 상자는 폭 Fill·높이 Hug 라, 글이 길어지면 상자 폭에서 접힌다. 짧은 글은 그대로 한 줄.
+      width: 'max-content', maxWidth: w * HEAD_WRAP_TOLERANCE, whiteSpace: 'normal', textAlign: hAlign,
     };
   };
   const noWrap = headNoWrap(design, key);
