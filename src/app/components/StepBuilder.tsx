@@ -639,29 +639,28 @@ function AdMediaStep({ state, update }: StepProps) {
               </div>
             </div>
 
-            {/* ── 오른쪽 — Disclaimer 토글 + 입력칸 (닫기는 오른쪽 위) ── */}
+            {/* ── 오른쪽 — Text Mode / Disclaimer 토글(닫기는 그 줄 오른쪽) + 입력칸 ── */}
             <div className="flex flex-col min-w-0">
-              {/* 글자 모드 — LG.com 전용 (광고 매체의 Edit › Copy › Text mode 와 따로 고른다) */}
-              <div className="flex items-center gap-3 mb-3 h-9">
-                <span className="font-lgei font-bold text-[14px] text-gray-900 shrink-0">Text mode</span>
-                <div className="flex items-center gap-1.5">
+              {/*
+                글자 모드 — LG.com 전용 (광고 매체의 Edit › Copy › Text mode 와 따로 고른다).
+                왼쪽 제목(LG.com) 줄에 맞추고, 버튼은 남는 폭을 반씩 나눈다. 아래 Disclaimer 줄은 Icons 줄과 맞는다.
+              */}
+              <div className="flex items-center gap-4 mb-4 h-[22px]">
+                <span className="font-lgei font-bold text-[14px] text-gray-900 shrink-0">Text Mode</span>
+                <div className="flex-1 grid grid-cols-2 gap-3">
                   {(['light', 'dark'] as const).map((m) => {
                     const on = (state.lgcomTextMode ?? (state.designType === 'A' ? 'dark' : 'light')) === m;
                     return (
                       <button key={m} type="button" onClick={() => update({ lgcomTextMode: m })}
-                        className={`h-9 w-24 px-2.5 rounded-lg border text-xs transition-colors flex items-center gap-2 ${on ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                        className={`h-9 px-3 rounded-lg border text-[13px] transition-colors flex items-center gap-2.5 ${on ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                         <span className={`w-4 h-4 shrink-0 rounded-full border border-black/10 ${m === 'dark' ? 'bg-black' : 'bg-white'}`} />
                         {m === 'light' ? 'Light' : 'Dark'}
                       </button>
                     );
                   })}
                 </div>
-                <button type="button" onClick={() => setLgcomPanel(false)} title="Close"
-                  className="ml-auto w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
-                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
-                </button>
               </div>
-              <div className="flex items-center gap-3 mb-2 h-[22px]">
+              <div className="flex items-center gap-3 mb-4 h-9">
                 <button type="button" role="switch" aria-checked={state.lgcomShowDisc !== false}
                   onClick={() => update({ lgcomShowDisc: state.lgcomShowDisc === false })}
                   className={`relative w-11 h-6 shrink-0 rounded-full transition-colors ${state.lgcomShowDisc !== false ? 'bg-[#FD312E]' : 'bg-gray-300'}`}>
@@ -671,6 +670,10 @@ function AdMediaStep({ state, update }: StepProps) {
                 <span className="text-[11px] text-gray-400 truncate">
                   {state.lgcomShowDisc !== false ? 'Shown on ST0001 sizes' : 'Disclaimer is hidden on the banners'}
                 </span>
+                <button type="button" onClick={() => setLgcomPanel(false)} title="Close"
+                  className="ml-auto w-7 h-7 shrink-0 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-700">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                </button>
               </div>
               <textarea value={state.lgcomDiscText}
                 onChange={(e) => update({ lgcomDiscText: e.target.value })}
