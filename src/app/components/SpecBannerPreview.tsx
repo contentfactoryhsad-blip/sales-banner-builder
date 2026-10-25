@@ -397,7 +397,7 @@ export function SpecBannerPreview({
     블록 정렬(inn.va)은 피그마 프레임의 세로 정렬이다 — MAX(바닥 정렬)면 바닥을 피그마 자리에 두고
     위로 쌓이고, CENTER 는 줄어든 만큼의 절반, MIN 은 위를 고정한다.
     CTA 가 카피 **옆**에 붙는 가로형(728x90 등)은 세로로 쌓지 않고, 옆에 붙은 요소만큼만 따라 움직인다.
-    예전 LG.com 3사이즈는 아이콘 줄이 따로 있어 종전 방식(피그마 y 고정 + CTA 만 따라감)을 유지한다.
+    LG.com 히어로 두 판도 같다(아이콘 줄·고지문은 각자 피그마 y 에 고정).
   */
   const copyTops = (() => {
     type It = { id: 'eb' | 'head' | 'sub' | 'cta'; y: number; h: number; shown: boolean; mh: number };
@@ -418,7 +418,8 @@ export function SpecBannerPreview({
     if (inn.cta) all.push({ id: 'cta', y: inn.cta[1], h: inn.cta[3], shown: state.showCta, mh: inn.cta[3] });
     const tops: Record<string, number> = {};
     for (const it of all) tops[it.id] = it.y;
-    if (isLegacyLgcom(key) || !all.length) return { ...tops, cta: legacyCtaTop };
+    // LG.com 히어로(1920x720·720x960)도 같은 오토레이아웃이라 함께 쌓는다 — 아이콘 줄·고지문은 따로 고정이라 영향 없다
+    if (!all.length) return { ...tops, cta: legacyCtaTop };
     // 세로로 이어지는 줄(chain)과 옆에 붙은 요소(side)를 가른다
     const chain: It[] = [];
     const side: It[] = [];
