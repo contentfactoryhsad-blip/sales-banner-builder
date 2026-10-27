@@ -643,18 +643,19 @@ function AdMediaStep({ state, update }: StepProps) {
             <div className="flex flex-col min-w-0">
               {/*
                 글자 모드 — LG.com 전용 (광고 매체의 Edit › Copy › Text mode 와 따로 고른다).
+                버튼 이름은 글자색 기준(흰 글자=Light, 검은 글자=Dark)이라 값(피그마 Mode, 배경 기준)과 반대다.
                 왼쪽 제목(LG.com) 줄에 맞추고, 버튼은 남는 폭을 반씩 나눈다. 아래 Disclaimer 줄은 Icons 줄과 맞는다.
               */}
               <div className="flex items-center gap-4 mb-4 h-[22px]">
                 <span className="font-lgei font-bold text-[14px] text-gray-900 shrink-0">Text Mode</span>
                 <div className="flex-1 grid grid-cols-2 gap-3">
-                  {(['light', 'dark'] as const).map((m) => {
+                  {(['dark', 'light'] as const).map((m) => {
                     const on = (state.lgcomTextMode ?? (state.designType === 'A' ? 'dark' : 'light')) === m;
                     return (
                       <button key={m} type="button" onClick={() => update({ lgcomTextMode: m })}
                         className={`h-9 px-3 rounded-lg border text-[13px] transition-colors flex items-center gap-2.5 ${on ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                        <span className={`w-4 h-4 shrink-0 rounded-full border border-black/10 ${m === 'dark' ? 'bg-black' : 'bg-white'}`} />
-                        {m === 'light' ? 'Light' : 'Dark'}
+                        <span className={`w-4 h-4 shrink-0 rounded-full border border-black/10 ${m === 'dark' ? 'bg-white' : 'bg-black'}`} />
+                        {m === 'dark' ? 'Light' : 'Dark'}
                       </button>
                     );
                   })}
@@ -1598,17 +1599,17 @@ function EditCopy({ state, update }: StepProps) {
   return (
     <EditSection label="Copy">
       <div className="flex flex-col gap-2.5">
-        {/* 글자 모드 — 피그마 Mode=Light/Dark. 기본은 A=Dark · B=Light, 반대로 고를 수 있다 (글자·디스클레이머·로고 색). */}
+        {/* 글자 모드 — 값은 피그마 Mode(배경 기준: dark=흰 글자)이고, 버튼 이름은 글자색 기준이라 반대다 (dark → 'Light'). 기본은 A=흰 글자 · B=검은 글자. */}
         <div>
           <p className="text-xs font-medium text-gray-600 mb-1">Text mode</p>
           <div className="grid grid-cols-2 gap-1.5">
-            {(['light', 'dark'] as const).map((m) => {
+            {(['dark', 'light'] as const).map((m) => {
               const on = (state.textMode ?? (state.designType === 'A' ? 'dark' : 'light')) === m;
               return (
                 <button key={m} type="button" onClick={() => update({ textMode: m })}
                   className={`h-9 px-2.5 rounded-lg border text-xs transition-colors flex items-center gap-2 ${on ? 'border-[#FD312E] text-[#FD312E] bg-[#FD312E]/5' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                  <span className={`w-4 h-4 shrink-0 rounded-full border border-black/10 ${m === 'dark' ? 'bg-black' : 'bg-white'}`} />
-                  {m === 'light' ? 'Light' : 'Dark'}
+                  <span className={`w-4 h-4 shrink-0 rounded-full border border-black/10 ${m === 'dark' ? 'bg-white' : 'bg-black'}`} />
+                  {m === 'dark' ? 'Light' : 'Dark'}
                 </button>
               );
             })}
