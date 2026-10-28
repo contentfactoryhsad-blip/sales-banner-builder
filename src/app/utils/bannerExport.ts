@@ -5,6 +5,8 @@
  * 그린 뒤 PNG 로 굽는다. 캔버스로 다시 그리지 않으므로 웹에서 보이는 것과 결과가
  * 어긋날 일이 없다.
  */
+
+import { getHubCountry } from './hubCountry';
 /**
  * 파일 저장 — 링크를 눌러 브라우저가 받게 한다.
  *
@@ -159,10 +161,12 @@ export function stamp(d = new Date()) {
  */
 export async function logUsage(rec: Record<string, unknown>): Promise<void> {
   try {
+    // Builder Hub 에서 고른 국가 — 있으면 서버가 IP 추정 대신 이 값을 찍는다
+    const hub = getHubCountry();
     await fetch('/api/log-usage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(rec),
+      body: JSON.stringify(hub ? { ...rec, country: hub.country } : rec),
       keepalive: true,   // 다운로드 직후 창을 닫아도 전송이 살아남는다
     });
   } catch {

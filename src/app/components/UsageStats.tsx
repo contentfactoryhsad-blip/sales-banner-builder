@@ -407,7 +407,7 @@ export function UsageStats() {
             <div className="overflow-x-auto">
               <table className="w-full text-[12px]">
                 <thead className="text-gray-400">
-                  <tr>{['시각', '국가', '시안', '프로모션', '제품', '박스', '매체', '장수', '결과', '의견'].map((h) => (
+                  <tr>{['시각', '지역', '국가', '시안', '프로모션', '제품', '박스', '매체', '장수', '결과', '의견'].map((h) => (
                     <th key={h} className="text-left font-normal pb-2 pr-4 whitespace-nowrap">{h}</th>
                   ))}</tr>
                 </thead>
@@ -415,6 +415,7 @@ export function UsageStats() {
                   {[...shown].reverse().slice(0, 50).map((r, i) => (
                     <tr key={i} className="border-t border-gray-100">
                       <td className="py-1.5 pr-4 whitespace-nowrap tabular-nums">{stampText(r)}</td>
+                      <td className="py-1.5 pr-4">{r.region}</td>
                       <td className="py-1.5 pr-4">{r.country}</td>
                       <td className="py-1.5 pr-4">{r.design}</td>
                       <td className="py-1.5 pr-4">{r.promotion}</td>
