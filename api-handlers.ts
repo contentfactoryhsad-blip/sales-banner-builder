@@ -665,7 +665,7 @@ export interface UsageRecord {
   comment: string;
   /** 결과 썸네일 묶음 ID — outputs/<id>/ 폴더 이름 (없으면 빈 값) */
   output?: string;
-  /** Builder Hub 에서 고른 "지역/국가" 코드 (예: ASIA/KR). 없으면 허브를 거치지 않은 것 — DIRECT 로 찍는다 */
+  /** Builder Hub 에서 고른 "지역/국가" 코드 (예: ASIA/KR). 없으면 허브를 거치지 않은 것 — region=DIRECT, 국가는 IP 로 추정 */
   country?: string;
 }
 
@@ -702,6 +702,28 @@ function maskIp(ip: string): string {
   return p.length === 4 ? `${p[0]}.${p[1]}.${p[2]}.0` : ip;
 }
 
+/**
+ * IP → 국가. 사설망(회사 내부·로컬)이면 조회할 것도 없이 'local'.
+ * 외부 조회는 2초만 기다리고, 실패하면 'unknown' 으로 두고 기록은 남긴다 —
+ * 조회 실패 때문에 사용 기록 자체를 잃으면 안 된다.
+ */
+async function lookupCountry(ip: string): Promise<{ country: string; region: string }> {
+  if (!ip || /^(10\.|192\.168\.|127\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd)/.test(ip)) {
+    return { country: 'local', region: '' };
+  }
+  try {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 2000);
+    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=countryCode,country,regionName`, { signal: ac.signal });
+    clearTimeout(t);
+    if (!res.ok) return { country: 'unknown', region: '' };
+    const j = (await res.json()) as { countryCode?: string; regionName?: string };
+    return { country: j.countryCode || 'unknown', region: j.regionName || '' };
+  } catch {
+    return { country: 'unknown', region: '' };
+  }
+}
+
 const csvCell = (v: unknown) => {
   const s = String(v ?? '');
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -716,12 +738,12 @@ const hubPick = (v: unknown): string =>
 
 /** 한 줄 덧붙인다. 파일이 없으면 헤더부터 만든다. */
 export async function appendUsage(rec: UsageRecord, ip: string): Promise<void> {
-  // 국가는 허브에서 고른 값만 찍는다 — "ASIA/KR" 이면 region=ASIA, country=KR.
-  // 빌더 주소로 바로 들어온 기록은 country=DIRECT, region 은 빈 칸.
+  // 허브에서 고른 값 "ASIA/KR" 이면 region=ASIA, country=KR.
+  // 빌더 주소로 바로 들어온 기록은 region=DIRECT, country 는 IP 로 추정한 나라 (불확실 — 참고용).
   const hub = hubPick(rec.country);
   const cut = hub.lastIndexOf('/');
-  const region = hub && cut > 0 ? hub.slice(0, cut) : '';
-  const country = hub ? hub.slice(cut + 1) : 'DIRECT';
+  const region = hub ? (cut > 0 ? hub.slice(0, cut) : '') : 'DIRECT';
+  const country = hub ? hub.slice(cut + 1) : (await lookupCountry(ip)).country;
   const row = [
     new Date().toISOString(), country, region, maskIp(ip),
     rec.design, rec.promotion, rec.products, rec.productModels, rec.productNames,
