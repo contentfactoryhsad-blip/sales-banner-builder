@@ -1006,6 +1006,9 @@ export const V2_HEAD_BREAK: Record<string, number> = { 'criteo-200x200': 2, 'dv3
 /** 헤드라인 자리에 프로모션 명칭 한 줄만 있는 사이즈 (피그마 Headline = "[Promotion Name]") — 헤드카피를 그리지 않는다 */
 export const V2_PROMO_ONLY: string[] = ['awin-120x20'];
 
+/** B 에서 흰 셰이드를 빼는 사이즈 — 박스로만 디자인하는 사이즈라 피그마 B-1~5 에서 Gradient 를 숨겼다 (2026-11-02) */
+export const V2_NO_SHADE_B: string[] = ['telushealth-1080x720', 'telushealth-1000x1000', 'plnapenezenka-330x135'];
+
 /** 헤드라인 가운데정렬 사이즈 */
 export const V2_HEAD_CENTER: string[] = ["criteo-160x600","criteo-120x600","dv360-120x240","dv360-300x1050","dv360-160x600","dv360-120x600","twitch-160x600","quantcast-160x600","quantcast-120x600","awin-160x600","awin-300x1050","dataaudience-120x600","dataaudience-160x600"];
 

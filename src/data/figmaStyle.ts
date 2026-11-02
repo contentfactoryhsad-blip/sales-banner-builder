@@ -22,7 +22,7 @@ import {
 import { DISC_PAD, HEAD_BREAK, HEAD_CENTER, HEAD_NOWRAP, PRODUCT, SHADE_ANGLE, type ProdRect } from './figmaSpec.extra';
 import {
   SPEC_A_V2, SPEC_B_V2, V2_DISC_PAD, V2_HEAD_CENTER, V2_HEAD_NOWRAP, V2_PRODUCT, V2_PRODUCT_B,
-  V2_HEAD_BREAK, V2_PROMO_ONLY, V2_SHADE_ANGLE_A, V2_SHADE_B,
+  V2_HEAD_BREAK, V2_NO_SHADE_B, V2_PROMO_ONLY, V2_SHADE_ANGLE_A, V2_SHADE_B,
 } from './figmaSpec.v2';
 import { V2_SHADE_B_BY_BG } from './figmaSpec.v2b';
 import {
@@ -353,6 +353,7 @@ export function shadeCss(
   gr: FigmaFrameSpec['gr'], design: DesignKind, key: string, boost = 1, tint?: ShadeTint | null, bgId?: string,
 ) {
   if (design === 'B') {
+    if (V2_NO_SHADE_B.includes(key)) return 'none';
     // 판(배경 종류)에서 따로 손본 사이즈가 있으면 그 값이 먼저다 (figmaSpec.v2b.ts)
     const byBg = bgId ? V2_SHADE_B_BY_BG[bgId] : undefined;
     const s = byBg && key in byBg ? byBg[key]
