@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DEFAULT_EYEBROW, type BannerState } from '../types';
 import { getPromotion, promoPair } from '../../data/promotions';
 import { graphicSrc as graphicSrcOf, hasGraphic, MAX_DISCOUNT, MIN_DISCOUNT } from '../../data/builderOptions';
@@ -1008,18 +1008,35 @@ export function SpecBannerPreview({
           const [rx, ry, iconSize, itemGap, iconTextGap, iconFs] = inn.iconRow!;
           const ic = state.lgcomIcons;
           const textColor = ic.color === 'white' ? '#fff' : '#000';
+          /*
+            Line 은 다른 빌더(블프 IconRowInline · 크리스마스 · 트레이드인업)와 같게 —
+            묶음 사이에 세로 구분선, 아이콘↔캡션 붙임, 간격은 Solid 의 절반쯤,
+            줄 전체에 흐린 테두리(drop-shadow 두 겹). 비율은 모두 아이콘 높이에서 나온다.
+          */
+          const isLine = ic.style === 'line';
+          const halo = ic.color === 'white' ? '#000' : '#fff';
+          const items = ic.items.slice(0, Math.max(1, Math.min(3, ic.count)));
           return (
-            <div style={{ position: 'absolute', left: rx, top: ry, display: 'flex', gap: itemGap }}>
-              {ic.items.slice(0, Math.max(1, Math.min(3, ic.count))).map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: iconTextGap }}>
-                  <img src={lgcomIconSrc(ic.style, item.icon)} alt="" draggable={false}
-                    style={{ width: iconSize, height: iconSize, filter: lgcomIconFilter(ic.color) }} />
-                  {/* 라벨은 Figma 처럼 단어 단위로 접는다 (min-content) */}
-                  <span style={{
-                    fontFamily: BODY_FONT, fontSize: iconFs, lineHeight: 1.14, color: textColor,
-                    width: 'min-content', whiteSpace: 'normal',
-                  }}>{item.label}</span>
-                </div>
+            <div style={{
+              position: 'absolute', left: rx, top: ry, display: 'flex', alignItems: 'center',
+              gap: isLine ? iconSize * 0.195 : itemGap,
+              filter: isLine ? `drop-shadow(0 0 ${iconSize * 0.061}px ${halo}) drop-shadow(0 0 ${iconSize * 0.183}px ${halo})` : undefined,
+            }}>
+              {items.map((item, i) => (
+                <Fragment key={i}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: isLine ? 0 : iconTextGap, paddingRight: isLine ? iconSize * 0.1 : 0 }}>
+                    <img src={lgcomIconSrc(ic.style, item.icon)} alt="" draggable={false}
+                      style={{ width: iconSize, height: iconSize, filter: lgcomIconFilter(ic.color) }} />
+                    {/* 라벨은 Figma 처럼 단어 단위로 접는다 (min-content) */}
+                    <span style={{
+                      fontFamily: BODY_FONT, fontSize: iconFs, lineHeight: 1.14, color: textColor,
+                      width: 'min-content', whiteSpace: 'normal',
+                    }}>{item.label}</span>
+                  </div>
+                  {isLine && i < items.length - 1 && (
+                    <div style={{ width: Math.max(1, iconSize * 0.0167), height: iconSize * 0.6667, background: textColor, flex: '0 0 auto' }} />
+                  )}
+                </Fragment>
               ))}
             </div>
           );
