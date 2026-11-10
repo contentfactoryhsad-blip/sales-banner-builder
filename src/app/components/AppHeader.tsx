@@ -1,6 +1,7 @@
 import React from 'react';
 import { BookOpen } from 'lucide-react';
 import { BackButton } from './BackButton';
+import { CountryBadge } from './CountryPicker';
 
 const HUB_URL = 'https://builder-hub.lge-d2c.com';
 
@@ -20,6 +21,8 @@ export function ReadmeTutorialLink() {
 }
 
 interface Props {
+  /** 오른쪽에 국가(법인) 버튼 — 빌더 첫 화면에서만 켠다 (안쪽 작업 화면은 버튼이 많아서) */
+  showCountry?: boolean;
   title: string;
   /** 좌상단 뒤로 버튼. Home 등 뒤로가 없는 화면에서는 생략. */
   onBack?: () => void;
@@ -36,7 +39,7 @@ interface Props {
  * 공용 64px 앱 헤더 — 뒤로 버튼(옵션) + LG 로고/타이틀 (좌측 정렬) + 우측 액션.
  * (참고본 AppHeader 이식, i18n 제거)
  */
-export function AppHeader({ title, onBack, onHome, right }: Props) {
+export function AppHeader({ title, onBack, onHome, right, showCountry }: Props) {
   const name = (
     <span className="font-lgei font-bold text-[15px] text-gray-900" style={{ lineHeight: '20px' }}>
       {title}
@@ -74,7 +77,7 @@ export function AppHeader({ title, onBack, onHome, right }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 shrink-0">{right}</div>
+      <div className="flex items-center gap-3 shrink-0">{right}{showCountry && <CountryBadge />}</div>
     </header>
   );
 }
