@@ -14,7 +14,7 @@ const HOME_THUMBS: Record<DesignType, string> = {
 export function Home({ onSelect, onBack }: { onSelect: (type: DesignType) => void; onBack?: () => void }) {
   return (
     <div className="min-h-screen bg-[#f8f7f5] flex flex-col">
-      <AppHeader title="Sales Banner Builder" onBack={onBack} />
+      <AppHeader title="Sales Banner Builder" showCountry onBack={onBack} />
 
       <main className="flex-1 flex flex-col items-center px-8 pt-[41.67px] pb-10 gap-8" style={{ zoom: 1.2 }}>
         <div className="text-center flex flex-col items-center gap-3">

@@ -63,7 +63,7 @@ export function StepBuilder({ onExit }: { onExit?: () => void }) {
 
   return (
     <div className="h-screen flex flex-col bg-[#f8f7f5]">
-      <AppHeader title="Sales Banner Builder" onBack={onExit} onHome={goHome} right={onExit ? <span className="text-xs text-gray-500">Mode A · Step by step</span> : undefined} />
+      <AppHeader title="Sales Banner Builder" showCountry={step === 1} onBack={onExit} onHome={goHome} right={onExit ? <span className="text-xs text-gray-500">Mode A · Step by step</span> : undefined} />
       <WizardBreadcrumb steps={STEPS} activeStep={step} onStepClick={setStep} />
 
       {/*
