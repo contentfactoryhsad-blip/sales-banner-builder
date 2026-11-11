@@ -11,7 +11,7 @@ export const REGIONS: Region[] = [
   {
     name: 'Asia', code: 'ASIA',
     countries: [
-      ['Australia', 'AU'], ['China', 'CN'], ['India', 'IN'], ['Indonesia', 'ID'], ['Japan', 'JP'],
+      ['Australia', 'AU'], ['China', 'CN'], ['Hong Kong', 'HK'], ['India', 'IN'], ['Indonesia', 'ID'], ['Japan', 'JP'],
       ['Korea', 'KR'], ['Malaysia', 'MY'], ['Philippines', 'PH'], ['Singapore', 'SG'], ['Taiwan', 'TW'], ['Thailand', 'TH'],
       ['Vietnam', 'VN'],
     ],
