@@ -354,7 +354,16 @@ export function SpecBannerPreview({
   const ebRef = useRef<HTMLParagraphElement>(null);
   const [meas, setMeas] = useState<{ eb: number; head: number; sub: number } | null>(null);
   const [copyBottom, setCopyBottom] = useState<number | null>(null);
-  const showSub = !!(inn.sub && state.showSubcopy && state.subcopy);
+  /*
+    칸을 비우면 체크박스를 끈 것과 똑같이 본다 (블프와 같은 규칙) — 그 줄은 그리지 않고,
+    아래 카피 쌓기(copyTops)에서도 빠져 밑의 요소가 올라온다. 공백만 남은 칸도 빈 칸이다.
+    헤드카피는 명칭(첫 줄)·헤드라인(둘째 줄) 둘 다 비어야 빠진다. 헤드 상자는 높이를 재야 해서
+    비어도 DOM 에는 남긴다(안이 비어 아무것도 안 보인다).
+  */
+  const showHead = !!(state.promoName.trim() || (state.showHeadline && state.headline.trim()));
+  const showSub = !!(inn.sub && state.showSubcopy && state.subcopy.trim());
+  // CTA 글귀를 비우면 버튼째 숨긴다. 화살표 원형 버튼(PD0001)은 글귀가 없어 그대로 둔다.
+  const showCtaBtn = !!(state.showCta && (inn.ctaArrow || state.ctaText.trim()));
   /*
     ⚠ 의존성 목록을 반드시 둘 것.
     offsetHeight 는 동기 레이아웃을 강제한다. 목록 없이 매 렌더마다 돌리면
@@ -413,9 +422,9 @@ export function SpecBannerPreview({
     };
     const all: It[] = [];
     if (inn.eyebrow) all.push({ id: 'eb', y: inn.eyebrow[1], h: inn.eyebrow[3], shown: showEyebrow, mh: hOf(inn.eyebrow, inn.eyebrow[4], meas?.eb) });
-    if (inn.head) all.push({ id: 'head', y: inn.head[1], h: inn.head[3], shown: true, mh: hOf(inn.head, inn.head[4], meas?.head) });
+    if (inn.head) all.push({ id: 'head', y: inn.head[1], h: inn.head[3], shown: showHead, mh: hOf(inn.head, inn.head[4], meas?.head) });
     if (inn.sub) all.push({ id: 'sub', y: inn.sub[1], h: inn.sub[3], shown: showSub, mh: hOf(inn.sub, inn.sub[4], meas?.sub) });
-    if (inn.cta) all.push({ id: 'cta', y: inn.cta[1], h: inn.cta[3], shown: state.showCta, mh: inn.cta[3] });
+    if (inn.cta) all.push({ id: 'cta', y: inn.cta[1], h: inn.cta[3], shown: showCtaBtn, mh: inn.cta[3] });
     const tops: Record<string, number> = {};
     for (const it of all) tops[it.id] = it.y;
     // LG.com 히어로(1920x720·720x960)도 같은 오토레이아웃이라 함께 쌓는다 — 아이콘 줄·고지문은 따로 고정이라 영향 없다
@@ -451,6 +460,8 @@ export function SpecBannerPreview({
     return tops;
   })();
   const ctaTop = copyTops.cta ?? 0;
+  const discStr = ((channel === 'lgcom' ? state.lgcomDiscText : state.discText) ?? '').trim();
+  const discShown = (channel === 'lgcom' ? state.lgcomShowDisc !== false : state.showDisc !== false) && !!discStr;
   // Figma letterSpacing 은 PERCENT 단위다. 숫자를 그대로 넘기면 CSS 가 px 로 읽어 크게 벌어진다.
   const headLs = inn.head && inn.head[5] ? (inn.head[4] * inn.head[5]) / 100 : undefined;
   const dpad = discPad(key);
@@ -756,8 +767,8 @@ export function SpecBannerPreview({
                 lineHeight: COPY_LINE_HEIGHT, textAlign: hAlign,
                 whiteSpace: noWrap ? 'nowrap' : undefined,
               }}>
-                {state.promoName && promoNameNodes(state.promoName, promoBrk, promoK)}
-                {state.showHeadline && state.headline && headLines(design, key, state.headline).map((ln, i) => (
+                {state.promoName.trim() && promoNameNodes(state.promoName, promoBrk, promoK)}
+                {state.showHeadline && state.headline.trim() && headLines(design, key, state.headline).map((ln, i) => (
                   <p key={i} style={{ margin: 0 }}>{ln}</p>
                 ))}
               </div>
@@ -778,13 +789,13 @@ export function SpecBannerPreview({
               }}>{state.subcopy}</p>
             )}
             {/* 화살표 원형 CTA (LG.com PD0001) — 피그마처럼 테두리 80% + 화살표, 색은 글자색을 따른다 */}
-            {inn.cta && inn.ctaArrow && state.showCta && (
+            {inn.cta && inn.ctaArrow && showCtaBtn && (
               <svg viewBox="0 0 72 72" fill="none" style={{ position: 'absolute', top: ctaTop, left: inn.cta[0], width: inn.cta[2], height: inn.cta[3] }}>
                 <rect x="1" y="1" width="70" height="70" rx="35" stroke="currentColor" strokeOpacity="0.8" strokeWidth="2" />
                 <path d="M24 34H48M38 44L48 34L38 24" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
-            {inn.cta && !inn.ctaArrow && state.showCta && (
+            {inn.cta && !inn.ctaArrow && showCtaBtn && (
               <div style={{
                 // CTA 버튼도 Figma 에선 HUG(글자 폭 + 좌우 패딩)다. 실측 폭을 최소값으로
                 // 두되 글자가 넓어지면 늘어나게 해서 빨간 알약 밖으로 새지 않게 한다.
@@ -809,7 +820,7 @@ export function SpecBannerPreview({
                 borderRadius: inn.cta[4], background: '#fd312e',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontFamily: BODY_FONT, fontSize: inn.cta[5], color: '#fff', whiteSpace: 'nowrap' }}>{state.ctaText.trim() || 'Shop now'}</span>
+                <span style={{ fontFamily: BODY_FONT, fontSize: inn.cta[5], color: '#fff', whiteSpace: 'nowrap' }}>{state.ctaText.trim()}</span>
               </div>
             )}
           </div>
@@ -1043,7 +1054,8 @@ export function SpecBannerPreview({
         })()}
 
         {/* 디스클레이머 */}
-        {inn.disc && (channel === 'lgcom' ? state.lgcomShowDisc !== false : state.showDisc !== false) && (
+        {/* 디스클레이머 — 칸을 비우면 끈 것과 같다 (기본 문구로 되돌리지 않는다) */}
+        {inn.disc && discShown && (
           <p style={{
             position: 'absolute', left: inn.disc[0] + dpad[0],
             width: inn.disc[2] - dpad[0] - dpad[1],
@@ -1052,7 +1064,7 @@ export function SpecBannerPreview({
             color: channel === 'lgcom' && textMode === 'dark' ? '#fff' : tone.discColor,
             textShadow: channel === 'lgcom' && textMode === 'dark' ? undefined : tone.discShadow,
             textAlign: hAlign === 'right' ? 'right' : undefined,
-          }}>{(channel === 'lgcom' ? state.lgcomDiscText : state.discText).trim() || '*T&C’s apply'}</p>
+          }}>{discStr}</p>
         )}
       </div>
     </div>
